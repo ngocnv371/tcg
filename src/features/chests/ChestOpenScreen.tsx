@@ -1,12 +1,60 @@
-import { Panel, Planned, Screen } from '@/components/Screen'
+import { useState } from 'react'
+
+import { Panel, Screen } from '@/components/Screen'
+import { useChestInventory, useClaimDailyChest, useOpenChest, type ChestOpening } from '@/features/progression/api'
 import { CHEST_ODDS } from '@/game/formulas'
 
 const CHESTS = ['common', 'rare', 'epic', 'legendary', 'mythic'] as const
 
 export function ChestOpenScreen() {
+  const { data: inventory, error } = useChestInventory()
+  const claimDailyChest = useClaimDailyChest()
+  const openChest = useOpenChest()
+  const [opening, setOpening] = useState<ChestOpening | null>(null)
+  const unopened = inventory?.filter((chest) => !chest.opened_at) ?? []
+
+  const actionError = error ?? claimDailyChest.error ?? openChest.error
+
   return (
-    <Screen title="Chests" week="Built in week 4" hint="One free Common per day; the rest drop from runs.">
+    <Screen title="Chests" hint="Claim the daily chest, then open it to grow your collection.">
       <div className="space-y-3">
+        <Panel title="Vault">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-ink-200">
+              {unopened.length ? `${unopened.length} chest${unopened.length === 1 ? '' : 's'} waiting` : 'No unopened chests'}
+            </p>
+            <button
+              type="button"
+              className="rounded-card bg-gold-500 px-3 py-2 text-xs font-medium text-ink-950 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={claimDailyChest.isPending}
+              onClick={() => claimDailyChest.mutate()}
+            >
+              {claimDailyChest.isPending ? 'Claiming...' : 'Claim daily'}
+            </button>
+          </div>
+          {unopened.map((chest) => (
+            <button
+              key={chest.id}
+              type="button"
+              className="mt-3 flex w-full items-center justify-between rounded-card border border-ink-700 bg-ink-850 px-3 py-2 text-left text-sm"
+              disabled={openChest.isPending}
+              onClick={() => openChest.mutateAsync(chest.id).then(setOpening).catch(() => undefined)}
+            >
+              <span className="capitalize text-ink-100">{chest.chest_id} chest</span>
+              <span className="text-xs text-gold-400">{openChest.isPending ? 'Opening...' : 'Open'}</span>
+            </button>
+          ))}
+          {opening ? (
+            <div className="mt-3 border-t border-ink-800 pt-3 text-sm">
+              <p className="text-gold-300">{opening.card_name} · {opening.rank}★</p>
+              <p className="mt-1 text-xs text-ink-400">
+                {opening.was_new ? 'New card added to your collection.' : `Duplicate converted to ${opening.shard_qty} ${opening.shard_material}.`}
+              </p>
+            </div>
+          ) : null}
+          {actionError ? <p className="mt-3 text-xs text-faction-ember">{actionError.message}</p> : null}
+        </Panel>
+
         <Panel title="Published odds">
           <ul className="space-y-1.5 text-xs">
             {CHESTS.map((chest) => (
@@ -26,15 +74,6 @@ export function ChestOpenScreen() {
           </p>
         </Panel>
 
-        <Panel title="Still to build">
-          <Planned
-            items={[
-              'Chest reveal animation + haptics + particle burst on 4★/5★',
-              'Duplicate → shard conversion with a clear "worth" readout',
-              'Pity counter on the vault header (code hook ships in v1)',
-            ]}
-          />
-        </Panel>
       </div>
     </Screen>
   )

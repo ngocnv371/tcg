@@ -277,6 +277,224 @@ as $$
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Progression RPCs
+-- ---------------------------------------------------------------------------
+
+create or replace function public.claim_daily_chest()
+returns public.chest_inventory
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  result public.chest_inventory;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+
+  update public.profiles
+  set daily_chest_claimed_at = now(), last_seen_at = now()
+  where id = auth.uid()
+    and (daily_chest_claimed_at is null or daily_chest_claimed_at < current_date);
+
+  if not found then raise exception 'daily chest already claimed'; end if;
+
+  insert into public.chest_inventory (profile_id, chest_id, source)
+  values (auth.uid(), 'common', 'daily login')
+  returning * into result;
+  return result;
+end;
+$$;
+
+create or replace function public.open_chest(p_inventory_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  chest public.chest_inventory;
+  selected_rank smallint;
+  selected_card public.cards;
+  existing_card public.player_cards;
+  shard_material text;
+  shard_qty integer;
+  roll numeric := random() * 100;
+  cursor numeric := 0;
+  odds_row record;
+  is_new boolean;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+
+  select * into chest
+  from public.chest_inventory
+  where id = p_inventory_id and profile_id = auth.uid()
+  for update;
+  if not found then raise exception 'chest not found'; end if;
+  if chest.opened_at is not null then raise exception 'chest already opened'; end if;
+
+  for odds_row in select rank, weight from public.chest_odds where chest_id = chest.chest_id order by rank loop
+    cursor := cursor + odds_row.weight;
+    if roll < cursor then
+      selected_rank := odds_row.rank;
+      exit;
+    end if;
+  end loop;
+  if selected_rank is null then raise exception 'chest has no odds'; end if;
+
+  select * into selected_card from public.cards where rank = selected_rank order by random() limit 1;
+  if not found then raise exception 'chest rank has no cards'; end if;
+
+  select * into existing_card
+  from public.player_cards
+  where profile_id = auth.uid() and card_id = selected_card.id
+  limit 1;
+  is_new := not found;
+
+  if is_new then
+    insert into public.player_cards (profile_id, card_id, rank)
+    values (auth.uid(), selected_card.id, selected_rank);
+  else
+    select dupe_shard_material, dupe_shard_qty into shard_material, shard_qty
+    from public.rank_meta where rank = selected_rank;
+    insert into public.player_materials (profile_id, material_id, qty)
+    values (auth.uid(), shard_material, shard_qty)
+    on conflict (profile_id, material_id) do update set qty = public.player_materials.qty + excluded.qty;
+  end if;
+
+  update public.chest_inventory set opened_at = now() where id = chest.id;
+  insert into public.pull_history (profile_id, chest_id, card_id, rank, was_new)
+  values (auth.uid(), chest.chest_id, selected_card.id, selected_rank, is_new);
+
+  return jsonb_build_object(
+    'card_id', selected_card.id,
+    'card_name', selected_card.name,
+    'rank', selected_rank,
+    'was_new', is_new,
+    'shard_material', shard_material,
+    'shard_qty', coalesce(shard_qty, 0)
+  );
+end;
+$$;
+
+create or replace function public.start_run(p_dungeon_id text, p_party_id uuid default null)
+returns public.dungeon_runs
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  dungeon public.dungeons;
+  party public.parties;
+  profile public.profiles;
+  card_count integer;
+  power integer;
+  result public.dungeon_runs;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  select * into profile from public.profiles where id = auth.uid() for update;
+  select * into dungeon from public.dungeons where id = p_dungeon_id;
+  if not found then raise exception 'dungeon not found'; end if;
+
+  if p_party_id is null then
+    select * into party from public.parties where profile_id = auth.uid() order by slot_index limit 1;
+    if not found then
+      insert into public.parties (profile_id, name, slot_index)
+      values (auth.uid(), 'First party', 1) returning * into party;
+      insert into public.party_slots (party_id, slot, player_card_id)
+      select party.id, row_number() over (order by obtained_at), id
+      from public.player_cards where profile_id = auth.uid() order by obtained_at limit 5;
+    end if;
+  else
+    select * into party from public.parties where id = p_party_id and profile_id = auth.uid();
+    if not found then raise exception 'party not found'; end if;
+  end if;
+
+  select count(*), coalesce(sum(public.card_power(pc.rank, pc.level)), 0)::integer
+  into card_count, power
+  from public.party_slots ps join public.player_cards pc on pc.id = ps.player_card_id
+  where ps.party_id = party.id;
+  if card_count = 0 then raise exception 'party has no cards'; end if;
+  if (select count(*) from public.dungeon_runs where profile_id = auth.uid() and resolved_at is null) >= profile.run_slots
+    then raise exception 'all run slots are busy'; end if;
+
+  insert into public.dungeon_runs (profile_id, dungeon_id, party_id, power_snapshot, ends_at)
+  values (auth.uid(), dungeon.id, party.id, power, now() + make_interval(secs => dungeon.duration_seconds))
+  returning * into result;
+  return result;
+end;
+$$;
+
+create or replace function public.resolve_runs()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  run public.dungeon_runs;
+  dungeon public.dungeons;
+  chance numeric;
+  reward_gold integer;
+  reward_material jsonb;
+  resolved_count integer := 0;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  for run in select * from public.dungeon_runs where profile_id = auth.uid() and resolved_at is null and ends_at <= now() for update loop
+    select * into dungeon from public.dungeons where id = run.dungeon_id;
+    chance := greatest(0.1, least(0.95, 0.6 * power(run.power_snapshot::numeric / greatest(dungeon.req_power, 1), 0.8)));
+    if random() <= chance then
+      reward_gold := round(dungeon.gold_base * greatest(1, least(1.5, run.power_snapshot::numeric / dungeon.req_power)));
+      select jsonb_build_object('material_id', (item->>'material_id'), 'qty', floor((item->>'max')::numeric * random() + (item->>'min')::numeric)::integer)
+      into reward_material from jsonb_array_elements(dungeon.materials) item order by random() limit 1;
+      update public.dungeon_runs set resolved_at = now(), success = true,
+        rewards = jsonb_build_object('gold', reward_gold, 'materials', jsonb_build_array(reward_material), 'chest_id', dungeon.chest_on_clear)
+      where id = run.id;
+    else
+      update public.dungeon_runs set resolved_at = now(), success = false,
+        rewards = jsonb_build_object('gold', 0, 'materials', jsonb_build_array()) where id = run.id;
+    end if;
+    resolved_count := resolved_count + 1;
+  end loop;
+  return resolved_count;
+end;
+$$;
+
+create or replace function public.claim_run(p_run_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  run public.dungeon_runs;
+  material jsonb;
+  chest_id text;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  perform public.resolve_runs();
+  select * into run from public.dungeon_runs where id = p_run_id and profile_id = auth.uid() for update;
+  if not found then raise exception 'run not found'; end if;
+  if run.resolved_at is null then raise exception 'run is still active'; end if;
+  if run.claimed_at is not null then raise exception 'run already claimed'; end if;
+
+  if run.success then
+    update public.profiles set gold = gold + coalesce((run.rewards->>'gold')::integer, 0) where id = auth.uid();
+    for material in select * from jsonb_array_elements(coalesce(run.rewards->'materials', '[]'::jsonb)) loop
+      insert into public.player_materials (profile_id, material_id, qty)
+      values (auth.uid(), material->>'material_id', (material->>'qty')::integer)
+      on conflict (profile_id, material_id) do update set qty = public.player_materials.qty + excluded.qty;
+    end loop;
+    chest_id := run.rewards->>'chest_id';
+    if chest_id is not null then
+      insert into public.chest_inventory (profile_id, chest_id, source) values (auth.uid(), chest_id, 'dungeon clear');
+    end if;
+  end if;
+  update public.dungeon_runs set claimed_at = now() where id = run.id;
+  return jsonb_build_object('success', run.success, 'rewards', run.rewards);
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- Row level security
 -- ---------------------------------------------------------------------------
 
@@ -349,3 +567,8 @@ grant execute on function public.card_def(smallint, integer) to anon, authentica
 grant execute on function public.card_power(smallint, integer) to anon, authenticated;
 grant execute on function public.party_power(uuid) to authenticated;
 grant execute on function public.slots_for_level(smallint) to anon, authenticated;
+grant execute on function public.claim_daily_chest() to authenticated;
+grant execute on function public.open_chest(uuid) to authenticated;
+grant execute on function public.start_run(text, uuid) to authenticated;
+grant execute on function public.resolve_runs() to authenticated;
+grant execute on function public.claim_run(uuid) to authenticated;

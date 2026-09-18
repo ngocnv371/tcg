@@ -1,5 +1,6 @@
 import { Panel, Screen } from '@/components/Screen'
 import { useDungeons } from '@/features/dungeons/api'
+import { useClaimRun, useStartRun } from '@/features/progression/api'
 import { successChance } from '@/game/formulas'
 
 function formatDuration(seconds: number) {
@@ -9,6 +10,8 @@ function formatDuration(seconds: number) {
 
 export function DungeonMapScreen() {
   const { data: dungeons, error } = useDungeons()
+  const startRun = useStartRun()
+  const claimRun = useClaimRun()
 
   return (
     <Screen
@@ -48,15 +51,21 @@ export function DungeonMapScreen() {
                   p≈{Math.round(successChance(dungeon.req_power, dungeon.req_power) * 100)}%
                 </dd>
               </dl>
+              <button
+                type="button"
+                className="mt-3 w-full rounded-card border border-gold-600 px-3 py-2 text-xs text-gold-300 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={startRun.isPending}
+                onClick={() => startRun.mutate({ dungeonId: dungeon.id })}
+              >
+                {startRun.isPending ? 'Starting...' : 'Start run'}
+              </button>
             </Panel>
           </li>
         ))}
       </ul>
 
-      <p className="mt-3 text-xs text-ink-600">
-        Start/claim buttons land with the server functions <code>start_run</code> and{' '}
-        <code>claim_run</code> (week 6).
-      </p>
+      {startRun.error ? <p className="mt-3 text-xs text-faction-ember">{startRun.error.message}</p> : null}
+      {claimRun.error ? <p className="mt-3 text-xs text-faction-ember">{claimRun.error.message}</p> : null}
     </Screen>
   )
 }
