@@ -463,8 +463,8 @@ begin
     raise exception 'party not found';
   end if;
 
-  select count(distinct card_id) into distinct_count
-  from unnest(coalesce(p_player_card_ids, '{}'::uuid[])) as card_id;
+  select count(distinct selected.card_id) into distinct_count
+  from unnest(coalesce(p_player_card_ids, '{}'::uuid[])) as selected(card_id);
   if distinct_count <> selected_count then raise exception 'party cannot contain duplicate cards'; end if;
 
   if exists (

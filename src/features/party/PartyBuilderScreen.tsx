@@ -33,6 +33,7 @@ export function PartyBuilderScreen() {
         if (editingSlot >= next.length) return current
         next[existingSlot] = replacedCardId
       }
+      if (editingSlot > next.length) return current
       next[editingSlot] = playerCardId
       return next
     })
@@ -82,34 +83,6 @@ export function PartyBuilderScreen() {
             The server's <code>party_power()</code> is authoritative.
           </p>
           {error ? <p className="mt-2 text-xs text-faction-ember">Could not load your party: {error.message}</p> : null}
-        </Panel>
-
-        <Panel title="Your cards">
-          <p className="mb-2 text-xs text-ink-400">Select up to 5 cards. Select a card again to remove it.</p>
-          <div className="grid grid-cols-3 gap-2.5">
-            {(collection ?? []).map((playerCard) => {
-              const cardInfo = catalog?.find((catalogCard) => catalogCard.id === playerCard.card_id)
-              if (!cardInfo) return null
-              return (
-                <CardTile
-                  key={playerCard.id}
-                  card={cardInfo}
-                  owned
-                  selected={selectedIds.includes(playerCard.id)}
-                  onClick={() => {
-                    setDraftIds((current) => {
-                      const currentIds = current ?? savedIds
-                      return currentIds.includes(playerCard.id)
-                        ? currentIds.filter((id) => id !== playerCard.id)
-                        : currentIds.length < 5
-                          ? [...currentIds, playerCard.id]
-                          : currentIds
-                    })
-                  }}
-                />
-              )
-            })}
-          </div>
           <button
             type="button"
             disabled={!loadout?.party || saveParty.isPending}

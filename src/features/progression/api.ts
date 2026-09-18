@@ -85,6 +85,19 @@ export function useStartRun() {
   })
 }
 
+export function useResolveRuns() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('resolve_runs')
+      if (error) throw error
+      return data as number
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dungeon_runs'] }),
+  })
+}
+
 export function useClaimRun() {
   const queryClient = useQueryClient()
 

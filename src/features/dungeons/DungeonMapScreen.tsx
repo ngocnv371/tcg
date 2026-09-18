@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
+
 import { Panel, Screen } from '@/components/Screen'
-import { useDungeons } from '@/features/dungeons/api'
-import { useClaimRun, useStartRun } from '@/features/progression/api'
+import { useDungeons, useRuns } from '@/features/dungeons/api'
+import { useClaimRun, useResolveRuns, useStartRun } from '@/features/progression/api'
 import { successChance } from '@/game/formulas'
 
 function formatDuration(seconds: number) {
@@ -10,8 +12,17 @@ function formatDuration(seconds: number) {
 
 export function DungeonMapScreen() {
   const { data: dungeons, error } = useDungeons()
+  const { data: runs } = useRuns()
   const startRun = useStartRun()
   const claimRun = useClaimRun()
+  const { mutate: resolveRuns } = useResolveRuns()
+  const activeRuns = runs?.filter((run) => !run.resolved_at) ?? []
+  const claimableRuns = runs?.filter((run) => run.resolved_at && !run.claimed_at) ?? []
+  const dungeonNames = new Map((dungeons ?? []).map((dungeon) => [dungeon.id, dungeon.name]))
+
+  useEffect(() => {
+    resolveRuns()
+  }, [resolveRuns])
 
   return (
     <Screen
@@ -27,7 +38,43 @@ export function DungeonMapScreen() {
         </Panel>
       ) : null}
 
-      <ul className="space-y-2.5">
+      <div className="space-y-3">
+        {startRun.isSuccess ? (
+          <p className="text-xs text-faction-verdant">
+            Run started. It ends at {new Date(startRun.data.ends_at).toLocaleString()}.
+          </p>
+        ) : null}
+
+        {activeRuns.length > 0 || claimableRuns.length > 0 ? (
+          <Panel title="Your runs">
+            <ul className="space-y-2.5">
+              {activeRuns.map((run) => (
+                <li key={run.id} className="flex items-center justify-between gap-3 text-sm">
+                  <div>
+                    <p className="text-ink-200">{dungeonNames.get(run.dungeon_id) ?? run.dungeon_id}</p>
+                    <p className="text-xs text-ink-400">Ends at {new Date(run.ends_at).toLocaleString()}</p>
+                  </div>
+                  <span className="text-xs text-gold-300">Running</span>
+                </li>
+              ))}
+              {claimableRuns.map((run) => (
+                <li key={run.id} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-ink-200">{dungeonNames.get(run.dungeon_id) ?? run.dungeon_id}</span>
+                  <button
+                    type="button"
+                    className="rounded-card bg-gold-500 px-3 py-2 text-xs font-medium text-ink-950 disabled:opacity-50"
+                    disabled={claimRun.isPending}
+                    onClick={() => claimRun.mutate(run.id)}
+                  >
+                    Claim
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        ) : null}
+
+        <ul className="space-y-2.5">
         {(dungeons ?? []).map((dungeon) => (
           <li key={dungeon.id}>
             <Panel>
@@ -62,7 +109,8 @@ export function DungeonMapScreen() {
             </Panel>
           </li>
         ))}
-      </ul>
+        </ul>
+      </div>
 
       {startRun.error ? <p className="mt-3 text-xs text-faction-ember">{startRun.error.message}</p> : null}
       {claimRun.error ? <p className="mt-3 text-xs text-faction-ember">{claimRun.error.message}</p> : null}
