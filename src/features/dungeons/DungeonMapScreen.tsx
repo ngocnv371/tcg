@@ -7,6 +7,7 @@ import { useClaimRun, useStartRun } from '@/features/progression/api'
 import { successChance } from '@/game/formulas'
 
 function formatDuration(seconds: number) {
+  if (seconds < 60) return `${seconds} sec`
   if (seconds < 3600) return `${Math.round(seconds / 60)} min`
   return `${Math.round(seconds / 3600)} h`
 }

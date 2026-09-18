@@ -36,6 +36,8 @@ export function useRuns() {
       )
       .subscribe()
 
+    void supabase.rpc('resolve_runs')
+
     return () => {
       void supabase.removeChannel(channel)
     }

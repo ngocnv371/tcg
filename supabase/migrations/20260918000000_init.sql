@@ -505,6 +505,7 @@ declare
   result public.dungeon_runs;
 begin
   if auth.uid() is null then raise exception 'not authenticated'; end if;
+  perform public.resolve_runs();
   select * into profile from public.profiles where id = auth.uid() for update;
   select * into dungeon from public.dungeons where id = p_dungeon_id;
   if not found then raise exception 'dungeon not found'; end if;
