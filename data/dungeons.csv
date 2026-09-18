@@ -1,0 +1,7 @@
+id,name,kind,tier,req_power,duration_seconds,gold_base,unlocks_at_level,card_id,chest_on_clear,drops
+ore_mine,Ore Mine,resource,1,150,300,60,1,,"common","iron_ore:70:2:5;common_shard:30:1:2"
+shard_grotto,Shard Grotto,resource,2,500,1800,300,1,,"rare","uncommon_shard:55:1:3;iron_ore:30:2:6;crystal:15:1:1"
+ember_forge,Ember Forge,card,2,500,1800,300,3,magma_brute,"rare","ember_essence:45:1:3;iron_ore:35:2:5;common_shard:20:1:3"
+crystal_cavern,Crystal Cavern,resource,3,1500,7200,1200,6,,"epic","crystal:50:1:4;rare_shard:30:1:2;iron_ore:20:3:8"
+fang_hunt,Fang Hunt,card,3,1500,7200,1200,8,pyre_warden,"epic","beast_fang:45:1:3;rare_shard:35:1:2;ember_essence:20:2:5"
+obsidian_gate,Obsidian Gate,boss,5,9000,28800,9000,12,ashen_sovereign,"mythic","boss_core:35:1:1;epic_shard:40:1:3;crystal:25:3:9"

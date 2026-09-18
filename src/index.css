@@ -1,0 +1,72 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens. Keep the palette small: one ink surface ramp, one gold ramp
+ * (currency / rank-up), and the five faction accents. Card frames read their
+ * colour from --color-rank-* so art work never has to hardcode a hex.
+ */
+@theme {
+  --color-ink-950: #07060d;
+  --color-ink-900: #0b0a12;
+  --color-ink-850: #12101c;
+  --color-ink-800: #191627;
+  --color-ink-700: #241f36;
+  --color-ink-600: #332c4a;
+  --color-ink-400: #6b6288;
+  --color-ink-200: #b9b2cf;
+  --color-ink-50: #f2f0f8;
+
+  --color-gold-300: #ffe08a;
+  --color-gold-400: #ffcf4d;
+  --color-gold-500: #e0a929;
+  --color-gold-600: #a97a16;
+
+  --color-rank-1: #8b93a7;
+  --color-rank-2: #57c98a;
+  --color-rank-3: #4aa3ff;
+  --color-rank-4: #b06bff;
+  --color-rank-5: #ffb02e;
+
+  --color-faction-ember: #ff6b4a;
+  --color-faction-tide: #3fc1d6;
+  --color-faction-verdant: #6fcf5b;
+  --color-faction-umbral: #9b6bff;
+  --color-faction-radiant: #ffd76b;
+
+  --radius-card: 14px;
+  --font-display: 'Cinzel', 'Iowan Old Style', Georgia, serif;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink-950);
+  color: var(--color-ink-50);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* Mobile-app feel: no text selection flicker, no rubber-band pull-to-refresh. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior-y: none;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+@utility app-shell {
+  min-height: 100%;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
