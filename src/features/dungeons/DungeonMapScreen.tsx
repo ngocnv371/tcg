@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { X } from 'lucide-react'
 
 import { Panel, Screen } from '@/components/Screen'
 import { useDungeons, useRuns } from '@/features/dungeons/api'
-import { useClaimRun, useResolveRuns, useStartRun } from '@/features/progression/api'
+import { useClaimRun, useStartRun } from '@/features/progression/api'
 import { successChance } from '@/game/formulas'
 
 function formatDuration(seconds: number) {
@@ -15,14 +16,17 @@ export function DungeonMapScreen() {
   const { data: runs } = useRuns()
   const startRun = useStartRun()
   const claimRun = useClaimRun()
-  const { mutate: resolveRuns } = useResolveRuns()
+  const [toast, setToast] = useState<string | null>(null)
   const activeRuns = runs?.filter((run) => !run.resolved_at) ?? []
   const claimableRuns = runs?.filter((run) => run.resolved_at && !run.claimed_at) ?? []
   const dungeonNames = new Map((dungeons ?? []).map((dungeon) => [dungeon.id, dungeon.name]))
 
   useEffect(() => {
-    resolveRuns()
-  }, [resolveRuns])
+    if (!toast) return
+
+    const timeout = window.setTimeout(() => setToast(null), 5_000)
+    return () => window.clearTimeout(timeout)
+  }, [toast])
 
   return (
     <Screen
@@ -102,7 +106,12 @@ export function DungeonMapScreen() {
                 type="button"
                 className="mt-3 w-full rounded-card border border-gold-600 px-3 py-2 text-xs text-gold-300 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={startRun.isPending}
-                onClick={() => startRun.mutate({ dungeonId: dungeon.id })}
+                onClick={() =>
+                  startRun.mutate(
+                    { dungeonId: dungeon.id },
+                    { onError: (runError) => setToast(runError.message) },
+                  )
+                }
               >
                 {startRun.isPending ? 'Starting...' : 'Start run'}
               </button>
@@ -112,8 +121,24 @@ export function DungeonMapScreen() {
         </ul>
       </div>
 
-      {startRun.error ? <p className="mt-3 text-xs text-faction-ember">{startRun.error.message}</p> : null}
       {claimRun.error ? <p className="mt-3 text-xs text-faction-ember">{claimRun.error.message}</p> : null}
+      {toast ? (
+        <div
+          role="alert"
+          className="fixed inset-x-4 bottom-5 z-40 mx-auto flex max-w-md items-start justify-between gap-3 rounded-card border border-faction-ember/60 bg-ink-900 px-3 py-3 text-sm text-ink-100 shadow-lg"
+        >
+          <p>{toast}</p>
+          <button
+            type="button"
+            aria-label="Dismiss notification"
+            title="Dismiss"
+            onClick={() => setToast(null)}
+            className="shrink-0 text-ink-400 hover:text-ink-50"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      ) : null}
     </Screen>
   )
 }

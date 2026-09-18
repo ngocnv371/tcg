@@ -1,19 +1,12 @@
-import { useEffect } from 'react'
-
 import { Panel, Screen } from '@/components/Screen'
-import { useClaimRun, useResolveRuns } from '@/features/progression/api'
+import { useClaimRun } from '@/features/progression/api'
 import { useRuns } from '@/features/dungeons/api'
 
 export function HomeScreen() {
   const { data: runs } = useRuns()
   const claimRun = useClaimRun()
-  const { mutate: resolveRuns } = useResolveRuns()
   const active = runs?.filter((run) => !run.resolved_at) ?? []
   const claimable = runs?.filter((run) => run.resolved_at && !run.claimed_at) ?? []
-
-  useEffect(() => {
-    resolveRuns()
-  }, [resolveRuns])
 
   return (
     <Screen title="Hub" hint="Active runs and rewards return here when you come back.">
