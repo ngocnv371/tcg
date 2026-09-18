@@ -45,10 +45,20 @@ export function CardDetailScreen() {
 
   const level = owned?.level ?? 1
   const rank = owned?.rank ?? card.rank
+  const tags = card.tags ?? []
 
   return (
     <Screen title={card.name} week="Built in weeks 3 + 8" hint={`${rank}★ · ${card.faction} · ${card.role}`}>
       <div className="space-y-3">
+        {tags.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {tags.map((tag) => (
+              <span key={tag} className="rounded-card bg-ink-850 px-2 py-1 text-xs text-ink-200">
+                {tag}
+              </span>
+            ))}
+          </div>
+        ) : null}
         <Panel title="Stats">
           <dl className="grid grid-cols-2 gap-y-1.5 text-sm">
             <dt className="text-ink-400">Level</dt>

@@ -29,6 +29,7 @@ export type Card = {
   passive_name: string
   passive_text: string
   lore: string
+  tags: string[]
   art_path: string | null
 }
 

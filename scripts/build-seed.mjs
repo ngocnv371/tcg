@@ -213,18 +213,18 @@ push(
 
 push(
   '-- cards',
-  'insert into public.cards (id, name, rank, faction, role, base_atk, base_def, passive_name, passive_text, lore, art_path, sort_order) values',
+  'insert into public.cards (id, name, rank, faction, role, base_atk, base_def, passive_name, passive_text, lore, tags, art_path, sort_order) values',
   cards
     .map(
       (card, index) =>
-        `  (${sql(card.id)}, ${sql(card.name)}, ${card.rank}, ${sql(card.faction)}, ${sql(card.role)}, ${card.base_atk}, ${card.base_def}, ${sql(card.passive_name)}, ${sql(card.passive_text)}, ${sql(card.lore)}, ${sql(`art/cards/${card.id}.webp`)}, ${index})`,
+        `  (${sql(card.id)}, ${sql(card.name)}, ${card.rank}, ${sql(card.faction)}, ${sql(card.role)}, ${card.base_atk}, ${card.base_def}, ${sql(card.passive_name)}, ${sql(card.passive_text)}, ${sql(card.lore)}, ${sql(`{${(card.tags ?? '').split(';').filter(Boolean).join(',')}}`)}, ${sql(`art/cards/${card.id}.webp`)}, ${index})`,
     )
     .join(',\n'),
   'on conflict (id) do update set',
   '  name = excluded.name, rank = excluded.rank, faction = excluded.faction, role = excluded.role,',
   '  base_atk = excluded.base_atk, base_def = excluded.base_def,',
   '  passive_name = excluded.passive_name, passive_text = excluded.passive_text,',
-  '  lore = excluded.lore, art_path = excluded.art_path, sort_order = excluded.sort_order;',
+  '  lore = excluded.lore, tags = excluded.tags, art_path = excluded.art_path, sort_order = excluded.sort_order;',
   '',
 )
 

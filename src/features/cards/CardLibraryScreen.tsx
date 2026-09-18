@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
 import { Panel, Screen } from '@/components/Screen'
@@ -25,6 +26,8 @@ export function CardTile({
   selected?: boolean
   onClick?: () => void
 }) {
+  const tags = card.tags ?? []
+
   return (
     <div
       role={onClick ? 'button' : undefined}
@@ -54,6 +57,15 @@ export function CardTile({
       <p className="text-[10px] text-ink-400">
         {cardAtk(card.rank, 1)} ATK · {cardDef(card.rank, 1)} DEF
       </p>
+      {tags.length ? (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {tags.map((tag) => (
+            <span key={tag} className="rounded bg-ink-800 px-1 py-0.5 text-[9px] text-ink-300">
+              {tag}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -61,7 +73,16 @@ export function CardTile({
 export function CardLibraryScreen() {
   const { data: cards, isPending, error } = useCardCatalog()
   const { data: collection } = useCollection()
+  const [nameFilter, setNameFilter] = useState('')
+  const [rankFilter, setRankFilter] = useState<number | null>(null)
+  const [ownedOnly, setOwnedOnly] = useState(false)
   const ownedIds = new Set((collection ?? []).map((row) => row.card_id))
+
+  const filteredCards = (cards ?? []).filter((card) => {
+    const matchesName = card.name.toLowerCase().includes(nameFilter.trim().toLowerCase())
+    const matchesRank = rankFilter === null || card.rank === rankFilter
+    return matchesName && matchesRank && (!ownedOnly || ownedIds.has(card.id))
+  })
 
   const byRank = (cards ?? []).reduce<Record<number, number>>((acc, card) => {
     acc[card.rank] = (acc[card.rank] ?? 0) + 1
@@ -90,10 +111,49 @@ export function CardLibraryScreen() {
         ))}
       </div>
 
+      <div className="mb-3 grid grid-cols-[1fr_auto] gap-2">
+        <input
+          type="search"
+          value={nameFilter}
+          onChange={(event) => setNameFilter(event.target.value)}
+          placeholder="Search cards"
+          aria-label="Filter cards by name"
+          className="min-w-0 rounded-card border border-ink-700 bg-ink-900 px-3 py-2 text-sm text-ink-100 placeholder:text-ink-500"
+        />
+        <label className="flex items-center gap-2 rounded-card border border-ink-700 bg-ink-900 px-3 text-xs text-ink-200">
+          <input
+            type="checkbox"
+            checked={ownedOnly}
+            onChange={(event) => setOwnedOnly(event.target.checked)}
+          />
+          Owned
+        </label>
+      </div>
+
+      <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1">
+        <button
+          type="button"
+          onClick={() => setRankFilter(null)}
+          className={`rounded-card px-2 py-1 text-xs ${rankFilter === null ? 'bg-gold-500 text-ink-950' : 'bg-ink-850 text-ink-300'}`}
+        >
+          All stars
+        </button>
+        {[1, 2, 3, 4, 5].map((rank) => (
+          <button
+            key={rank}
+            type="button"
+            onClick={() => setRankFilter(rank)}
+            className={`shrink-0 rounded-card px-2 py-1 text-xs ${rankFilter === rank ? 'bg-gold-500 text-ink-950' : 'bg-ink-850 text-ink-300'}`}
+          >
+            {rank}★
+          </button>
+        ))}
+      </div>
+
       {isPending ? <p className="text-sm text-ink-400">Loading catalog…</p> : null}
 
       <div className="grid grid-cols-3 gap-2.5">
-        {(cards ?? []).map((card) => (
+        {filteredCards.map((card) => (
           <NavLink key={card.id} to={`/cards/${card.id}`}>
             <CardTile card={card} owned={ownedIds.has(card.id)} />
           </NavLink>

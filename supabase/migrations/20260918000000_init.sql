@@ -51,6 +51,7 @@ create table public.cards (
   passive_name text not null,
   passive_text text not null,
   lore text not null,
+  tags text[] not null default '{}',
   art_path text,
   sort_order integer not null default 0
 );

@@ -33,7 +33,7 @@ if [ "$ready" != 1 ]; then
   exit 1
 fi
 
-psql_run() { docker exec -i "$NAME" psql -q -v ON_ERROR_STOP=1 -U postgres -d tcg "$@"; }
+psql_run() { MSYS_NO_PATHCONV=1 docker exec -i "$NAME" psql -q -v ON_ERROR_STOP=1 -U postgres -d tcg "$@"; }
 
 echo "→ stubbing auth schema"
 psql_run <<'SQL'

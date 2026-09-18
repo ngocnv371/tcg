@@ -1,11 +1,11 @@
-id,name,rank,faction,role,base_atk,base_def,passive_name,passive_text,lore
-cinder_squire,Cinder Squire,1,ember,dps,20,12,Ember Strike,"+15% ATK against 1★ and 2★ enemies.","A page who never lets the forge go cold."
-ash_hound,Ash Hound,1,ember,dps,21,11,Cinder Trail,"+5% party power for each other Ember card in the party.","It sleeps in the cooling slag and wakes at the smell of iron."
-tidepool_sprite,Tidepool Sprite,1,tide,support,17,14,Tidal Mend,"Heals the party for 4% of its power after each successful run.","Small enough to hide in a seashell, loud enough to wake a harbour."
+id,name,rank,faction,role,base_atk,base_def,passive_name,passive_text,lore,tags
+cinder_squire,Cinder Squire,1,ember,dps,20,12,Ember Strike,"+15% ATK against 1★ and 2★ enemies.","A page who never lets the forge go cold.",Fire;Human;Knight
+ash_hound,Ash Hound,1,ember,dps,21,11,Cinder Trail,"+5% party power for each other Ember card in the party.","It sleeps in the cooling slag and wakes at the smell of iron.",Fire;Beast
+tidepool_sprite,Tidepool Sprite,1,tide,support,17,14,Tidal Mend,"Heals the party for 4% of its power after each successful run.","Small enough to hide in a seashell, loud enough to wake a harbour.",Water;Spirit
 drowned_deckhand,Drowned Deckhand,1,tide,tank,18,16,Brine Hide,"Reduces dungeon power requirement by 3% while in the party.","Still punching the clock, four fathoms down."
 thornling,Thornling,1,verdant,tank,16,17,Bramble Guard,"The first failed run each day costs no party fatigue.","Grows a new thorn every time it hears a lie."
 mossback_boar,Mossback Boar,1,verdant,dps,22,10,Charge,"+10% gold from the first run of each session.","Its tusks are prized and its temper is not."
-shade_rat,Shade Rat,1,umbral,dps,19,11,Gnaw,"Ignores 10% of enemy DEF.","It eats the light before it eats the grain."
+shade_rat,Shade Rat,1,umbral,dps,19,11,Gnaw,"Ignores 10% of enemy DEF.","It eats the light before it eats the grain.",Dark;Beast
 grave_lantern,Grave Lantern,1,umbral,support,15,15,Wisp Ward,"+2% success chance on any run it joins.","Someone lit it to walk a friend home. Nobody has blown it out since."
 dawn_acolyte,Dawn Acolyte,1,radiant,support,16,15,First Light,"+5% gold on runs shorter than 30 minutes.","Prays at the hour when the sky cannot decide what colour to be."
 forge_apprentice,Forge Apprentice,2,ember,dps,35,21,Hammerfall,"+12% ATK for each 4★+ material stack in your vault.","Took the apprenticeship for the sparks and stayed for the scars."
@@ -27,5 +27,5 @@ abyss_oracle,Abyss Oracle,4,tide,support,78,47,Foresight,"+12% success chance in
 verdant_colossus,Verdant Colossus,4,verdant,tank,82,54,Canopy,"The first failed run each week refunds every material spent on it.","A mountain that agreed to take a walk."
 umbral_regent,Umbral Regent,4,umbral,support,80,48,Crown of Ash,"+10% to every drop table while a 5★ card is in the party.","Rules a kingdom that appears only on maps drawn in the dark."
 radiant_seraph,Radiant Seraph,4,radiant,support,84,46,Benediction,"Converts one boss core into three crystal on demand.","It has six wings and no opinion about your schedule."
-ashen_sovereign,Ashen Sovereign,5,ember,dps,130,68,Crownfire,"+30% power on boss dungeons and boss cores are guaranteed on a clear.","The first forge was lit to crown it, not to warm anyone."
+ashen_sovereign,Ashen Sovereign,5,ember,dps,130,68,Crownfire,"+30% power on boss dungeons and boss cores are guaranteed on a clear.","The first forge was lit to crown it, not to warm anyone.",Fire;Dragon
 worldseed_avatar,Worldseed Avatar,5,verdant,support,118,74,Worldseed,"Every card in the party earns 25% more XP.","Everything you have ever planted was practice for this."

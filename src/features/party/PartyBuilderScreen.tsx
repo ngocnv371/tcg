@@ -18,8 +18,20 @@ export function PartyBuilderScreen() {
   const slots = runSlotsForLevel(profile?.player_level ?? 1)
   const [draftIds, setDraftIds] = useState<string[] | null>(null)
   const [editingSlot, setEditingSlot] = useState<number | null>(null)
+  const [pickerNameFilter, setPickerNameFilter] = useState('')
+  const [pickerRankFilter, setPickerRankFilter] = useState<number | null>(null)
   const savedIds = loadout?.slots.map((partySlot) => partySlot.player_card_id) ?? []
   const selectedIds = draftIds ?? savedIds
+
+  const pickerCards = (collection ?? [])
+    .flatMap((playerCard) => {
+      const card = catalog?.find((catalogCard) => catalogCard.id === playerCard.card_id)
+      return card ? [{ card, playerCard }] : []
+    })
+    .filter(({ card }) => {
+      const matchesName = card.name.toLowerCase().includes(pickerNameFilter.trim().toLowerCase())
+      return matchesName && (pickerRankFilter === null || card.rank === pickerRankFilter)
+    })
 
   function chooseCard(playerCardId: string) {
     if (editingSlot === null) return
@@ -137,20 +149,43 @@ export function PartyBuilderScreen() {
                 <X className="size-5" />
               </button>
             </div>
+            <input
+              type="search"
+              value={pickerNameFilter}
+              onChange={(event) => setPickerNameFilter(event.target.value)}
+              placeholder="Search owned cards"
+              aria-label="Filter owned cards by name"
+              className="mb-3 w-full rounded-card border border-ink-700 bg-ink-900 px-3 py-2 text-sm text-ink-100 placeholder:text-ink-500"
+            />
+            <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1">
+              <button
+                type="button"
+                onClick={() => setPickerRankFilter(null)}
+                className={`rounded-card px-2 py-1 text-xs ${pickerRankFilter === null ? 'bg-gold-500 text-ink-950' : 'bg-ink-850 text-ink-300'}`}
+              >
+                All stars
+              </button>
+              {[1, 2, 3, 4, 5].map((rank) => (
+                <button
+                  key={rank}
+                  type="button"
+                  onClick={() => setPickerRankFilter(rank)}
+                  className={`shrink-0 rounded-card px-2 py-1 text-xs ${pickerRankFilter === rank ? 'bg-gold-500 text-ink-950' : 'bg-ink-850 text-ink-300'}`}
+                >
+                  {rank}★
+                </button>
+              ))}
+            </div>
             <div className="grid grid-cols-3 gap-2.5">
-              {(collection ?? []).map((playerCard) => {
-                const cardInfo = catalog?.find((catalogCard) => catalogCard.id === playerCard.card_id)
-                if (!cardInfo) return null
-                return (
-                  <CardTile
-                    key={playerCard.id}
-                    card={cardInfo}
-                    owned
-                    selected={selectedIds[editingSlot] === playerCard.id}
-                    onClick={() => chooseCard(playerCard.id)}
-                  />
-                )
-              })}
+              {pickerCards.map(({ card, playerCard }) => (
+                <CardTile
+                  key={playerCard.id}
+                  card={card}
+                  owned
+                  selected={selectedIds[editingSlot] === playerCard.id}
+                  onClick={() => chooseCard(playerCard.id)}
+                />
+              ))}
             </div>
           </div>
         </div>
