@@ -38,7 +38,28 @@ psql_run() { docker exec -i "$NAME" psql -q -v ON_ERROR_STOP=1 -U postgres -d tc
 echo "→ stubbing auth schema"
 psql_run <<'SQL'
 create schema auth;
-create table auth.users (id uuid primary key, email text);
+create table auth.users (
+  instance_id uuid,
+  id uuid primary key,
+  aud text,
+  role text,
+  email text,
+  encrypted_password text,
+  email_confirmed_at timestamptz,
+  raw_app_meta_data jsonb,
+  raw_user_meta_data jsonb,
+  created_at timestamptz,
+  updated_at timestamptz
+);
+create table auth.identities (
+  provider_id text not null,
+  user_id uuid not null references auth.users(id),
+  identity_data jsonb not null,
+  provider text not null,
+  created_at timestamptz,
+  updated_at timestamptz,
+  primary key (provider_id, provider)
+);
 create or replace function auth.uid() returns uuid language sql stable as $$ select null::uuid $$;
 -- Supabase roles referenced by the policies/grants in the migration
 create role anon nologin;
@@ -60,6 +81,9 @@ do $$
 declare
   card_count integer;
   dungeon_count integer;
+  starter_card_count integer;
+  starter_party_count integer;
+  starter_slot_count integer;
   write_policies integer;
   missing_power integer;
 begin
@@ -68,6 +92,23 @@ begin
 
   select count(*) into dungeon_count from public.dungeons;
   if dungeon_count <> 6 then raise exception 'expected 6 dungeons, found %', dungeon_count; end if;
+
+  insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000001', 'tester@example.com');
+  select count(*) into starter_card_count
+  from public.player_cards
+  where profile_id = '00000000-0000-0000-0000-000000000001';
+  if starter_card_count <> 5 then raise exception 'expected 5 starter cards, found %', starter_card_count; end if;
+
+  select count(*) into starter_party_count
+  from public.parties
+  where profile_id = '00000000-0000-0000-0000-000000000001';
+  if starter_party_count <> 1 then raise exception 'expected 1 starter party, found %', starter_party_count; end if;
+
+  select count(*) into starter_slot_count
+  from public.party_slots ps
+  join public.parties p on p.id = ps.party_id
+  where p.profile_id = '00000000-0000-0000-0000-000000000001';
+  if starter_slot_count <> 5 then raise exception 'expected 5 starter party slots, found %', starter_slot_count; end if;
 
   -- every rank-up row must reference real materials
   select count(*) into missing_power
@@ -110,9 +151,15 @@ SQL
 
 echo "→ provisioning a user through the trigger"
 docker exec -i "$NAME" psql -q -v ON_ERROR_STOP=1 -U postgres -d tcg <<'SQL'
-insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000001', 'tester@example.com');
 select 'profile created for: ' || coalesce(username, '(no username)') || ' / slots ' || run_slots
 from public.profiles where id = '00000000-0000-0000-0000-000000000001';
+select 'starter cards: ' || count(*)::text
+from public.player_cards
+where profile_id = '00000000-0000-0000-0000-000000000001';
+select 'starter party slots: ' || count(*)::text
+from public.party_slots ps
+join public.parties p on p.id = ps.party_id
+where p.profile_id = '00000000-0000-0000-0000-000000000001';
 SQL
 
 echo "✓ schema + seed verified"

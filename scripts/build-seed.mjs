@@ -299,6 +299,9 @@ push(
 
 push('commit;', '')
 push(
+  "-- local development account's starter cards and party",
+  "select public.provision_starter_loadout('00000000-0000-0000-0000-000000000002'::uuid);",
+  '',
   `-- summary: ${cards.length} cards (${Object.entries(byRank)
     .map(([rank, count]) => `${rank}star:${count}`)
     .join(' ')}), ${dungeons.length} dungeons, ${CHESTS.length} chests, ${MATERIALS.length} materials`,

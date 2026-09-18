@@ -1,6 +1,8 @@
-import { Coins, Gem, Swords } from 'lucide-react'
+import { Coins, Gem, LogOut, Swords } from 'lucide-react'
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 
+import { supabase } from '@/lib/supabase'
 import { useProfile } from '@/features/profile/api'
 import { cn } from '@/lib/utils'
 
@@ -24,8 +26,15 @@ function Resource({ icon, value }: { icon: React.ReactNode; value: string }) {
 /** Shell: resource bar on top, bottom tab bar, outlet in between. */
 export function AppShell() {
   const { data: profile } = useProfile()
+  const [signingOut, setSigningOut] = useState(false)
   const num = (value: number | undefined) =>
     value === undefined ? '—' : value.toLocaleString('en-US')
+
+  async function signOut() {
+    setSigningOut(true)
+    const { error } = await supabase.auth.signOut()
+    if (error) setSigningOut(false)
+  }
 
   return (
     <div className="app-shell flex flex-col bg-ink-950">
@@ -37,6 +46,16 @@ export function AppShell() {
           <Resource icon={<Coins className="size-3.5 text-gold-400" />} value={num(profile?.gold)} />
           <Resource icon={<Gem className="size-3.5 text-faction-tide" />} value={num(profile?.gems)} />
           <Resource icon={<Swords className="size-3.5 text-ink-200" />} value={num(profile?.run_slots)} />
+          <button
+            type="button"
+            onClick={signOut}
+            disabled={signingOut}
+            aria-label="Sign out"
+            title="Sign out"
+            className="grid size-8 place-items-center rounded-card text-ink-400 hover:bg-ink-800 hover:text-ink-100 disabled:opacity-50"
+          >
+            <LogOut className="size-4" />
+          </button>
         </div>
       </header>
 

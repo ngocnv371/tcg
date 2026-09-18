@@ -197,8 +197,45 @@ create index chest_inventory_unopened_idx on public.chest_inventory (profile_id)
 create index pull_history_profile_idx on public.pull_history (profile_id, pulled_at desc);
 
 -- ---------------------------------------------------------------------------
--- Provisioning: every signup gets a profile row with 2 run slots
+-- Provisioning: every signup gets a profile row with 2 run slots and a starter party
 -- ---------------------------------------------------------------------------
+
+create or replace function public.provision_starter_loadout(p_profile_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  starter_party_id uuid;
+begin
+  if not exists (select 1 from public.player_cards where profile_id = p_profile_id) then
+    insert into public.player_cards (profile_id, card_id, level, rank)
+    select p_profile_id, c.id, 1, c.rank
+    from public.cards c
+    where c.rank = 1
+    order by c.sort_order, c.id
+    limit 5;
+  end if;
+
+  select id into starter_party_id
+  from public.parties
+  where profile_id = p_profile_id and slot_index = 1;
+
+  if starter_party_id is null then
+    insert into public.parties (profile_id, name, slot_index)
+    values (p_profile_id, 'First Expedition', 1)
+    returning id into starter_party_id;
+  end if;
+
+  if not exists (select 1 from public.party_slots where party_id = starter_party_id) then
+    insert into public.party_slots (party_id, slot, player_card_id)
+    select starter_party_id, row_number() over (order by pc.obtained_at, pc.id)::smallint, pc.id
+    from public.player_cards pc
+    where pc.profile_id = p_profile_id;
+  end if;
+end;
+$$;
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -210,6 +247,8 @@ begin
   insert into public.profiles (id, username, run_slots)
   values (new.id, nullif(split_part(coalesce(new.email, ''), '@', 1), ''), 2)
   on conflict (id) do nothing;
+  perform public.provision_starter_loadout(new.id);
+
   return new;
 end;
 $$;
@@ -218,6 +257,34 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Local-only account for testing the first-session flow. The generated seed
+-- completes its starter loadout after catalog rows exist.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, email_change, email_change_token_new, recovery_token
+)
+values (
+  '00000000-0000-0000-0000-000000000000',
+  '00000000-0000-0000-0000-000000000002',
+  'authenticated', 'authenticated', 'dev@tcg2.local', crypt('tcg2devpass', gen_salt('bf', 10)), now(),
+  '{"provider":"email","providers":["email"]}'::jsonb,
+  '{"sub":"00000000-0000-0000-0000-000000000002","email":"dev@tcg2.local","email_verified":true,"phone_verified":false}'::jsonb,
+  now(), now(), '', '', '', ''
+)
+on conflict (id) do nothing;
+
+insert into auth.identities (provider_id, user_id, identity_data, provider, created_at, updated_at)
+values (
+  '00000000-0000-0000-0000-000000000002',
+  '00000000-0000-0000-0000-000000000002',
+  '{"sub":"00000000-0000-0000-0000-000000000002","email":"dev@tcg2.local","email_verified":false,"phone_verified":false}'::jsonb,
+  'email', now(), now()
+)
+on conflict (provider_id, provider) do nothing;
+
+revoke all on function public.provision_starter_loadout(uuid) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Derived numbers (mirror src/game/formulas.ts — keep them in sync)
@@ -373,6 +440,53 @@ begin
     'shard_material', shard_material,
     'shard_qty', coalesce(shard_qty, 0)
   );
+end;
+$$;
+
+create or replace function public.save_party(p_party_id uuid, p_player_card_ids uuid[])
+returns setof public.party_slots
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  selected_count integer := coalesce(array_length(p_player_card_ids, 1), 0);
+  distinct_count integer;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  if selected_count > 5 then raise exception 'party cannot have more than 5 cards'; end if;
+
+  if not exists (
+    select 1 from public.parties
+    where id = p_party_id and profile_id = auth.uid()
+  ) then
+    raise exception 'party not found';
+  end if;
+
+  select count(distinct card_id) into distinct_count
+  from unnest(coalesce(p_player_card_ids, '{}'::uuid[])) as card_id;
+  if distinct_count <> selected_count then raise exception 'party cannot contain duplicate cards'; end if;
+
+  if exists (
+    select 1
+    from unnest(coalesce(p_player_card_ids, '{}'::uuid[])) as selected(card_id)
+    where not exists (
+      select 1 from public.player_cards pc
+      where pc.id = selected.card_id and pc.profile_id = auth.uid()
+    )
+  ) then
+    raise exception 'party contains a card you do not own';
+  end if;
+
+  delete from public.party_slots where party_id = p_party_id;
+  insert into public.party_slots (party_id, slot, player_card_id)
+  select p_party_id, selected.ordinality::smallint, selected.card_id
+  from unnest(coalesce(p_player_card_ids, '{}'::uuid[])) with ordinality as selected(card_id, ordinality);
+
+  return query
+  select ps.* from public.party_slots ps
+  where ps.party_id = p_party_id
+  order by ps.slot;
 end;
 $$;
 

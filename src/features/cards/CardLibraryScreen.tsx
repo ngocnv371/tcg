@@ -14,13 +14,35 @@ const RANK_BORDER: Record<number, string> = {
   5: 'border-rank-5',
 }
 
-export function CardTile({ card, owned }: { card: Card; owned: boolean }) {
+export function CardTile({
+  card,
+  owned,
+  selected = false,
+  onClick,
+}: {
+  card: Card
+  owned: boolean
+  selected?: boolean
+  onClick?: () => void
+}) {
   return (
     <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-pressed={onClick ? selected : undefined}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault()
+          onClick()
+        }
+      }}
       className={cn(
         'rounded-card border-2 bg-ink-900/80 p-2 text-left',
         RANK_BORDER[card.rank],
+        selected ? 'ring-2 ring-gold-400 ring-offset-2 ring-offset-ink-950' : '',
         owned ? '' : 'opacity-45 saturate-0',
+        onClick ? 'cursor-pointer' : '',
       )}
     >
       <div className="aspect-3/4 w-full rounded-[8px] bg-ink-850">

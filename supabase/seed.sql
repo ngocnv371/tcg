@@ -216,6 +216,9 @@ on conflict (player_level) do update set slots = excluded.slots;
 
 commit;
 
+-- local development account's starter cards and party
+select public.provision_starter_loadout('00000000-0000-0000-0000-000000000002'::uuid);
+
 -- summary: 30 cards (1star:9 2star:8 3star:6 4star:5 5star:2), 6 dungeons, 5 chests, 14 materials
 -- dungeons: ore_mine, shard_grotto, ember_forge, crystal_cavern, fang_hunt, obsidian_gate
 -- rank-up cost rows: 77, chest odds rows: 19
