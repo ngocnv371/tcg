@@ -52,6 +52,19 @@ export function useClaimDailyChest() {
   })
 }
 
+export function useGrantTestChests() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (quantity: number = 10) => {
+      const { data, error } = await supabase.rpc('grant_test_chests', { p_qty: quantity })
+      if (error) throw error
+      return data as number
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chest_inventory'] }),
+  })
+}
+
 export function useOpenChest() {
   const queryClient = useQueryClient()
 

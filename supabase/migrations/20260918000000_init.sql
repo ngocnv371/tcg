@@ -372,6 +372,24 @@ begin
 end;
 $$;
 
+create or replace function public.grant_test_chests(p_qty integer default 10)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  if p_qty < 1 or p_qty > 100 then raise exception 'test chest quantity must be between 1 and 100'; end if;
+
+  insert into public.chest_inventory (profile_id, chest_id, source)
+  select auth.uid(), 'common', 'test grant'
+  from generate_series(1, p_qty);
+
+  return p_qty;
+end;
+$$;
+
 create or replace function public.open_chest(p_inventory_id uuid)
 returns jsonb
 language plpgsql
@@ -683,6 +701,7 @@ grant execute on function public.card_power(smallint, integer) to anon, authenti
 grant execute on function public.party_power(uuid) to authenticated;
 grant execute on function public.slots_for_level(smallint) to anon, authenticated;
 grant execute on function public.claim_daily_chest() to authenticated;
+grant execute on function public.grant_test_chests(integer) to authenticated;
 grant execute on function public.open_chest(uuid) to authenticated;
 grant execute on function public.start_run(text, uuid) to authenticated;
 grant execute on function public.resolve_runs() to authenticated;
