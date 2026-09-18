@@ -1,10 +1,15 @@
+import { useState } from 'react'
+
 import { Panel, Screen } from '@/components/Screen'
+import { RunRewardsModal } from '@/features/dungeons/RunRewardsModal'
 import { useClaimRun } from '@/features/progression/api'
+import type { RunClaim } from '@/features/progression/api'
 import { useRuns } from '@/features/dungeons/api'
 
 export function HomeScreen() {
   const { data: runs } = useRuns()
   const claimRun = useClaimRun()
+  const [claim, setClaim] = useState<RunClaim | null>(null)
   const active = runs?.filter((run) => !run.resolved_at) ?? []
   const claimable = runs?.filter((run) => run.resolved_at && !run.claimed_at) ?? []
 
@@ -36,7 +41,7 @@ export function HomeScreen() {
                   type="button"
                   className="rounded-card bg-gold-500 px-3 py-2 text-xs font-medium text-ink-950 disabled:opacity-50"
                   disabled={claimRun.isPending}
-                  onClick={() => claimRun.mutate(run.id)}
+                  onClick={() => claimRun.mutate(run.id, { onSuccess: setClaim })}
                 >
                   Claim
                 </button>
@@ -46,6 +51,7 @@ export function HomeScreen() {
           {claimRun.error ? <p className="mt-3 text-xs text-faction-ember">{claimRun.error.message}</p> : null}
         </Panel>
       </div>
+      {claim ? <RunRewardsModal claim={claim} onClose={() => setClaim(null)} /> : null}
     </Screen>
   )
 }

@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 
 import { Panel, Screen } from '@/components/Screen'
+import { RunRewardsModal } from '@/features/dungeons/RunRewardsModal'
 import { useDungeons, useRuns } from '@/features/dungeons/api'
 import { useClaimRun, useStartRun } from '@/features/progression/api'
+import type { RunClaim } from '@/features/progression/api'
 import { successChance } from '@/game/formulas'
 
 function formatDuration(seconds: number) {
@@ -18,6 +20,7 @@ export function DungeonMapScreen() {
   const startRun = useStartRun()
   const claimRun = useClaimRun()
   const [toast, setToast] = useState<string | null>(null)
+  const [claim, setClaim] = useState<RunClaim | null>(null)
   const activeRuns = runs?.filter((run) => !run.resolved_at) ?? []
   const claimableRuns = runs?.filter((run) => run.resolved_at && !run.claimed_at) ?? []
   const dungeonNames = new Map((dungeons ?? []).map((dungeon) => [dungeon.id, dungeon.name]))
@@ -69,7 +72,7 @@ export function DungeonMapScreen() {
                     type="button"
                     className="rounded-card bg-gold-500 px-3 py-2 text-xs font-medium text-ink-950 disabled:opacity-50"
                     disabled={claimRun.isPending}
-                    onClick={() => claimRun.mutate(run.id)}
+                    onClick={() => claimRun.mutate(run.id, { onSuccess: setClaim })}
                   >
                     Claim
                   </button>
@@ -140,6 +143,7 @@ export function DungeonMapScreen() {
           </button>
         </div>
       ) : null}
+      {claim ? <RunRewardsModal claim={claim} onClose={() => setClaim(null)} /> : null}
     </Screen>
   )
 }
