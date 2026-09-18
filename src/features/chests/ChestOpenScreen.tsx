@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { NavLink } from 'react-router-dom'
 
 import { Panel, Screen } from '@/components/Screen'
 import { useChestInventory, useClaimDailyChest, useOpenChest, type ChestOpening } from '@/features/progression/api'
@@ -7,7 +8,7 @@ import { CHEST_ODDS } from '@/game/formulas'
 const CHESTS = ['common', 'rare', 'epic', 'legendary', 'mythic'] as const
 
 export function ChestOpenScreen() {
-  const { data: inventory, error } = useChestInventory()
+  const { data: inventory, isPending, error } = useChestInventory()
   const claimDailyChest = useClaimDailyChest()
   const openChest = useOpenChest()
   const [opening, setOpening] = useState<ChestOpening | null>(null)
@@ -16,7 +17,7 @@ export function ChestOpenScreen() {
   const actionError = error ?? claimDailyChest.error ?? openChest.error
 
   return (
-    <Screen title="Chests" hint="Claim the daily chest, then open it to grow your collection.">
+    <Screen title="Chests" week="Built in week 4" hint="Claim the daily chest, then open it to grow your collection.">
       <div className="space-y-3">
         <Panel title="Vault">
           <div className="flex items-center justify-between gap-3">
@@ -32,6 +33,10 @@ export function ChestOpenScreen() {
               {claimDailyChest.isPending ? 'Claiming...' : 'Claim daily'}
             </button>
           </div>
+          {isPending ? <p className="mt-3 text-sm text-ink-400">Loading chests...</p> : null}
+          {!isPending && !unopened.length && !error ? (
+            <p className="mt-3 text-sm text-ink-400">Claim today&apos;s chest to start an opening.</p>
+          ) : null}
           {unopened.map((chest) => (
             <button
               key={chest.id}
@@ -46,7 +51,12 @@ export function ChestOpenScreen() {
           ))}
           {opening ? (
             <div className="mt-3 border-t border-ink-800 pt-3 text-sm">
-              <p className="text-gold-300">{opening.card_name} · {opening.rank}★</p>
+              <NavLink
+                to={`/cards/${opening.card_id}`}
+                className="text-gold-300 underline decoration-gold-500/50 underline-offset-2"
+              >
+                {opening.card_name} · {opening.rank}★
+              </NavLink>
               <p className="mt-1 text-xs text-ink-400">
                 {opening.was_new ? 'New card added to your collection.' : `Duplicate converted to ${opening.shard_qty} ${opening.shard_material}.`}
               </p>
