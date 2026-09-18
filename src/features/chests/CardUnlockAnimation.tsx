@@ -13,6 +13,14 @@ const PARTICLES = Array.from({ length: 22 }, (_, index) => ({
   size: 2 + (index % 4),
   delay: index % 7,
 }))
+const GOD_RAYS = [
+  { angle: -62, length: 360, width: 34, delay: 0 },
+  { angle: -35, length: 300, width: 22, delay: 8 },
+  { angle: -12, length: 390, width: 28, delay: 15 },
+  { angle: 18, length: 330, width: 24, delay: 4 },
+  { angle: 44, length: 370, width: 30, delay: 11 },
+  { angle: 70, length: 290, width: 20, delay: 19 },
+]
 
 export function CardUnlockAnimation({ cardName, rank, wasNew }: CardUnlockAnimationProps) {
   const frame = useCurrentFrame()
@@ -86,16 +94,28 @@ export function CardUnlockAnimation({ cardName, rank, wasNew }: CardUnlockAnimat
         }}
       />
 
-      <div
-        style={{
-          background: color,
-          height: 2,
-          opacity: burst * 0.55,
-          position: 'absolute',
-          transform: `rotate(28deg) scaleX(${1 + burst * 20})`,
-          width: 120,
-        }}
-      />
+      {GOD_RAYS.map((ray, index) => {
+        const pulse = interpolate(frame, [ray.delay, ray.delay + 16, ray.delay + 44], [0, 1, 0], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        })
+        const rotation = ray.angle + frame * (index % 2 === 0 ? 0.08 : -0.06)
+        return (
+          <div
+            key={ray.angle}
+            style={{
+              background: `linear-gradient(180deg, ${color}aa 0%, ${color}18 72%, transparent 100%)`,
+              filter: 'blur(5px)',
+              height: ray.length,
+              opacity: burst * (0.12 + pulse * 0.3),
+              position: 'absolute',
+              transform: `rotate(${rotation}deg) scaleY(${0.75 + pulse * 0.35})`,
+              transformOrigin: '50% 100%',
+              width: ray.width,
+            }}
+          />
+        )
+      })}
 
       <div
         style={{
