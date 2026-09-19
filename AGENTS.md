@@ -55,7 +55,10 @@ with the status plus a full-width `Claim`, so a dungeon is one run at a time fro
 run also gates the next one server-side: `20260923000000_claim_before_start.sql` makes `start_run`
 raise `'claim your finished runs first'`. The progress bar is pure CSS — the `run-progress` keyframe
 scaled by the run
-length plus a negative `animation-delay` for the time already spent — so nothing ticks it. A party
+length plus a negative `animation-delay` for the time already spent — so nothing ticks it. The vault
+stacks unopened chests by type and offers Open 1/2/5/10: `open_chests`
+(`20260925000000_open_chests.sql`) spends the oldest rows of that type, calls `open_chest` per chest
+and returns the reveals as an array, and the client plays the unlock animation for each in turn. A party
 with an unresolved run can no longer be sent again: `20260922000000_busy_party_guard.sql` redefines
 `start_run` with that check (the client badge is display only). A failed run still pays
 `FAILED_RUN_PITY_GOLD` (1 gold, mirrored in `20260924000000_failed_run_pity.sql`), and `claim_run`

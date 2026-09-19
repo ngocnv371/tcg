@@ -81,6 +81,7 @@ MIGRATIONS=(
   "20260922000000_busy_party_guard.sql"
   "20260923000000_claim_before_start.sql"
   "20260924000000_failed_run_pity.sql"
+  "20260925000000_open_chests.sql"
 )
 
 docker cp "$ROOT_HOST/supabase/seed.sql" "$NAME:/tmp/seed.sql" >/dev/null
@@ -277,6 +278,63 @@ begin
     delete from public.dungeons where id = busy_dungeon;
     delete from public.player_cards where card_id = 'verify_busy_card';
     delete from public.cards where id = 'verify_busy_card';
+  end;
+
+  -- stacked chests burn N rows of one type in a single call, and the guard
+  -- refuses to open more than the player actually holds
+  declare
+    stacked integer;
+    opened_rows integer;
+    pulls integer;
+    reveals jsonb;
+  begin
+    -- one card per rank, so any common-chest roll has something to return
+    insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
+                              passive_name, passive_text, lore)
+    select 'verify_open_card_' || rank, 'Verify Open Card ' || rank, rank, 'ember', 'dps', 1, 0, 'p', 'p', 'p'
+    from public.rank_meta;
+
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select '00000000-0000-0000-0000-000000000001'::uuid $fn$;
+
+    perform public.grant_test_chests(3);
+    select count(*) into stacked
+    from public.chest_inventory
+    where profile_id = '00000000-0000-0000-0000-000000000001'
+      and chest_id = 'common' and opened_at is null;
+    if stacked <> 3 then raise exception 'expected 3 stacked common chests, found %', stacked; end if;
+
+    reveals := public.open_chests('common', 2);
+    if jsonb_array_length(reveals) <> 2 then
+      raise exception 'open_chests(2) returned % reveals', jsonb_array_length(reveals);
+    end if;
+
+    select count(*) into opened_rows
+    from public.chest_inventory
+    where profile_id = '00000000-0000-0000-0000-000000000001'
+      and chest_id = 'common' and opened_at is not null;
+    if opened_rows <> 2 then raise exception 'open_chests(2) opened % rows', opened_rows; end if;
+
+    select count(*) into pulls
+    from public.pull_history
+    where profile_id = '00000000-0000-0000-0000-000000000001';
+    if pulls <> 2 then raise exception 'open_chests(2) wrote % pull_history rows', pulls; end if;
+
+    begin
+      perform public.open_chests('common', 10);
+      raise exception 'open_chests opened more chests than the player owns';
+    exception when others then
+      if sqlerrm <> 'not enough unopened common chests' then raise; end if;
+    end;
+
+    -- leave the throwaway database as the assertions found it
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select null::uuid $fn$;
+    delete from public.pull_history where profile_id = '00000000-0000-0000-0000-000000000001';
+    delete from public.chest_inventory where profile_id = '00000000-0000-0000-0000-000000000001';
+    delete from public.player_materials where profile_id = '00000000-0000-0000-0000-000000000001';
+    delete from public.player_cards where card_id like 'verify_open_card_%';
+    delete from public.cards where id like 'verify_open_card_%';
   end;
 end $$;
 

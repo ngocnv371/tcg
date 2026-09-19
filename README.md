@@ -83,8 +83,10 @@ Week 1 schema + seed · 2 auth/RLS · 3 card library · 4 chest opening · 5 par
 6 dungeon timers + resolve/claim · 7 offline notifications · 8 level/rank-up + inventory ·
 9 hub + first-session script · 10–11 art + telemetry · 12 balance tuning · 13 tester week.
 
-Built: daily chest claiming and server-authoritative chest opening. `start_run`, `resolve_runs`,
-`claim_run`, `level_up_card`, and `rank_up_card` remain on the roadmap.
+Built: daily chest claiming and server-authoritative chest opening. The vault stacks duplicates by
+type and opens 1/2/5/10 at once through `open_chests`, which spends the rows server-side and returns
+one reveal per chest. `start_run`, `resolve_runs`, `claim_run`, `level_up_card`, and `rank_up_card`
+remain on the roadmap.
 
 ## Known follow-ups
 

@@ -8,15 +8,22 @@ import {
   useChestInventory,
   useClaimDailyChest,
   useGrantTestChests,
-  useOpenChest,
+  useOpenChests,
   type ChestOpening,
 } from '@/features/progression/api'
 import { CHEST_ODDS } from '@/game/formulas'
 
 const CHESTS = ['common', 'rare', 'epic', 'legendary', 'mythic'] as const
 
+/** Bulk-open steps offered per stacked chest type. 1 is the default action. */
+const OPEN_QUANTITIES = [1, 2, 5, 10] as const
+
+/** Best tiers first — the vault is read top-down. */
+const VAULT_ORDER: readonly string[] = [...CHESTS].reverse()
+
 type UnlockState = {
-  inventoryId: string
+  /** Unique per reveal, so the Player remounts between stacked openings. */
+  key: string
   opening: ChestOpening
 }
 
@@ -35,40 +42,40 @@ function CardUnlockOverlay({
 
   useEffect(() => {
     logUnlock('overlay-mounted', {
-      inventoryId: unlock.inventoryId,
+      key: unlock.key,
       cardId: unlock.opening.card_id,
       cardName: unlock.opening.card_name,
     })
     const player = playerRef.current
     if (!player) {
-      logUnlock('player-ref-missing', { inventoryId: unlock.inventoryId })
+      logUnlock('player-ref-missing', { key: unlock.key })
       return
     }
 
     let hasStarted = false
     const handlePlay = () => {
       hasStarted = true
-      logUnlock('play', { inventoryId: unlock.inventoryId, frame: player.getCurrentFrame() })
+      logUnlock('play', { key: unlock.key, frame: player.getCurrentFrame() })
     }
     const handleEnded = () => {
-      logUnlock('ended', { inventoryId: unlock.inventoryId, frame: player.getCurrentFrame(), hasStarted })
+      logUnlock('ended', { key: unlock.key, frame: player.getCurrentFrame(), hasStarted })
       if (hasStarted) onClose()
     }
     const handleFrameUpdate = ({ detail }: { detail: { frame: number } }) => {
-      if (detail.frame % 30 === 0) logUnlock('frame', { inventoryId: unlock.inventoryId, frame: detail.frame })
+      if (detail.frame % 30 === 0) logUnlock('frame', { key: unlock.key, frame: detail.frame })
     }
 
     player.addEventListener('play', handlePlay)
     player.addEventListener('ended', handleEnded)
     player.addEventListener('frameupdate', handleFrameUpdate)
-    logUnlock('listeners-attached', { inventoryId: unlock.inventoryId })
+    logUnlock('listeners-attached', { key: unlock.key })
     player.seekTo(0)
-    logUnlock('seek-zero', { inventoryId: unlock.inventoryId })
+    logUnlock('seek-zero', { key: unlock.key })
     player.play()
-    logUnlock('play-requested', { inventoryId: unlock.inventoryId })
+    logUnlock('play-requested', { key: unlock.key })
 
     return () => {
-      logUnlock('cleanup', { inventoryId: unlock.inventoryId, frame: player.getCurrentFrame() })
+      logUnlock('cleanup', { key: unlock.key, frame: player.getCurrentFrame() })
       player.removeEventListener('play', handlePlay)
       player.removeEventListener('ended', handleEnded)
       player.removeEventListener('frameupdate', handleFrameUpdate)
@@ -84,7 +91,7 @@ function CardUnlockOverlay({
       role="dialog"
     >
       <Player
-        key={unlock.inventoryId}
+        key={unlock.key}
         ref={playerRef}
         component={CardUnlockAnimation}
         compositionHeight={844}
@@ -118,16 +125,40 @@ export function ChestOpenScreen() {
   const { data: inventory, isPending, error } = useChestInventory()
   const claimDailyChest = useClaimDailyChest()
   const grantTestChests = useGrantTestChests()
-  const openChest = useOpenChest()
-  const [opening, setOpening] = useState<ChestOpening | null>(null)
-  const [unlock, setUnlock] = useState<UnlockState | null>(null)
+  const openChests = useOpenChests()
+  const [batch, setBatch] = useState<ChestOpening[]>([])
+  const [unlocks, setUnlocks] = useState<UnlockState[]>([])
   const unopened = inventory?.filter((chest) => !chest.opened_at) ?? []
+
+  // Stacked chests collapse to one row per type; anything not in the catalog
+  // order still shows up, just after the known tiers.
+  const groups = [...VAULT_ORDER, ...[...new Set(unopened.map((chest) => chest.chest_id))].filter(
+    (chestId) => !VAULT_ORDER.includes(chestId),
+  )]
+    .map((chestId) => ({ chestId, count: unopened.filter((chest) => chest.chest_id === chestId).length }))
+    .filter((group) => group.count > 0)
+
+  // Reveals play one after another: closing the overlay drops the head of the queue.
+  const activeUnlock = unlocks[0] ?? null
   const closeUnlock = useCallback(() => {
     logUnlock('close-requested')
-    setUnlock(null)
+    setUnlocks((queue) => queue.slice(1))
   }, [])
 
-  const actionError = error ?? claimDailyChest.error ?? grantTestChests.error ?? openChest.error
+  const handleOpen = (chestId: string, qty: number) => {
+    openChests
+      .mutateAsync({ chestId, qty })
+      .then((openings) => {
+        logUnlock('open-result', { chestId, qty, cardIds: openings.map((opening) => opening.card_id) })
+        setBatch(openings)
+        setUnlocks(openings.map((opening, index) => ({ key: `${chestId}-${Date.now()}-${index}`, opening })))
+      })
+      .catch((error: unknown) => {
+        logUnlock('open-error', { chestId, qty, error })
+      })
+  }
+
+  const actionError = error ?? claimDailyChest.error ?? grantTestChests.error ?? openChests.error
 
   return (
     <>
@@ -161,45 +192,60 @@ export function ChestOpenScreen() {
           {!isPending && !unopened.length && !error ? (
             <p className="mt-3 text-sm text-ink-400">Claim today&apos;s chest to start an opening.</p>
           ) : null}
-          {unopened.map((chest) => (
-            <button
-              key={chest.id}
-              type="button"
-              className="mt-3 flex w-full items-center justify-between rounded-card border border-ink-700 bg-ink-850 px-3 py-2 text-left text-sm"
-              disabled={openChest.isPending}
-              onClick={() =>
-                openChest
-                  .mutateAsync(chest.id)
-                  .then((result) => {
-                    logUnlock('open-result', {
-                      inventoryId: chest.id,
-                      cardId: result.card_id,
-                      cardName: result.card_name,
-                      wasNew: result.was_new,
-                    })
-                    setOpening(result)
-                    setUnlock({ inventoryId: chest.id, opening: result })
-                  })
-                  .catch((error: unknown) => {
-                    logUnlock('open-error', { inventoryId: chest.id, error })
-                  })
-              }
-            >
-              <span className="capitalize text-ink-100">{chest.chest_id} chest</span>
-              <span className="text-xs text-gold-400">{openChest.isPending ? 'Opening...' : 'Open'}</span>
-            </button>
-          ))}
-          {opening ? (
-            <div className="mt-3 border-t border-ink-800 pt-3 text-sm">
-              <NavLink
-                to={`/cards/${opening.card_id}`}
-                className="text-gold-300 underline decoration-gold-500/50 underline-offset-2"
+          {groups.map(({ chestId, count }) => {
+            const isOpening = openChests.isPending && openChests.variables?.chestId === chestId
+            return (
+              <div
+                key={chestId}
+                className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-card border border-ink-700 bg-ink-850 px-3 py-2"
               >
-                {opening.card_name} · {opening.rank}★
-              </NavLink>
-              <p className="mt-1 text-xs text-ink-400">
-                {opening.was_new ? 'New card added to your collection.' : `Duplicate converted to ${opening.shard_qty} ${opening.shard_material}.`}
+                <span className="text-sm text-ink-100">
+                  <span className="capitalize">{chestId} chest</span>
+                  <span className="ml-2 rounded-full bg-ink-700 px-2 py-0.5 text-xs tabular-nums text-ink-200">
+                    ×{count}
+                  </span>
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {OPEN_QUANTITIES.map((qty, index) => (
+                    <button
+                      key={qty}
+                      type="button"
+                      aria-label={`Open ${qty} ${chestId} chest${qty === 1 ? '' : 's'}`}
+                      className={
+                        index === 0
+                          ? 'rounded-card bg-gold-500 px-2.5 py-1.5 text-xs font-medium text-ink-950 disabled:cursor-not-allowed disabled:opacity-40'
+                          : 'rounded-card border border-ink-600 px-2.5 py-1.5 text-xs font-medium text-ink-200 disabled:cursor-not-allowed disabled:opacity-40'
+                      }
+                      disabled={openChests.isPending || qty > count}
+                      onClick={() => handleOpen(chestId, qty)}
+                    >
+                      {isOpening ? '...' : `Open ${qty}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+          {batch.length ? (
+            <div className="mt-3 space-y-1 border-t border-ink-800 pt-3 text-sm">
+              <p className="text-xs text-ink-400">
+                Opened {batch.length} chest{batch.length === 1 ? '' : 's'}
               </p>
+              <ul className="space-y-0.5">
+                {batch.map((opening, index) => (
+                  <li key={`${opening.card_id}-${index}`} className="flex items-baseline justify-between gap-2">
+                    <NavLink
+                      to={`/cards/${opening.card_id}`}
+                      className="text-gold-300 underline decoration-gold-500/50 underline-offset-2"
+                    >
+                      {opening.card_name} · {opening.rank}★
+                    </NavLink>
+                    <span className="text-xs text-ink-400">
+                      {opening.was_new ? 'New' : `+${opening.shard_qty} ${opening.shard_material}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
           {actionError ? <p className="mt-3 text-xs text-faction-ember">{actionError.message}</p> : null}
@@ -226,7 +272,7 @@ export function ChestOpenScreen() {
 
       </div>
       </Screen>
-      {unlock ? <CardUnlockOverlay unlock={unlock} onClose={closeUnlock} /> : null}
+      {activeUnlock ? <CardUnlockOverlay unlock={activeUnlock} onClose={closeUnlock} /> : null}
     </>
   )
 }

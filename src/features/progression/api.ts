@@ -66,14 +66,19 @@ export function useGrantTestChests() {
   })
 }
 
-export function useOpenChest() {
+export function useOpenChests() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (inventoryId: string) => {
-      const { data, error } = await supabase.rpc('open_chest', { p_inventory_id: inventoryId })
+    // Stacked chests of one type are spent in a single call so the server owns
+    // how many rows get consumed; the client only picks the type and quantity.
+    mutationFn: async ({ chestId, qty }: { chestId: string; qty: number }) => {
+      const { data, error } = await supabase.rpc('open_chests', {
+        p_chest_id: chestId,
+        p_qty: qty,
+      })
       if (error) throw error
-      return data as ChestOpening
+      return (data ?? []) as ChestOpening[]
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['chest_inventory'] })
