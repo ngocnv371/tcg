@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { Panel, Screen } from '@/components/Screen'
 import { useCardCatalog, useCollection } from '@/features/cards/api'
-import { resolveArtSrc } from '@/features/cards/CardLibraryScreen'
+import { resolveArtSrc } from '@/features/cards/CardTile'
 import { RANK_META, cardAtk, cardDef, cardPower, levelUpGold } from '@/game/formulas'
 import { supabase } from '@/lib/supabase'
 import type { RankCost } from '@/types/db'

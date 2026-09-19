@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion'
 
-import { resolveArtSrc } from '@/features/cards/CardLibraryScreen'
+import { resolveArtSrc } from '@/features/cards/CardTile'
 
 export type CardUnlockAnimationProps = {
   cardName: string
