@@ -10,11 +10,10 @@ import {
 } from '@/features/cards/CardBrowser'
 import { CardTile } from '@/features/cards/CardTile'
 import { useCardCatalog, useCollection } from '@/features/cards/api'
-import { useDungeons } from '@/features/dungeons/api'
-import { useParty, useSaveParty } from '@/features/party/api'
+import { useParties, useSaveParty } from '@/features/party/api'
+import { PartyTeamSwitcher } from '@/features/party/PartyTeamSwitcher'
 import { useProfile } from '@/features/profile/api'
-import { RANK_META, goldReward, partyPower, runSlotsForLevel, successChance } from '@/game/formulas'
-import { cn } from '@/lib/utils'
+import { RANK_META, partyPower, runSlotsForLevel } from '@/game/formulas'
 import type { CardBrowserItem } from '@/features/cards/CardBrowser'
 import type { CardRank } from '@/types/db'
 
@@ -37,14 +36,17 @@ function stripEmpty(ids: Slots): string[] {
 export function PartyBuilderScreen() {
   const { data: catalog } = useCardCatalog()
   const { data: collection } = useCollection()
-  const { data: loadout, error } = useParty()
-  const { data: dungeons } = useDungeons()
+  const { data: loadouts, error } = useParties()
   const saveParty = useSaveParty()
   const { data: profile } = useProfile()
   const slots = runSlotsForLevel(profile?.player_level ?? 1)
+  /** Explicit pick wins; otherwise fall back to the first team (also covers a delete of the active one). */
+  const [activeId, setActiveId] = useState<string | null>(null)
   const [draft, setDraft] = useState<Slots | null>(null)
   const [editingSlot, setEditingSlot] = useState<number | null>(null)
-  const savedIds = loadout?.slots.map((partySlot) => partySlot.player_card_id) ?? []
+  const parties = loadouts ?? []
+  const active = parties.find((loadout) => loadout.party.id === activeId) ?? parties[0] ?? null
+  const savedIds = active?.slots.map((partySlot) => partySlot.player_card_id) ?? []
   const selectedIds = draft ?? padSlots(savedIds)
   const isDirty = draft !== null && stripEmpty(draft).join(',') !== savedIds.join(',')
 
@@ -95,6 +97,15 @@ export function PartyBuilderScreen() {
     setDraft(next)
   }
 
+  /** Switching teams drops the in-progress draft, so confirm before losing it. */
+  function selectParty(partyId: string) {
+    if (partyId === active?.party.id) return
+    if (isDirty && !window.confirm('Discard unsaved changes to this team?')) return
+    setActiveId(partyId)
+    setDraft(null)
+    setEditingSlot(null)
+  }
+
   const partyCards = stripEmpty(selectedIds)
     .map((playerCardId) => playerCardById.get(playerCardId))
     .filter((card): card is NonNullable<typeof card> => Boolean(card))
@@ -129,7 +140,14 @@ export function PartyBuilderScreen() {
       hint={`${slots} concurrent runs unlocked at level ${profile?.player_level ?? 1}`}
     >
       <div className="space-y-3">
-        <Panel title={loadout?.party.name ?? 'First Expedition'}>
+        <PartyTeamSwitcher
+          parties={parties.map((loadout) => loadout.party)}
+          activeId={active?.party.id ?? null}
+          onSelect={selectParty}
+          onCreated={selectParty}
+        />
+
+        <Panel title={active?.party.name ?? 'First Expedition'}>
           {isDirty ? (
             <p className="mb-2 flex items-center gap-1.5 text-xs text-gold-300">
               <span aria-hidden className="size-1.5 rounded-full bg-gold-400" />
@@ -199,15 +217,15 @@ export function PartyBuilderScreen() {
           <p className="text-xs text-ink-600">
             The server's <code>party_power()</code> is authoritative.
           </p>
-          {error ? <p className="mt-2 text-xs text-faction-ember">Could not load your party: {error.message}</p> : null}
+          {error ? <p className="mt-2 text-xs text-faction-ember">Could not load your teams: {error.message}</p> : null}
           <div className="mt-3 flex gap-2">
             <button
               type="button"
-              disabled={!loadout?.party || saveParty.isPending || !isDirty}
+              disabled={!active || saveParty.isPending || !isDirty}
               onClick={() => {
-                if (loadout?.party) {
+                if (active) {
                   saveParty.mutate(
-                    { partyId: loadout.party.id, playerCardIds: stripEmpty(selectedIds) },
+                    { partyId: active.party.id, playerCardIds: stripEmpty(selectedIds) },
                     { onSuccess: () => setDraft(null) },
                   )
                 }
@@ -233,49 +251,11 @@ export function PartyBuilderScreen() {
           ) : null}
         </Panel>
 
-        {dungeons?.length ? (
-          <Panel title="Dungeon readiness">
-            <ul className="space-y-2">
-              {[...dungeons]
-                .sort((a, b) => a.req_power - b.req_power)
-                .map((dungeon) => {
-                  const chance = successChance(previewPower, dungeon.req_power)
-                  const ready = chance >= 0.5
-                  return (
-                    <li key={dungeon.id} className="flex items-center justify-between gap-3 text-sm">
-                      <div className="min-w-0">
-                        <p className="truncate text-ink-200">{dungeon.name}</p>
-                        <p className="text-xs text-ink-500 tabular-nums">
-                          needs {dungeon.req_power.toLocaleString('en-US')} power
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p
-                          className={cn(
-                            'tabular-nums',
-                            ready ? 'text-faction-verdant' : 'text-faction-ember',
-                          )}
-                        >
-                          p≈{Math.round(chance * 100)}%
-                        </p>
-                        <p className="text-xs text-ink-500 tabular-nums">
-                          ≈{goldReward(dungeon.gold_base, previewPower, dungeon.req_power).toLocaleString('en-US')} g
-                        </p>
-                      </div>
-                    </li>
-                  )
-                })}
-            </ul>
-            <p className="mt-2 text-xs text-ink-600">
-              Preview only — the server rolls the real chance at resolve time.
-            </p>
-          </Panel>
-        ) : null}
-
         <Panel title="Party rules">
           <Planned
             items={[
               'Five unique cards per party',
+              'Unlimited teams — add another whenever you need one',
               `Level caps in play: ${[1, 2, 3, 4, 5].map((r) => RANK_META[r as CardRank].levelCap).join('/')}`,
             ]}
           />

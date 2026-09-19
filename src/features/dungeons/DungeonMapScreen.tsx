@@ -4,6 +4,7 @@ import { X } from 'lucide-react'
 import { Panel, Screen } from '@/components/Screen'
 import { RunRewardsModal } from '@/features/dungeons/RunRewardsModal'
 import { useDungeons, useRuns } from '@/features/dungeons/api'
+import { useParties } from '@/features/party/api'
 import { useClaimRun, useStartRun } from '@/features/progression/api'
 import type { RunClaim } from '@/features/progression/api'
 import { successChance } from '@/game/formulas'
@@ -17,10 +18,15 @@ function formatDuration(seconds: number) {
 export function DungeonMapScreen() {
   const { data: dungeons, error } = useDungeons()
   const { data: runs } = useRuns()
+  const { data: parties } = useParties()
   const startRun = useStartRun()
   const claimRun = useClaimRun()
   const [toast, setToast] = useState<string | null>(null)
   const [claim, setClaim] = useState<RunClaim | null>(null)
+  const [partyId, setPartyId] = useState<string | null>(null)
+  const teams = parties ?? []
+  /** No explicit pick yet → the player's first team, matching `start_run`'s default. */
+  const sendPartyId = partyId ?? teams[0]?.party.id ?? null
   const activeRuns = runs?.filter((run) => !run.resolved_at) ?? []
   const claimableRuns = runs?.filter((run) => run.resolved_at && !run.claimed_at) ?? []
   const dungeonNames = new Map((dungeons ?? []).map((dungeon) => [dungeon.id, dungeon.name]))
@@ -47,6 +53,23 @@ export function DungeonMapScreen() {
       ) : null}
 
       <div className="space-y-3">
+        {teams.length > 1 ? (
+          <Panel title="Team to send">
+            <select
+              value={sendPartyId ?? ''}
+              onChange={(event) => setPartyId(event.target.value)}
+              aria-label="Team to send"
+              className="w-full rounded-card border border-ink-700 bg-ink-850 px-2.5 py-2 text-sm text-ink-50"
+            >
+              {teams.map(({ party, slots }) => (
+                <option key={party.id} value={party.id}>
+                  {party.name} · {slots.length} card{slots.length === 1 ? '' : 's'}
+                </option>
+              ))}
+            </select>
+          </Panel>
+        ) : null}
+
         {startRun.isSuccess ? (
           <p className="text-xs text-faction-verdant">
             Run started. It ends at {new Date(startRun.data.ends_at).toLocaleString()}.
@@ -112,7 +135,7 @@ export function DungeonMapScreen() {
                 disabled={startRun.isPending}
                 onClick={() =>
                   startRun.mutate(
-                    { dungeonId: dungeon.id },
+                    { dungeonId: dungeon.id, partyId: sendPartyId ?? undefined },
                     { onError: (runError) => setToast(runError.message) },
                   )
                 }

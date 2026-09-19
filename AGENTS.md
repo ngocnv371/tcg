@@ -39,7 +39,9 @@ proposing scope.
 
 Done: schema + RLS + derived SQL functions, generated seed (0 catalog cards — content now
 ships via `scripts/import-concept-cards.mjs` — / 6 dungeons / 5 chests), app shell with
-routing and auth gate, balance module with tests, DB verification script.
+routing and auth gate, balance module with tests, DB verification script. Teams are unlimited:
+`create_party` / `rename_party` / `delete_party` (migration `20260919000000_multi_party.sql`)
+own creation, and `parties.slot_index` is only append order — never a cap.
 
 Next up (weeks 4–8): `open_chest`, `start_run` / `resolve_runs` / `claim_run`, `level_up_card`,
 `rank_up_card` — each as a `SECURITY DEFINER` function plus its screen wiring.

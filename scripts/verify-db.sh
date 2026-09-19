@@ -49,7 +49,12 @@ create table auth.users (
   raw_app_meta_data jsonb,
   raw_user_meta_data jsonb,
   created_at timestamptz,
-  updated_at timestamptz
+  updated_at timestamptz,
+  -- the local dev account insert in the migration names these explicitly
+  confirmation_token text,
+  email_change text,
+  email_change_token_new text,
+  recovery_token text
 );
 create table auth.identities (
   provider_id text not null,
@@ -68,10 +73,12 @@ create role service_role nologin;
 SQL
 
 docker cp "$ROOT_HOST/supabase/migrations/20260918000000_init.sql" "$NAME:/tmp/init.sql" >/dev/null
+docker cp "$ROOT_HOST/supabase/migrations/20260919000000_multi_party.sql" "$NAME:/tmp/multi_party.sql" >/dev/null
 docker cp "$ROOT_HOST/supabase/seed.sql" "$NAME:/tmp/seed.sql" >/dev/null
 
 echo "→ applying migration"
 psql_run -f /tmp/init.sql
+psql_run -f /tmp/multi_party.sql
 echo "→ applying seed"
 psql_run -f /tmp/seed.sql
 
@@ -137,6 +144,28 @@ begin
   if not exists (
     select 1 from pg_trigger where tgname = 'on_auth_user_created'
   ) then raise exception 'handle_new_user trigger missing'; end if;
+
+  -- teams are unlimited: no unique (profile_id, slot_index) left on parties
+  if exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.parties'::regclass and contype = 'u'
+  ) then raise exception 'parties still carries a unique constraint'; end if;
+
+  -- and the create/rename/delete path is SECURITY DEFINER only
+  if exists (
+    select 1 from (values ('create_party'), ('rename_party'), ('delete_party')) as fn(name)
+    where not exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = fn.name and p.prosecdef
+    )
+  ) then raise exception 'a party mutation function is missing or not SECURITY DEFINER'; end if;
+
+  -- proof the old 1..3 cap is gone: 4 teams for one profile, two sharing slot_index
+  insert into public.parties (profile_id, name, slot_index)
+    values ('00000000-0000-0000-0000-000000000001', 'Second team', 1);
+  insert into public.parties (profile_id, name, slot_index)
+    values ('00000000-0000-0000-0000-000000000001', 'Fourth team', 4);
 end $$;
 
 select 'cards'                 as check, count(*)::text as value from public.cards
