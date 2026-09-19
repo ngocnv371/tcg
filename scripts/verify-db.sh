@@ -88,7 +88,8 @@ declare
   missing_power integer;
 begin
   select count(*) into card_count from public.cards;
-  if card_count <> 30 then raise exception 'expected 30 cards, found %', card_count; end if;
+  -- cards.csv is deliberately empty now; catalog content ships via scripts/import-concept-cards.mjs.
+  if card_count <> 0 then raise exception 'expected 0 seed cards, found %', card_count; end if;
 
   select count(*) into dungeon_count from public.dungeons;
   if dungeon_count <> 6 then raise exception 'expected 6 dungeons, found %', dungeon_count; end if;
@@ -97,7 +98,8 @@ begin
   select count(*) into starter_card_count
   from public.player_cards
   where profile_id = '00000000-0000-0000-0000-000000000001';
-  if starter_card_count <> 5 then raise exception 'expected 5 starter cards, found %', starter_card_count; end if;
+  -- no rank-1 cards are seeded, so the starter loadout has nothing to grant.
+  if starter_card_count <> 0 then raise exception 'expected 0 starter cards, found %', starter_card_count; end if;
 
   select count(*) into starter_party_count
   from public.parties
@@ -108,7 +110,7 @@ begin
   from public.party_slots ps
   join public.parties p on p.id = ps.party_id
   where p.profile_id = '00000000-0000-0000-0000-000000000001';
-  if starter_slot_count <> 5 then raise exception 'expected 5 starter party slots, found %', starter_slot_count; end if;
+  if starter_slot_count <> 0 then raise exception 'expected 0 starter party slots, found %', starter_slot_count; end if;
 
   -- every rank-up row must reference real materials
   select count(*) into missing_power

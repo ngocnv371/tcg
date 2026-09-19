@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 export function SignInScreen() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('dev@tcg2.local')
-  const [password, setPassword] = useState('')
+  const [password, setPassword] = useState('tcg2devpass')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)

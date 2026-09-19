@@ -20,6 +20,10 @@ dist-ssr
 supabase/.temp
 supabase/.branches
 
+# --stage-art writes local previews here; the app serves art from Supabase
+# Storage (art_path), so these are never meant to be committed.
+public/art/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

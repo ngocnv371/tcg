@@ -141,7 +141,7 @@ const byRank = cards.reduce((acc, card) => {
   acc[card.rank] = (acc[card.rank] ?? 0) + 1
   return acc
 }, {})
-if (cards.length !== 30) errors.push(`expected 30 cards for the slice, found ${cards.length}`)
+// Cards ship via scripts/import-concept-cards.mjs now; data/cards.csv is deliberately empty.
 const dungeonsIds = dungeons.map((dungeon) => dungeon.id)
 for (const dungeon of dungeons) {
   if (dungeon.card_id && !ids.includes(dungeon.card_id))
@@ -213,23 +213,26 @@ push(
 
 push(
   '-- cards',
-  'insert into public.cards (id, name, rank, faction, role, base_atk, base_def, passive_name, passive_text, lore, tags, art_path, sort_order) values',
-  cards
-    .map(
-      (card, index) =>
-        `  (${sql(card.id)}, ${sql(card.name)}, ${card.rank}, ${sql(card.faction)}, ${sql(card.role)}, ${card.base_atk}, ${card.base_def}, ${sql(card.passive_name)}, ${sql(card.passive_text)}, ${sql(card.lore)}, ${sql(`{${(card.tags ?? '').split(';').filter(Boolean).join(',')}}`)}, ${sql(`art/cards/${card.id}.webp`)}, ${index})`,
-    )
-    .join(',\n'),
-  'on conflict (id) do update set',
-  '  name = excluded.name, rank = excluded.rank, faction = excluded.faction, role = excluded.role,',
-  '  base_atk = excluded.base_atk, base_def = excluded.base_def,',
-  '  passive_name = excluded.passive_name, passive_text = excluded.passive_text,',
-  '  lore = excluded.lore, tags = excluded.tags, art_path = excluded.art_path, sort_order = excluded.sort_order;',
-  '',
 )
+if (cards.length) {
+  push(
+    'insert into public.cards (id, name, rank, faction, role, base_atk, base_def, passive_name, passive_text, lore, tags, art_path, sort_order) values',
+    cards
+      .map(
+        (card, index) =>
+          `  (${sql(card.id)}, ${sql(card.name)}, ${card.rank}, ${sql(card.faction)}, ${sql(card.role)}, ${card.base_atk}, ${card.base_def}, ${sql(card.passive_name)}, ${sql(card.passive_text)}, ${sql(card.lore)}, ${sql(`{${(card.tags ?? '').split(';').filter(Boolean).join(',')}}`)}, ${sql(`art/cards/${card.id}.webp`)}, ${index})`,
+      )
+      .join(',\n'),
+    'on conflict (id) do update set',
+    '  name = excluded.name, rank = excluded.rank, faction = excluded.faction, role = excluded.role,',
+    '  base_atk = excluded.base_atk, base_def = excluded.base_def,',
+    '  passive_name = excluded.passive_name, passive_text = excluded.passive_text,',
+    '  lore = excluded.lore, tags = excluded.tags, art_path = excluded.art_path, sort_order = excluded.sort_order;',
+    '',
+  )
+}
 
 push('-- card_rank_costs (ladder by current rank + the card faction essence)')
-push('insert into public.card_rank_costs (card_id, from_rank, to_rank, gold, materials) values')
 const costRows = []
 for (const card of cards) {
   for (let from = Number(card.rank); from < 5; from += 1) {
@@ -239,12 +242,15 @@ for (const card of cards) {
     costRows.push(`  (${sql(card.id)}, ${from}, ${from + 1}, ${gold}, ${json(materials)})`)
   }
 }
-push(
-  costRows.join(',\n'),
-  'on conflict (card_id, to_rank) do update set',
-  '  from_rank = excluded.from_rank, gold = excluded.gold, materials = excluded.materials;',
-  '',
-)
+if (costRows.length) {
+  push(
+    'insert into public.card_rank_costs (card_id, from_rank, to_rank, gold, materials) values',
+    costRows.join(',\n'),
+    'on conflict (card_id, to_rank) do update set',
+    '  from_rank = excluded.from_rank, gold = excluded.gold, materials = excluded.materials;',
+    '',
+  )
+}
 
 push(
   '-- dungeons',

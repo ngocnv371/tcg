@@ -37,8 +37,9 @@ proposing scope.
 
 ## Where things stand
 
-Done: schema + RLS + derived SQL functions, generated seed (30 cards / 6 dungeons / 5 chests),
-app shell with routing and auth gate, balance module with tests, DB verification script.
+Done: schema + RLS + derived SQL functions, generated seed (0 catalog cards — content now
+ships via `scripts/import-concept-cards.mjs` — / 6 dungeons / 5 chests), app shell with
+routing and auth gate, balance module with tests, DB verification script.
 
 Next up (weeks 4–8): `open_chest`, `start_run` / `resolve_runs` / `claim_run`, `level_up_card`,
 `rank_up_card` — each as a `SECURITY DEFINER` function plus its screen wiring.
