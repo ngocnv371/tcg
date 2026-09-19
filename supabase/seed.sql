@@ -44,19 +44,6 @@ on conflict (id) do update set
 -- cards
 -- card_rank_costs (ladder by current rank + the card faction essence)
 -- dungeons
-insert into public.dungeons (id, name, kind, tier, req_power, duration_seconds, gold_base, materials, card_id, unlocks_at_level, chest_on_clear) values
-  ('ore_mine', 'Ore Mine', 'resource', 1, 150, 5, 60, '[{"material_id":"iron_ore","weight":70,"min":2,"max":5},{"material_id":"common_shard","weight":30,"min":1,"max":2}]'::jsonb, null, 1, 'common'),
-  ('shard_grotto', 'Shard Grotto', 'resource', 2, 500, 5, 300, '[{"material_id":"uncommon_shard","weight":55,"min":1,"max":3},{"material_id":"iron_ore","weight":30,"min":2,"max":6},{"material_id":"crystal","weight":15,"min":1,"max":1}]'::jsonb, null, 1, 'rare'),
-  ('ember_forge', 'Ember Forge', 'card', 2, 500, 5, 300, '[{"material_id":"ember_essence","weight":45,"min":1,"max":3},{"material_id":"iron_ore","weight":35,"min":2,"max":5},{"material_id":"common_shard","weight":20,"min":1,"max":3}]'::jsonb, null, 3, 'rare'),
-  ('crystal_cavern', 'Crystal Cavern', 'resource', 3, 1500, 5, 1200, '[{"material_id":"crystal","weight":50,"min":1,"max":4},{"material_id":"rare_shard","weight":30,"min":1,"max":2},{"material_id":"iron_ore","weight":20,"min":3,"max":8}]'::jsonb, null, 6, 'epic'),
-  ('fang_hunt', 'Fang Hunt', 'card', 3, 1500, 5, 1200, '[{"material_id":"beast_fang","weight":45,"min":1,"max":3},{"material_id":"rare_shard","weight":35,"min":1,"max":2},{"material_id":"ember_essence","weight":20,"min":2,"max":5}]'::jsonb, null, 8, 'epic'),
-  ('obsidian_gate', 'Obsidian Gate', 'boss', 5, 9000, 5, 9000, '[{"material_id":"boss_core","weight":35,"min":1,"max":1},{"material_id":"epic_shard","weight":40,"min":1,"max":3},{"material_id":"crystal","weight":25,"min":3,"max":9}]'::jsonb, null, 12, 'mythic')
-on conflict (id) do update set
-  name = excluded.name, kind = excluded.kind, tier = excluded.tier,
-  req_power = excluded.req_power, duration_seconds = excluded.duration_seconds,
-  gold_base = excluded.gold_base, materials = excluded.materials, card_id = excluded.card_id,
-  unlocks_at_level = excluded.unlocks_at_level, chest_on_clear = excluded.chest_on_clear;
-
 -- chests
 insert into public.chests (id, name, tier, source) values
   ('common', 'Common Chest', 1, 'daily login, T1 clears'),
@@ -101,6 +88,6 @@ commit;
 -- local development account's starter cards and party
 select public.provision_starter_loadout('00000000-0000-0000-0000-000000000002'::uuid);
 
--- summary: 0 cards (), 6 dungeons, 5 chests, 14 materials
--- dungeons: ore_mine, shard_grotto, ember_forge, crystal_cavern, fang_hunt, obsidian_gate
+-- summary: 0 cards (), 0 dungeons, 5 chests, 14 materials
+-- dungeons: none seeded — shipped via scripts/import-concept-dungeons.mjs
 -- rank-up cost rows: 0, chest odds rows: 19

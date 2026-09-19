@@ -107,7 +107,8 @@ begin
   if card_count <> 0 then raise exception 'expected 0 seed cards, found %', card_count; end if;
 
   select count(*) into dungeon_count from public.dungeons;
-  if dungeon_count <> 6 then raise exception 'expected 6 dungeons, found %', dungeon_count; end if;
+  -- dungeons.csv is deliberately empty now; content ships via scripts/import-concept-dungeons.mjs.
+  if dungeon_count <> 0 then raise exception 'expected 0 seed dungeons, found %', dungeon_count; end if;
 
   insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000001', 'tester@example.com');
   select count(*) into starter_card_count

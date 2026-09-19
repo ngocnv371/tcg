@@ -252,28 +252,31 @@ if (costRows.length) {
   )
 }
 
-push(
-  '-- dungeons',
-  'insert into public.dungeons (id, name, kind, tier, req_power, duration_seconds, gold_base, materials, card_id, unlocks_at_level, chest_on_clear) values',
-  dungeons
-    .map((dungeon) => {
-      const materials = dungeon.drops
-        .split(';')
-        .filter(Boolean)
-        .map((drop) => {
-          const [material_id, weight, min, max] = drop.split(':')
-          return { material_id, weight: Number(weight), min: Number(min), max: Number(max) }
-        })
-      return `  (${sql(dungeon.id)}, ${sql(dungeon.name)}, ${sql(dungeon.kind)}, ${dungeon.tier}, ${dungeon.req_power}, ${dungeon.duration_seconds}, ${dungeon.gold_base}, ${json(materials)}, ${sqlNullable(dungeon.card_id)}, ${dungeon.unlocks_at_level}, ${sqlNullable(dungeon.chest_on_clear)})`
-    })
-    .join(',\n'),
-  'on conflict (id) do update set',
-  '  name = excluded.name, kind = excluded.kind, tier = excluded.tier,',
-  '  req_power = excluded.req_power, duration_seconds = excluded.duration_seconds,',
-  '  gold_base = excluded.gold_base, materials = excluded.materials, card_id = excluded.card_id,',
-  '  unlocks_at_level = excluded.unlocks_at_level, chest_on_clear = excluded.chest_on_clear;',
-  '',
-)
+push('-- dungeons')
+// dungeons.csv is deliberately empty now; dungeon content ships via scripts/import-concept-dungeons.mjs.
+if (dungeons.length) {
+  push(
+    'insert into public.dungeons (id, name, kind, tier, req_power, duration_seconds, gold_base, materials, card_id, unlocks_at_level, chest_on_clear) values',
+    dungeons
+      .map((dungeon) => {
+        const materials = dungeon.drops
+          .split(';')
+          .filter(Boolean)
+          .map((drop) => {
+            const [material_id, weight, min, max] = drop.split(':')
+            return { material_id, weight: Number(weight), min: Number(min), max: Number(max) }
+          })
+        return `  (${sql(dungeon.id)}, ${sql(dungeon.name)}, ${sql(dungeon.kind)}, ${dungeon.tier}, ${dungeon.req_power}, ${dungeon.duration_seconds}, ${dungeon.gold_base}, ${json(materials)}, ${sqlNullable(dungeon.card_id)}, ${dungeon.unlocks_at_level}, ${sqlNullable(dungeon.chest_on_clear)})`
+      })
+      .join(',\n'),
+    'on conflict (id) do update set',
+    '  name = excluded.name, kind = excluded.kind, tier = excluded.tier,',
+    '  req_power = excluded.req_power, duration_seconds = excluded.duration_seconds,',
+    '  gold_base = excluded.gold_base, materials = excluded.materials, card_id = excluded.card_id,',
+    '  unlocks_at_level = excluded.unlocks_at_level, chest_on_clear = excluded.chest_on_clear;',
+    '',
+  )
+}
 
 push(
   '-- chests',
@@ -311,7 +314,9 @@ push(
   `-- summary: ${cards.length} cards (${Object.entries(byRank)
     .map(([rank, count]) => `${rank}star:${count}`)
     .join(' ')}), ${dungeons.length} dungeons, ${CHESTS.length} chests, ${MATERIALS.length} materials`,
-  `-- dungeons: ${dungeonsIds.join(', ')}`,
+  dungeons.length
+    ? `-- dungeons: ${dungeonsIds.join(', ')}`
+    : '-- dungeons: none seeded — shipped via scripts/import-concept-dungeons.mjs',
   `-- rank-up cost rows: ${costRows.length}, chest odds rows: ${oddRows.length}`,
 )
 

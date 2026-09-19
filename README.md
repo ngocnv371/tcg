@@ -31,7 +31,7 @@ its week-by-week output.
 ## Layout
 
 ```
-data/                    cards.csv, dungeons.csv — the content source of truth
+data/                    concept art (cards/, dungeons/) + the CSVs seed:build reads
 scripts/build-seed.mjs   CSVs + balance constants -> supabase/seed.sql (npm run seed:build)
 scripts/import-concept-cards.mjs     concept-art folder (json + png) -> cards + `card-art` bucket
 scripts/import-concept-dungeons.mjs  concept-art folder (json + png) -> dungeons + `dungeon-art` bucket

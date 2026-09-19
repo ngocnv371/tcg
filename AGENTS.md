@@ -37,12 +37,12 @@ proposing scope.
 
 ## Where things stand
 
-Done: schema + RLS + derived SQL functions, generated seed (0 catalog cards — content now
-ships via `scripts/import-concept-cards.mjs` — / 6 dungeons / 5 chests), app shell with
-routing and auth gate, balance module with tests, DB verification script. Concept art also
-ships through `scripts/import-concept-dungeons.mjs` (same json+image folder shape; rolls
-kind/tier/power/timer/gold/drops seeded by name, uploads to the `dungeon-art` bucket, and
-reads art back from the DB rather than the source json). Dungeon art renders in
+Done: schema + RLS + derived SQL functions, generated seed (0 catalog cards, 0 catalog
+dungeons, 5 chests — card *and* dungeon content ships via `scripts/import-concept-cards.mjs` /
+`scripts/import-concept-dungeons.mjs`), app shell with routing and auth gate, balance module
+with tests, DB verification script. The dungeon importer takes the same json+image folder shape
+and rolls kind/tier/power/timer/gold/drops seeded by name, uploads to the `dungeon-art` bucket,
+and reads art back from the DB rather than the source json. Dungeon art renders in
 `DungeonMapScreen`; `resolveArtSrc` lives in `src/lib/art.ts`. Teams are unlimited:
 `create_party` / `rename_party` / `delete_party` (migration `20260919000000_multi_party.sql`)
 own creation, and `parties.slot_index` is only append order — never a cap. One player card can be
