@@ -94,6 +94,7 @@ function CardUnlockOverlay({
         height={844}
         inputProps={{
           cardName: unlock.opening.card_name,
+          artPath: unlock.opening.art_path,
           rank: unlock.opening.rank,
           wasNew: unlock.opening.was_new,
         }}

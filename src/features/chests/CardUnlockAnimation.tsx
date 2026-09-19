@@ -1,7 +1,11 @@
+import { useState } from 'react'
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion'
+
+import { resolveArtSrc } from '@/features/cards/CardLibraryScreen'
 
 export type CardUnlockAnimationProps = {
   cardName: string
+  artPath: string | null
   rank: number
   wasNew: boolean
 }
@@ -22,9 +26,11 @@ const GOD_RAYS = [
   { angle: 70, length: 290, width: 20, delay: 19 },
 ]
 
-export function CardUnlockAnimation({ cardName, rank, wasNew }: CardUnlockAnimationProps) {
+export function CardUnlockAnimation({ cardName, artPath, rank, wasNew }: CardUnlockAnimationProps) {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
+  const [artFailed, setArtFailed] = useState(false)
+  const artSrc = artFailed ? null : resolveArtSrc(artPath)
   const color = RANK_COLORS[Math.max(0, Math.min(rank - 1, RANK_COLORS.length - 1))]
   const reveal = spring({ frame, fps, config: { damping: 13, stiffness: 120, mass: 0.8 } })
   const burst = interpolate(frame, [0, 14, 46], [0, 1, 0], { extrapolateRight: 'clamp' })
@@ -159,10 +165,20 @@ export function CardUnlockAnimation({ cardName, rank, wasNew }: CardUnlockAnimat
                 fontSize: 48,
                 height: 130,
                 justifyContent: 'center',
+                overflow: 'hidden',
                 width: '100%',
               }}
             >
-              ✦
+              {artSrc ? (
+                <img
+                  src={artSrc}
+                  alt={cardName}
+                  onError={() => setArtFailed(true)}
+                  style={{ height: '100%', objectFit: 'cover', width: '100%' }}
+                />
+              ) : (
+                '✦'
+              )}
             </div>
             <div style={{ fontSize: 16, letterSpacing: 0, textAlign: 'center' }}>{cardName}</div>
           </div>

@@ -7,6 +7,7 @@ import type { ChestInventoryRow, DungeonRun } from '@/types/db'
 export type ChestOpening = {
   card_id: string
   card_name: string
+  art_path: string | null
   rank: number
   was_new: boolean
   shard_material: string | null
