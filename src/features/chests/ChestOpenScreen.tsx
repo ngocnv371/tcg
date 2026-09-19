@@ -3,6 +3,9 @@ import { NavLink } from 'react-router-dom'
 import { Player, type PlayerRef } from '@remotion/player'
 
 import { Panel, Screen } from '@/components/Screen'
+import { useCardCatalog } from '@/features/cards/api'
+import { CardGrid } from '@/features/cards/CardBrowser'
+import { CardTile } from '@/features/cards/CardTile'
 import { CardUnlockAnimation } from '@/features/chests/CardUnlockAnimation'
 import {
   useChestInventory,
@@ -123,6 +126,7 @@ function CardUnlockOverlay({
 
 export function ChestOpenScreen() {
   const { data: inventory, isPending, error } = useChestInventory()
+  const { data: catalog } = useCardCatalog()
   const claimDailyChest = useClaimDailyChest()
   const grantTestChests = useGrantTestChests()
   const openChests = useOpenChests()
@@ -159,6 +163,9 @@ export function ChestOpenScreen() {
   }
 
   const actionError = error ?? claimDailyChest.error ?? grantTestChests.error ?? openChests.error
+
+  // Reveals render as library tiles, so they need the catalog rows (already cached by `['cards']`).
+  const cardById = new Map((catalog ?? []).map((card) => [card.id, card]))
 
   return (
     <>
@@ -227,25 +234,33 @@ export function ChestOpenScreen() {
             )
           })}
           {batch.length ? (
-            <div className="mt-3 space-y-1 border-t border-ink-800 pt-3 text-sm">
-              <p className="text-xs text-ink-400">
+            <div className="mt-3 border-t border-ink-800 pt-3">
+              <p className="mb-2 tabular-nums text-[11px] text-ink-500">
                 Opened {batch.length} chest{batch.length === 1 ? '' : 's'}
               </p>
-              <ul className="space-y-0.5">
-                {batch.map((opening, index) => (
-                  <li key={`${opening.card_id}-${index}`} className="flex items-baseline justify-between gap-2">
-                    <NavLink
-                      to={`/cards/${opening.card_id}`}
-                      className="text-gold-300 underline decoration-gold-500/50 underline-offset-2"
-                    >
-                      {opening.card_name} · {opening.rank}★
-                    </NavLink>
-                    <span className="text-xs text-ink-400">
-                      {opening.was_new ? 'New' : `+${opening.shard_qty} ${opening.shard_material}`}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <CardGrid>
+                {batch.map((opening, index) => {
+                  const card = cardById.get(opening.card_id)
+                  if (!card) return null
+                  return (
+                    <div key={`${opening.card_id}-${index}`} className="space-y-1">
+                      <NavLink to={`/cards/${card.id}`}>
+                        <CardTile
+                          card={card}
+                          owned
+                          rank={opening.rank}
+                          badge={opening.was_new ? 'New' : undefined}
+                        />
+                      </NavLink>
+                      {opening.was_new ? null : (
+                        <p className="truncate text-[9px] text-ink-500">
+                          +{opening.shard_qty} {opening.shard_material}
+                        </p>
+                      )}
+                    </div>
+                  )
+                })}
+              </CardGrid>
             </div>
           ) : null}
           {actionError ? <p className="mt-3 text-xs text-faction-ember">{actionError.message}</p> : null}

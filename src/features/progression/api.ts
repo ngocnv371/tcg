@@ -2,13 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useSession } from '@/features/auth/useSession'
 import { supabase } from '@/lib/supabase'
-import type { ChestInventoryRow, DungeonRun } from '@/types/db'
+import type { CardRank, ChestInventoryRow, DungeonRun } from '@/types/db'
 
 export type ChestOpening = {
   card_id: string
   card_name: string
   art_path: string | null
-  rank: number
+  rank: CardRank
   was_new: boolean
   shard_material: string | null
   shard_qty: number
