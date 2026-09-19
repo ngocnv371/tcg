@@ -15,6 +15,11 @@ const RANK_BORDER: Record<number, string> = {
   5: 'border-rank-5',
 }
 
+/** Only http(s) art_path values are real assets today; local `art/cards/*` paths are placeholders. */
+export function resolveArtSrc(artPath: string | null): string | null {
+  return artPath?.startsWith('http') ? artPath : null
+}
+
 export function CardTile({
   card,
   owned,
@@ -27,6 +32,7 @@ export function CardTile({
   onClick?: () => void
 }) {
   const tags = card.tags ?? []
+  const artSrc = resolveArtSrc(card.art_path)
 
   return (
     <div
@@ -48,10 +54,14 @@ export function CardTile({
         onClick ? 'cursor-pointer' : '',
       )}
     >
-      <div className="aspect-3/4 w-full rounded-[8px] bg-ink-850">
-        <span className="grid h-full place-items-center font-display text-2xl text-ink-600">
-          {card.rank}★
-        </span>
+      <div className="aspect-3/4 w-full overflow-hidden rounded-[8px] bg-ink-850">
+        {artSrc ? (
+          <img src={artSrc} alt={card.name} loading="lazy" className="h-full w-full object-cover" />
+        ) : (
+          <span className="grid h-full place-items-center font-display text-2xl text-ink-600">
+            {card.rank}★
+          </span>
+        )}
       </div>
       <p className="mt-1.5 truncate text-xs text-ink-100">{card.name}</p>
       <p className="text-[10px] text-ink-400">

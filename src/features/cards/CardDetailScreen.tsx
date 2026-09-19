@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { Panel, Screen } from '@/components/Screen'
 import { useCardCatalog, useCollection } from '@/features/cards/api'
+import { resolveArtSrc } from '@/features/cards/CardLibraryScreen'
 import { RANK_META, cardAtk, cardDef, cardPower, levelUpGold } from '@/game/formulas'
 import { supabase } from '@/lib/supabase'
 import type { RankCost } from '@/types/db'
@@ -46,10 +47,16 @@ export function CardDetailScreen() {
   const level = owned?.level ?? 1
   const rank = owned?.rank ?? card.rank
   const tags = card.tags ?? []
+  const artSrc = resolveArtSrc(card.art_path)
 
   return (
     <Screen title={card.name} week="Built in weeks 3 + 8" hint={`${rank}★ · ${card.faction} · ${card.role}`}>
       <div className="space-y-3">
+        {artSrc ? (
+          <div className="aspect-3/4 w-full overflow-hidden rounded-card bg-ink-850">
+            <img src={artSrc} alt={card.name} className="h-full w-full object-cover" />
+          </div>
+        ) : null}
         {tags.length ? (
           <div className="flex flex-wrap gap-1.5">
             {tags.map((tag) => (
