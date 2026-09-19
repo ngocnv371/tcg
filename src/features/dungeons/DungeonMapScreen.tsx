@@ -139,13 +139,13 @@ export function DungeonMapScreen() {
                       <RunProgress key={run.id} run={run} />
                     ))}
                     {claimable.map((run) => (
-                      <div key={run.id} className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-faction-verdant">
+                      <div key={run.id}>
+                        <p className="text-xs text-faction-verdant">
                           {run.success ? 'Cleared — rewards ready' : 'Failed — nothing recovered'}
-                        </span>
+                        </p>
                         <button
                           type="button"
-                          className="shrink-0 rounded-card bg-gold-500 px-3 py-2 text-xs font-medium text-ink-950 disabled:opacity-50"
+                          className="mt-2 w-full rounded-card bg-gold-500 px-3 py-2 text-xs font-medium text-ink-950 disabled:opacity-50"
                           disabled={claimRun.isPending}
                           onClick={() => claimRun.mutate(run.id, { onSuccess: setClaim })}
                         >
@@ -154,15 +154,15 @@ export function DungeonMapScreen() {
                       </div>
                     ))}
                   </div>
-                ) : null}
-
-                <button
-                  type="button"
-                  className="mt-3 w-full rounded-card border border-gold-600 px-3 py-2 text-xs text-gold-300 disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => setPicking(dungeon)}
-                >
-                  {running.length > 0 ? 'Start another run' : 'Start run'}
-                </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="mt-3 w-full rounded-card border border-gold-600 px-3 py-2 text-xs text-gold-300"
+                    onClick={() => setPicking(dungeon)}
+                  >
+                    Start run
+                  </button>
+                )}
               </Panel>
             </li>
           )
