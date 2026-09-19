@@ -31,6 +31,8 @@ export function CardTile({
   level = 1,
   rank,
   badge,
+  disabled = false,
+  title,
   onClick,
 }: {
   card: Card
@@ -47,22 +49,29 @@ export function CardTile({
   rank?: CardRank
   /** Short pill in the corner — used to flag e.g. "In party". */
   badge?: string
+  /** Renders inert and greyed — used when a card is already committed elsewhere. */
+  disabled?: boolean
+  /** Native tooltip; carries the reason a tile is disabled. */
+  title?: string
   onClick?: () => void
 }) {
   const tags = card.tags ?? []
   const artSrc = resolveArtSrc(card.art_path)
   const displayRank = rank ?? card.rank
+  const interactive = Boolean(onClick) && !disabled
 
   return (
     <div
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      aria-pressed={onClick ? selected : undefined}
-      onClick={onClick}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-pressed={interactive ? selected : undefined}
+      aria-disabled={disabled || undefined}
+      title={title}
+      onClick={disabled ? undefined : onClick}
       onKeyDown={(event) => {
-        if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+        if (interactive && (event.key === 'Enter' || event.key === ' ')) {
           event.preventDefault()
-          onClick()
+          onClick?.()
         }
       }}
       className={cn(
@@ -70,7 +79,7 @@ export function CardTile({
         RANK_BORDER[displayRank],
         selected ? 'ring-2 ring-gold-400 ring-offset-2 ring-offset-ink-950' : '',
         owned ? '' : 'opacity-45 saturate-0',
-        onClick ? 'cursor-pointer' : '',
+        disabled ? 'grayscale' : interactive ? 'cursor-pointer' : '',
       )}
     >
       {artSrc ? (
@@ -106,7 +115,7 @@ export function CardTile({
           ) : null}
 
           {badge ? (
-            <span className="rounded bg-gold-500/90 px-1 py-px text-[8px] font-medium uppercase tracking-wide text-ink-950">
+            <span className="max-w-full truncate rounded bg-gold-500/90 px-1 py-px text-[8px] font-medium uppercase tracking-wide text-ink-950">
               {badge}
             </span>
           ) : null}

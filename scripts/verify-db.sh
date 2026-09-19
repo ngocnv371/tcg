@@ -72,13 +72,21 @@ create role authenticated nologin;
 create role service_role nologin;
 SQL
 
-docker cp "$ROOT_HOST/supabase/migrations/20260918000000_init.sql" "$NAME:/tmp/init.sql" >/dev/null
-docker cp "$ROOT_HOST/supabase/migrations/20260919000000_multi_party.sql" "$NAME:/tmp/multi_party.sql" >/dev/null
+# Only the migrations the stubbed Postgres can run: 000002 needs pg_cron and 000004 the
+# storage schema, neither of which exists outside the real Supabase stack.
+MIGRATIONS=(
+  "20260918000000_init.sql"
+  "20260919000000_multi_party.sql"
+  "20260920000000_one_party_per_card.sql"
+)
+
 docker cp "$ROOT_HOST/supabase/seed.sql" "$NAME:/tmp/seed.sql" >/dev/null
 
-echo "→ applying migration"
-psql_run -f /tmp/init.sql
-psql_run -f /tmp/multi_party.sql
+echo "→ applying migrations"
+for migration in "${MIGRATIONS[@]}"; do
+  docker cp "$ROOT_HOST/supabase/migrations/$migration" "$NAME:/tmp/$migration" >/dev/null
+  psql_run -f "/tmp/$migration"
+done
 echo "→ applying seed"
 psql_run -f /tmp/seed.sql
 
@@ -166,6 +174,49 @@ begin
     values ('00000000-0000-0000-0000-000000000001', 'Second team', 1);
   insert into public.parties (profile_id, name, slot_index)
     values ('00000000-0000-0000-0000-000000000001', 'Fourth team', 4);
+
+  -- one party per card: party_slots is unique on player_card_id alone, not (party_id, player_card_id)
+  if not exists (
+    select 1
+    from pg_constraint c
+    where c.conrelid = 'public.party_slots'::regclass
+      and c.contype = 'u'
+      and (
+        select array_agg(a.attname::text order by a.attname)
+        from unnest(c.conkey) as k(attnum)
+        join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum
+      ) = array['player_card_id']
+  ) then raise exception 'party_slots is not unique per player_card'; end if;
+
+  declare
+    shared_card uuid;
+  begin
+    -- no rank-1 cards are seeded, so stand one up purely for this check
+    insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
+                              passive_name, passive_text, lore)
+      values ('verify_shared_card', 'Verify Shared Card', 1, 'ember', 'dps', 1, 0, 'p', 'p', 'p');
+    insert into public.player_cards (profile_id, card_id, rank)
+      values ('00000000-0000-0000-0000-000000000001', 'verify_shared_card', 1)
+      returning id into shared_card;
+
+    insert into public.party_slots (party_id, slot, player_card_id)
+      select id, 1, shared_card from public.parties
+      where profile_id = '00000000-0000-0000-0000-000000000001'
+      order by slot_index limit 1;
+
+    begin
+      insert into public.party_slots (party_id, slot, player_card_id)
+        select id, 1, shared_card from public.parties
+        where profile_id = '00000000-0000-0000-0000-000000000001'
+        order by slot_index desc limit 1;
+      raise exception 'a card was allowed into two parties';
+    exception when unique_violation then null;
+    end;
+
+    -- leave the throwaway database as the assertions found it
+    delete from public.player_cards where card_id = 'verify_shared_card';
+    delete from public.cards where id = 'verify_shared_card';
+  end;
 end $$;
 
 select 'cards'                 as check, count(*)::text as value from public.cards

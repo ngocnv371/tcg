@@ -10,7 +10,7 @@ import {
 } from '@/features/cards/CardBrowser'
 import { CardTile } from '@/features/cards/CardTile'
 import { useCardCatalog, useCollection } from '@/features/cards/api'
-import { useDeleteParty, useRenameParty, useSaveParty } from '@/features/party/api'
+import { useDeleteParty, useParties, useRenameParty, useSaveParty } from '@/features/party/api'
 import { partyPower } from '@/game/formulas'
 import type { CardBrowserItem } from '@/features/cards/CardBrowser'
 import type { PartyLoadout } from '@/features/party/api'
@@ -40,6 +40,7 @@ function stripEmpty(ids: Slots): string[] {
 export function PartyCard({ loadout, canDelete }: { loadout: PartyLoadout; canDelete: boolean }) {
   const { data: catalog } = useCardCatalog()
   const { data: collection } = useCollection()
+  const { data: loadouts } = useParties()
   const saveParty = useSaveParty()
   const renameParty = useRenameParty()
   const deleteParty = useDeleteParty()
@@ -67,6 +68,18 @@ export function PartyCard({ loadout, canDelete }: { loadout: PartyLoadout; canDe
     stripEmpty(selectedIds).map((playerCardId) => playerCardById.get(playerCardId)?.card_id),
   )
 
+  /**
+   * Owned copies parked in another party, mapped to that party's name. A card is one
+   * physical copy, so it can only ever be equipped in one place — these are not offerable.
+   */
+  const otherPartyByCardId = new Map(
+    (loadouts ?? [])
+      .filter((other) => other.party.id !== loadout.party.id)
+      .flatMap((other) =>
+        other.slots.map((slot) => [slot.player_card_id, other.party.name] as const),
+      ),
+  )
+
   /** Owned copies paired with their catalog rows — the picker's browsable set. */
   const pickerItems: CardBrowserItem[] = (collection ?? []).flatMap((playerCard) => {
     const card = cardByPlayerCardId.get(playerCard.id)
@@ -77,6 +90,8 @@ export function PartyCard({ loadout, canDelete }: { loadout: PartyLoadout; canDe
   /** Writes a card into a slot, swapping rather than duplicating the same catalog card. */
   function chooseCard(playerCardId: string) {
     if (editingSlot === null) return
+    // The picker disables these, but a stale render should not slip a shared copy through.
+    if (otherPartyByCardId.has(playerCardId)) return
 
     const next = [...selectedIds]
     while (next.length < SLOT_COUNT) next.push(undefined)
@@ -384,24 +399,28 @@ export function PartyCard({ loadout, canDelete }: { loadout: PartyLoadout; canDe
               />
             ) : (
               <CardGrid>
-                {picker.results.map(({ card, playerCard }) =>
-                  playerCard ? (
+                {picker.results.map(({ card, playerCard }) => {
+                  if (!playerCard) return null
+                  const otherParty = otherPartyByCardId.get(playerCard.id)
+                  const isEquippedHere = selectedIds[editingSlot] === playerCard.id
+                  return (
                     <CardTile
                       key={playerCard.id}
                       card={card}
                       owned
                       level={playerCard.level}
                       rank={playerCard.rank}
-                      selected={selectedIds[editingSlot] === playerCard.id}
+                      selected={isEquippedHere}
+                      disabled={Boolean(otherParty)}
+                      title={otherParty ? `Already equipped in ${otherParty}` : undefined}
                       badge={
-                        playerCard.id !== selectedIds[editingSlot] && equippedCardIds.has(card.id)
-                          ? 'In party'
-                          : undefined
+                        otherParty ??
+                        (!isEquippedHere && equippedCardIds.has(card.id) ? 'In party' : undefined)
                       }
-                      onClick={() => chooseCard(playerCard.id)}
+                      onClick={otherParty ? undefined : () => chooseCard(playerCard.id)}
                     />
-                  ) : null,
-                )}
+                  )
+                })}
               </CardGrid>
             )}
           </div>

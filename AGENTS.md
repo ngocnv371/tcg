@@ -41,7 +41,9 @@ Done: schema + RLS + derived SQL functions, generated seed (0 catalog cards — 
 ships via `scripts/import-concept-cards.mjs` — / 6 dungeons / 5 chests), app shell with
 routing and auth gate, balance module with tests, DB verification script. Teams are unlimited:
 `create_party` / `rename_party` / `delete_party` (migration `20260919000000_multi_party.sql`)
-own creation, and `parties.slot_index` is only append order — never a cap.
+own creation, and `parties.slot_index` is only append order — never a cap. One player card can be
+equipped in one party at a time: `party_slots` is unique on `player_card_id`
+(`20260920000000_one_party_per_card.sql`), and `save_party` mirrors that rule with a readable error.
 
 Next up (weeks 4–8): `open_chest`, `start_run` / `resolve_runs` / `claim_run`, `level_up_card`,
 `rank_up_card` — each as a `SECURITY DEFINER` function plus its screen wiring.
