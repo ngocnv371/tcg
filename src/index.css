@@ -70,3 +70,29 @@ textarea {
   padding-top: var(--safe-top);
   padding-bottom: var(--safe-bottom);
 }
+
+/*
+ * Run progress fill. The bar is driven entirely by inline animation-* values
+ * (duration = run length, negative delay = time already elapsed), so a single
+ * render paints the whole remaining countdown with no per-second JS tick.
+ * `forwards` holds the fill at 100% if the resolve round-trip lands late.
+ */
+@keyframes run-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Static fallback the caller sets (elapsed fraction); a running animation wins over it. */
+.run-progress-fill {
+  transform: scaleX(var(--run-progress, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-progress-fill {
+    animation: none !important;
+  }
+}

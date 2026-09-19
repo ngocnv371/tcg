@@ -1,14 +1,13 @@
-import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { useState, type CSSProperties } from 'react'
 
 import { Panel, Screen } from '@/components/Screen'
 import { RunRewardsModal } from '@/features/dungeons/RunRewardsModal'
+import { StartRunModal } from '@/features/dungeons/StartRunModal'
 import { useDungeons, useRuns } from '@/features/dungeons/api'
-import { useParties } from '@/features/party/api'
-import { useClaimRun, useStartRun } from '@/features/progression/api'
+import { useClaimRun } from '@/features/progression/api'
 import type { RunClaim } from '@/features/progression/api'
-import { successChance } from '@/game/formulas'
 import { resolveArtSrc } from '@/lib/art'
+import type { Dungeon, DungeonRun } from '@/types/db'
 
 function formatDuration(seconds: number) {
   if (seconds < 60) return `${seconds} sec`
@@ -16,28 +15,77 @@ function formatDuration(seconds: number) {
   return `${Math.round(seconds / 3600)} h`
 }
 
+/**
+ * Reads the wall clock once to turn a run into a progress snapshot. Deliberately not a
+ * live timer: the animation carries the bar from here to 100% on its own.
+ */
+function runTimeline(run: DungeonRun) {
+  const startedAt = new Date(run.started_at).getTime()
+  const endsAt = new Date(run.ends_at).getTime()
+  const totalSeconds = Math.max(1, Math.round((endsAt - startedAt) / 1000))
+  const elapsedSeconds = Math.min(
+    totalSeconds,
+    Math.max(0, Math.round((Date.now() - startedAt) / 1000)),
+  )
+
+  return { totalSeconds, elapsedSeconds, remainingSeconds: totalSeconds - elapsedSeconds }
+}
+
+/**
+ * The bar is painted once and handed to CSS: `run-progress` scales the fill from 0 to 1
+ * over the run's full length and the negative delay skips it forward to where the run
+ * already is. No interval, no per-second re-render — `ends_at` is the clock.
+ */
+function RunProgress({ run }: { run: DungeonRun }) {
+  const { totalSeconds, elapsedSeconds, remainingSeconds } = runTimeline(run)
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2 text-xs">
+        <span className="text-gold-300">Running</span>
+        <span className="tabular-nums text-ink-400">
+          {remainingSeconds > 0 ? `~${formatDuration(remainingSeconds)} left` : 'Finishing...'}
+        </span>
+      </div>
+      <div
+        role="progressbar"
+        aria-label="Run progress"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round((elapsedSeconds / totalSeconds) * 100)}
+        className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-ink-800"
+      >
+        <div
+          className="run-progress-fill h-full w-full origin-left rounded-full bg-gold-500"
+          style={
+            {
+              // Static fraction for prefers-reduced-motion; otherwise the animation below wins.
+              '--run-progress': elapsedSeconds / totalSeconds,
+              animationName: 'run-progress',
+              animationDuration: `${totalSeconds}s`,
+              animationDelay: `-${elapsedSeconds}s`,
+              animationTimingFunction: 'linear',
+              animationFillMode: 'both',
+            } as CSSProperties
+          }
+        />
+      </div>
+      <p className="mt-1 text-[11px] text-ink-600">
+        Ends {new Date(run.ends_at).toLocaleTimeString()}
+      </p>
+    </div>
+  )
+}
+
 export function DungeonMapScreen() {
   const { data: dungeons, error } = useDungeons()
   const { data: runs } = useRuns()
-  const { data: parties } = useParties()
-  const startRun = useStartRun()
   const claimRun = useClaimRun()
-  const [toast, setToast] = useState<string | null>(null)
   const [claim, setClaim] = useState<RunClaim | null>(null)
-  const [partyId, setPartyId] = useState<string | null>(null)
-  const teams = parties ?? []
-  /** No explicit pick yet → the player's first team, matching `start_run`'s default. */
-  const sendPartyId = partyId ?? teams[0]?.party.id ?? null
+  /** The dungeon whose party picker is open — at most one at a time. */
+  const [picking, setPicking] = useState<Dungeon | null>(null)
   const activeRuns = runs?.filter((run) => !run.resolved_at) ?? []
   const claimableRuns = runs?.filter((run) => run.resolved_at && !run.claimed_at) ?? []
-  const dungeonNames = new Map((dungeons ?? []).map((dungeon) => [dungeon.id, dungeon.name]))
-
-  useEffect(() => {
-    if (!toast) return
-
-    const timeout = window.setTimeout(() => setToast(null), 5_000)
-    return () => window.clearTimeout(timeout)
-  }, [toast])
 
   return (
     <Screen
@@ -53,62 +101,11 @@ export function DungeonMapScreen() {
         </Panel>
       ) : null}
 
-      <div className="space-y-3">
-        {teams.length > 1 ? (
-          <Panel title="Team to send">
-            <select
-              value={sendPartyId ?? ''}
-              onChange={(event) => setPartyId(event.target.value)}
-              aria-label="Team to send"
-              className="w-full rounded-card border border-ink-700 bg-ink-850 px-2.5 py-2 text-sm text-ink-50"
-            >
-              {teams.map(({ party, slots }) => (
-                <option key={party.id} value={party.id}>
-                  {party.name} · {slots.length} card{slots.length === 1 ? '' : 's'}
-                </option>
-              ))}
-            </select>
-          </Panel>
-        ) : null}
-
-        {startRun.isSuccess ? (
-          <p className="text-xs text-faction-verdant">
-            Run started. It ends at {new Date(startRun.data.ends_at).toLocaleString()}.
-          </p>
-        ) : null}
-
-        {activeRuns.length > 0 || claimableRuns.length > 0 ? (
-          <Panel title="Your runs">
-            <ul className="space-y-2.5">
-              {activeRuns.map((run) => (
-                <li key={run.id} className="flex items-center justify-between gap-3 text-sm">
-                  <div>
-                    <p className="text-ink-200">{dungeonNames.get(run.dungeon_id) ?? run.dungeon_id}</p>
-                    <p className="text-xs text-ink-400">Ends at {new Date(run.ends_at).toLocaleString()}</p>
-                  </div>
-                  <span className="text-xs text-gold-300">Running</span>
-                </li>
-              ))}
-              {claimableRuns.map((run) => (
-                <li key={run.id} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-ink-200">{dungeonNames.get(run.dungeon_id) ?? run.dungeon_id}</span>
-                  <button
-                    type="button"
-                    className="rounded-card bg-gold-500 px-3 py-2 text-xs font-medium text-ink-950 disabled:opacity-50"
-                    disabled={claimRun.isPending}
-                    onClick={() => claimRun.mutate(run.id, { onSuccess: setClaim })}
-                  >
-                    Claim
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </Panel>
-        ) : null}
-
-        <ul className="space-y-2.5">
+      <ul className="space-y-2.5">
         {(dungeons ?? []).map((dungeon) => {
           const artSrc = resolveArtSrc(dungeon.art_path)
+          const running = activeRuns.filter((run) => run.dungeon_id === dungeon.id)
+          const claimable = claimableRuns.filter((run) => run.dungeon_id === dungeon.id)
 
           return (
             <li key={dungeon.id}>
@@ -133,48 +130,48 @@ export function DungeonMapScreen() {
                   <dd />
                   <dt className="text-ink-400">Base gold</dt>
                   <dd className="tabular-nums">{dungeon.gold_base.toLocaleString('en-US')}</dd>
-                  <dd className="text-right text-ink-600">
-                    {/* Preview only — the server rolls the real chance. */}
-                    p≈{Math.round(successChance(dungeon.req_power, dungeon.req_power) * 100)}%
-                  </dd>
+                  <dd />
                 </dl>
+
+                {running.length > 0 || claimable.length > 0 ? (
+                  <div className="mt-3 space-y-2.5 border-t border-ink-800 pt-3">
+                    {running.map((run) => (
+                      <RunProgress key={run.id} run={run} />
+                    ))}
+                    {claimable.map((run) => (
+                      <div key={run.id} className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-faction-verdant">
+                          {run.success ? 'Cleared — rewards ready' : 'Failed — nothing recovered'}
+                        </span>
+                        <button
+                          type="button"
+                          className="shrink-0 rounded-card bg-gold-500 px-3 py-2 text-xs font-medium text-ink-950 disabled:opacity-50"
+                          disabled={claimRun.isPending}
+                          onClick={() => claimRun.mutate(run.id, { onSuccess: setClaim })}
+                        >
+                          Claim
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
                 <button
                   type="button"
                   className="mt-3 w-full rounded-card border border-gold-600 px-3 py-2 text-xs text-gold-300 disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={startRun.isPending}
-                  onClick={() =>
-                    startRun.mutate(
-                      { dungeonId: dungeon.id, partyId: sendPartyId ?? undefined },
-                      { onError: (runError) => setToast(runError.message) },
-                    )
-                  }
+                  onClick={() => setPicking(dungeon)}
                 >
-                  {startRun.isPending ? 'Starting...' : 'Start run'}
+                  {running.length > 0 ? 'Start another run' : 'Start run'}
                 </button>
               </Panel>
             </li>
           )
         })}
-        </ul>
-      </div>
+      </ul>
 
       {claimRun.error ? <p className="mt-3 text-xs text-faction-ember">{claimRun.error.message}</p> : null}
-      {toast ? (
-        <div
-          role="alert"
-          className="fixed inset-x-4 bottom-5 z-40 mx-auto flex max-w-md items-start justify-between gap-3 rounded-card border border-faction-ember/60 bg-ink-900 px-3 py-3 text-sm text-ink-100 shadow-lg"
-        >
-          <p>{toast}</p>
-          <button
-            type="button"
-            aria-label="Dismiss notification"
-            title="Dismiss"
-            onClick={() => setToast(null)}
-            className="shrink-0 text-ink-400 hover:text-ink-50"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
+      {picking ? (
+        <StartRunModal dungeon={picking} activeRuns={activeRuns} onClose={() => setPicking(null)} />
       ) : null}
       {claim ? <RunRewardsModal claim={claim} onClose={() => setClaim(null)} /> : null}
     </Screen>

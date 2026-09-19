@@ -78,6 +78,7 @@ MIGRATIONS=(
   "20260918000000_init.sql"
   "20260919000000_multi_party.sql"
   "20260920000000_one_party_per_card.sql"
+  "20260922000000_busy_party_guard.sql"
 )
 
 docker cp "$ROOT_HOST/supabase/seed.sql" "$NAME:/tmp/seed.sql" >/dev/null
@@ -217,6 +218,49 @@ begin
     -- leave the throwaway database as the assertions found it
     delete from public.player_cards where card_id = 'verify_shared_card';
     delete from public.cards where id = 'verify_shared_card';
+  end;
+
+  -- a party already out on a run cannot be sent again; the UI badge is display only
+  declare
+    busy_dungeon text := 'verify_busy_dungeon';
+    busy_party uuid;
+    busy_card uuid;
+  begin
+    insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
+                              passive_name, passive_text, lore)
+      values ('verify_busy_card', 'Verify Busy Card', 1, 'ember', 'dps', 1, 0, 'p', 'p', 'p');
+    insert into public.player_cards (profile_id, card_id, rank)
+      values ('00000000-0000-0000-0000-000000000001', 'verify_busy_card', 1)
+      returning id into busy_card;
+
+    insert into public.parties (profile_id, name, slot_index)
+      values ('00000000-0000-0000-0000-000000000001', 'Busy team', 5)
+      returning id into busy_party;
+    insert into public.party_slots (party_id, slot, player_card_id)
+      values (busy_party, 1, busy_card);
+
+    insert into public.dungeons (id, name, kind, tier, req_power, duration_seconds, gold_base)
+      values (busy_dungeon, 'Verify Busy Dungeon', 'resource', 1, 10, 3600, 5);
+
+    -- start_run keys off auth.uid(), and the stub always reports null
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select '00000000-0000-0000-0000-000000000001'::uuid $fn$;
+
+    perform public.start_run(busy_dungeon, busy_party);
+    begin
+      perform public.start_run(busy_dungeon, busy_party);
+      raise exception 'a party on a live run was allowed to start a second one';
+    exception when others then
+      if sqlerrm <> 'that party is already on a run' then raise; end if;
+    end;
+
+    -- leave the throwaway database as the assertions found it
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select null::uuid $fn$;
+    delete from public.dungeon_runs where dungeon_id = busy_dungeon;
+    delete from public.dungeons where id = busy_dungeon;
+    delete from public.player_cards where card_id = 'verify_busy_card';
+    delete from public.cards where id = 'verify_busy_card';
   end;
 end $$;
 
