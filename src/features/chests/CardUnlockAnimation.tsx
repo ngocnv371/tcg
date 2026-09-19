@@ -134,53 +134,69 @@ export function CardUnlockAnimation({ cardName, artPath, rank, wasNew }: CardUnl
           style={{
             background: `linear-gradient(145deg, ${color} 0%, #141020 38%, #090811 100%)`,
             border: `3px solid ${color}`,
-            borderRadius: 18,
+            borderRadius: 20,
             boxShadow: `0 0 24px ${color}, 0 22px 50px #00000099`,
-            height: 255,
-            padding: 10,
+            height: 320,
+            overflow: 'hidden',
+            position: 'relative',
             transform: `rotateY(${interpolate(reveal, [0, 1], [180, 0])}deg)`,
             transformStyle: 'preserve-3d',
-            width: 180,
+            width: 220,
           }}
         >
+          {/* Art fills the frame; rank and name sit on top as overlays. */}
           <div
             style={{
               alignItems: 'center',
-              border: '1px solid #ffffff55',
-              borderRadius: 10,
+              background: '#ffffff10',
               display: 'flex',
-              flexDirection: 'column',
+              fontSize: 64,
               height: '100%',
-              justifyContent: 'space-between',
-              padding: 12,
+              justifyContent: 'center',
+              overflow: 'hidden',
+              width: '100%',
             }}
           >
-            <div style={{ alignSelf: 'flex-end', color: '#fff4b0', fontSize: 18 }}>{rank}★</div>
-            <div
-              style={{
-                alignItems: 'center',
-                background: '#ffffff18',
-                borderRadius: 12,
-                display: 'flex',
-                fontSize: 48,
-                height: 130,
-                justifyContent: 'center',
-                overflow: 'hidden',
-                width: '100%',
-              }}
-            >
-              {artSrc ? (
-                <img
-                  src={artSrc}
-                  alt={cardName}
-                  onError={() => setArtFailed(true)}
-                  style={{ height: '100%', objectFit: 'cover', width: '100%' }}
-                />
-              ) : (
-                '✦'
-              )}
-            </div>
-            <div style={{ fontSize: 16, letterSpacing: 0, textAlign: 'center' }}>{cardName}</div>
+            {artSrc ? (
+              <img
+                src={artSrc}
+                alt={cardName}
+                onError={() => setArtFailed(true)}
+                style={{ height: '100%', objectFit: 'cover', width: '100%' }}
+              />
+            ) : (
+              '✦'
+            )}
+          </div>
+
+          <div
+            style={{
+              background: 'linear-gradient(180deg, #00000000 0%, #07060dbb 62%, #07060df2 100%)',
+              bottom: 0,
+              left: 0,
+              padding: '30px 12px 12px',
+              position: 'absolute',
+              right: 0,
+            }}
+          >
+            <div style={{ fontSize: 17, textAlign: 'center' }}>{cardName}</div>
+          </div>
+
+          <div
+            style={{
+              backdropFilter: 'blur(6px)',
+              background: '#07060dcc',
+              border: `1px solid ${color}`,
+              borderRadius: 12,
+              color: '#fff4b0',
+              fontSize: 18,
+              padding: '3px 10px',
+              position: 'absolute',
+              right: 10,
+              top: 10,
+            }}
+          >
+            {rank}★
           </div>
         </div>
       </div>
