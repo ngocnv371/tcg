@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Player, type PlayerRef } from '@remotion/player'
 
@@ -6,7 +6,10 @@ import { Panel, Screen } from '@/components/Screen'
 import { useCardCatalog } from '@/features/cards/api'
 import { CardGrid } from '@/features/cards/CardBrowser'
 import { CardTile } from '@/features/cards/CardTile'
+import { CardBatchUnlockAnimation } from '@/features/chests/CardBatchUnlockAnimation'
 import { CardUnlockAnimation } from '@/features/chests/CardUnlockAnimation'
+import { STAGE_FPS, STAGE_SIZE } from '@/features/chests/unlockLayout'
+import { BATCH_DURATION, UNLOCK_DURATION } from '@/features/chests/unlockVisuals'
 import {
   useChestInventory,
   useClaimDailyChest,
@@ -24,94 +27,119 @@ const OPEN_QUANTITIES = [1, 2, 5, 10] as const
 /** Best tiers first — the vault is read top-down. */
 const VAULT_ORDER: readonly string[] = [...CHESTS].reverse()
 
-type UnlockState = {
-  /** Unique per reveal, so the Player remounts between stacked openings. */
-  key: string
-  opening: ChestOpening
-}
-
 function logUnlock(event: string, details?: Record<string, unknown>) {
   if (import.meta.env.DEV) console.debug(`[chest-unlock] ${event}`, details ?? {})
 }
 
-function CardUnlockOverlay({
-  unlock,
-  onClose,
-}: {
-  unlock: UnlockState
-  onClose: () => void
-}) {
+type RevealState = {
+  /** Unique per reveal, so the Player remounts between openings. */
+  key: string
+  /** A single chest reveals one card; a bulk open reveals every card in one animation. */
+  openings: ChestOpening[]
+}
+
+/** Player chrome, shared by both reveals — they play on the same stage. */
+const PLAYER_STAGE = {
+  compositionHeight: STAGE_SIZE.height,
+  compositionWidth: STAGE_SIZE.width,
+  controls: false,
+  fps: STAGE_FPS,
+  height: STAGE_SIZE.height,
+  style: {
+    aspectRatio: `${STAGE_SIZE.width} / ${STAGE_SIZE.height}`,
+    height: `min(100vh, ${STAGE_SIZE.height}px)`,
+    width: `min(100vw, ${STAGE_SIZE.width}px)`,
+  } satisfies CSSProperties,
+  width: STAGE_SIZE.width,
+}
+
+function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () => void }) {
   const playerRef = useRef<PlayerRef>(null)
+  const [first] = reveal.openings
+  const isBatch = reveal.openings.length > 1
 
   useEffect(() => {
     logUnlock('overlay-mounted', {
-      key: unlock.key,
-      cardId: unlock.opening.card_id,
-      cardName: unlock.opening.card_name,
+      key: reveal.key,
+      cardId: first.card_id,
+      cardName: first.card_name,
+      cards: reveal.openings.length,
     })
     const player = playerRef.current
     if (!player) {
-      logUnlock('player-ref-missing', { key: unlock.key })
+      logUnlock('player-ref-missing', { key: reveal.key })
       return
     }
 
     let hasStarted = false
     const handlePlay = () => {
       hasStarted = true
-      logUnlock('play', { key: unlock.key, frame: player.getCurrentFrame() })
+      logUnlock('play', { key: reveal.key, frame: player.getCurrentFrame() })
     }
     const handleEnded = () => {
-      logUnlock('ended', { key: unlock.key, frame: player.getCurrentFrame(), hasStarted })
+      logUnlock('ended', { key: reveal.key, frame: player.getCurrentFrame(), hasStarted })
       if (hasStarted) onClose()
     }
     const handleFrameUpdate = ({ detail }: { detail: { frame: number } }) => {
-      if (detail.frame % 30 === 0) logUnlock('frame', { key: unlock.key, frame: detail.frame })
+      if (detail.frame % 30 === 0) logUnlock('frame', { key: reveal.key, frame: detail.frame })
     }
 
     player.addEventListener('play', handlePlay)
     player.addEventListener('ended', handleEnded)
     player.addEventListener('frameupdate', handleFrameUpdate)
-    logUnlock('listeners-attached', { key: unlock.key })
+    logUnlock('listeners-attached', { key: reveal.key })
     player.seekTo(0)
-    logUnlock('seek-zero', { key: unlock.key })
+    logUnlock('seek-zero', { key: reveal.key })
     player.play()
-    logUnlock('play-requested', { key: unlock.key })
+    logUnlock('play-requested', { key: reveal.key })
 
     return () => {
-      logUnlock('cleanup', { key: unlock.key, frame: player.getCurrentFrame() })
+      logUnlock('cleanup', { key: reveal.key, frame: player.getCurrentFrame() })
       player.removeEventListener('play', handlePlay)
       player.removeEventListener('ended', handleEnded)
       player.removeEventListener('frameupdate', handleFrameUpdate)
       player.pause()
     }
-  }, [onClose, unlock])
+  }, [first.card_id, first.card_name, onClose, reveal])
 
   return (
     <div
-      aria-label="New card unlocked"
+      aria-label={isBatch ? 'New cards unlocked' : 'New card unlocked'}
       aria-modal="true"
       className="fixed inset-0 z-50 grid place-items-center bg-ink-950"
       role="dialog"
     >
-      <Player
-        key={unlock.key}
-        ref={playerRef}
-        component={CardUnlockAnimation}
-        compositionHeight={844}
-        compositionWidth={390}
-        durationInFrames={150}
-        fps={30}
-        height={844}
-        inputProps={{
-          cardName: unlock.opening.card_name,
-          artPath: unlock.opening.art_path,
-          rank: unlock.opening.rank,
-          wasNew: unlock.opening.was_new,
-        }}
-        controls={false}
-        style={{ aspectRatio: '390 / 844', height: 'min(100vh, 844px)', width: 'min(100vw, 390px)' }}
-        width={390}
-      />
+      {isBatch ? (
+        <Player
+          key={reveal.key}
+          ref={playerRef}
+          component={CardBatchUnlockAnimation}
+          durationInFrames={BATCH_DURATION}
+          inputProps={{
+            cards: reveal.openings.map((opening) => ({
+              artPath: opening.art_path,
+              cardName: opening.card_name,
+              rank: opening.rank,
+              wasNew: opening.was_new,
+            })),
+          }}
+          {...PLAYER_STAGE}
+        />
+      ) : (
+        <Player
+          key={reveal.key}
+          ref={playerRef}
+          component={CardUnlockAnimation}
+          durationInFrames={UNLOCK_DURATION}
+          inputProps={{
+            artPath: first.art_path,
+            cardName: first.card_name,
+            rank: first.rank,
+            wasNew: first.was_new,
+          }}
+          {...PLAYER_STAGE}
+        />
+      )}
       <button
         type="button"
         aria-label="Close unlock animation"
@@ -131,7 +159,7 @@ export function ChestOpenScreen() {
   const grantTestChests = useGrantTestChests()
   const openChests = useOpenChests()
   const [batch, setBatch] = useState<ChestOpening[]>([])
-  const [unlocks, setUnlocks] = useState<UnlockState[]>([])
+  const [reveal, setReveal] = useState<RevealState | null>(null)
   const unopened = inventory?.filter((chest) => !chest.opened_at) ?? []
 
   // Stacked chests collapse to one row per type; anything not in the catalog
@@ -142,11 +170,10 @@ export function ChestOpenScreen() {
     .map((chestId) => ({ chestId, count: unopened.filter((chest) => chest.chest_id === chestId).length }))
     .filter((group) => group.count > 0)
 
-  // Reveals play one after another: closing the overlay drops the head of the queue.
-  const activeUnlock = unlocks[0] ?? null
-  const closeUnlock = useCallback(() => {
+  // Closing the overlay is the only way out: the reveal always ends in the vault grid behind it.
+  const closeReveal = useCallback(() => {
     logUnlock('close-requested')
-    setUnlocks((queue) => queue.slice(1))
+    setReveal(null)
   }, [])
 
   const handleOpen = (chestId: string, qty: number) => {
@@ -154,8 +181,11 @@ export function ChestOpenScreen() {
       .mutateAsync({ chestId, qty })
       .then((openings) => {
         logUnlock('open-result', { chestId, qty, cardIds: openings.map((opening) => opening.card_id) })
+        if (!openings.length) return
         setBatch(openings)
-        setUnlocks(openings.map((opening, index) => ({ key: `${chestId}-${Date.now()}-${index}`, opening })))
+        // One reveal for the whole open: a bulk open fans its extra cards itself instead of
+        // replaying the single-card animation once per chest.
+        setReveal({ key: `${chestId}-${Date.now()}`, openings })
       })
       .catch((error: unknown) => {
         logUnlock('open-error', { chestId, qty, error })
@@ -287,7 +317,7 @@ export function ChestOpenScreen() {
 
       </div>
       </Screen>
-      {activeUnlock ? <CardUnlockOverlay unlock={activeUnlock} onClose={closeUnlock} /> : null}
+      {reveal ? <RevealOverlay onClose={closeReveal} reveal={reveal} /> : null}
     </>
   )
 }

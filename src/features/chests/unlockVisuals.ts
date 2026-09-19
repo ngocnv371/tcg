@@ -1,0 +1,53 @@
+import type { CSSProperties } from 'react'
+import { interpolate, spring } from 'remotion'
+
+/**
+ * Shared vocabulary for the two chest reveals: how long each beat lasts, the rank tint, the
+ * reveal curve and the stage backdrop. Kept out of the component files so those only export
+ * components (which is what Fast Refresh wants).
+ */
+
+/** Frames the single-card reveal runs for. The batch reveal replays it as its first phase. */
+export const UNLOCK_DURATION = 150
+/** The fan beat: one second for the extras to take their places behind the first card. */
+export const FAN_DURATION = 30
+/** The grid beat: one second for every card to spread into its slot. */
+export const SPREAD_DURATION = 30
+/**
+ * Two beats on top of the single reveal, so opening ten chests replays that same 5s intro once
+ * instead of running 5s per card.
+ */
+export const BATCH_DURATION = UNLOCK_DURATION + FAN_DURATION + SPREAD_DURATION
+
+/** Backdrop both reveals render in, so a multi open never jumps to a different stage. */
+export const UNLOCK_STAGE_STYLE: CSSProperties = {
+  alignItems: 'center',
+  background: 'radial-gradient(circle at 50% 43%, #302248 0%, #100d1c 48%, #07060d 100%)',
+  color: '#f2f0f8',
+  fontFamily: 'Georgia, serif',
+  justifyContent: 'center',
+  overflow: 'hidden',
+}
+
+const RANK_COLORS = ['#8b93a7', '#57c98a', '#4aa3ff', '#b06bff', '#ffb02e']
+const REVEAL_SPRING = { damping: 13, mass: 0.8, stiffness: 120 }
+
+/** Rank tint, shared so a card looks the same in the single and the batch reveal. */
+export function rankColor(rank: number) {
+  return RANK_COLORS[Math.max(0, Math.min(rank - 1, RANK_COLORS.length - 1))]
+}
+
+/**
+ * Reveal curve for one card face. The batch reveal calls this for its first card, so a single
+ * opening and the start of a multi opening are the same animation. Every value settles to its
+ * end state, which is what lets the batch blend that card into its grid slot afterwards.
+ */
+export function cardReveal(frame: number, fps: number) {
+  const reveal = spring({ config: REVEAL_SPRING, fps, frame })
+  return {
+    flip: interpolate(reveal, [0, 1], [180, 0]),
+    opacity: interpolate(frame, [0, 8], [0, 1], { extrapolateRight: 'clamp' }),
+    rotate: interpolate(reveal, [0, 0.65, 1], [-18, 8, 0]),
+    scale: interpolate(reveal, [0, 1], [0.45, 1]),
+  }
+}

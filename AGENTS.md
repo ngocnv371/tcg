@@ -58,7 +58,10 @@ scaled by the run
 length plus a negative `animation-delay` for the time already spent — so nothing ticks it. The vault
 stacks unopened chests by type and offers Open 1/2/5/10: `open_chests`
 (`20260925000000_open_chests.sql`) spends the oldest rows of that type, calls `open_chest` per chest
-and returns the reveals as an array, and the client plays the unlock animation for each in turn. A party
+and returns the reveals as an array. The reveal then plays once for the whole open: one card uses
+`CardUnlockAnimation`, more use `CardBatchUnlockAnimation` — the same single-card intro, then the
+extras fan in behind it (1s) and everything spreads into a grid (1s), so opening ten chests runs 7s,
+not 50s. Fan/grid geometry is pure maths in `src/features/chests/unlockLayout.ts`, unit tested. A party
 with an unresolved run can no longer be sent again: `20260922000000_busy_party_guard.sql` redefines
 `start_run` with that check (the client badge is display only). A failed run still pays
 `FAILED_RUN_PITY_GOLD` (1 gold, mirrored in `20260924000000_failed_run_pity.sql`), and `claim_run`
