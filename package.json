@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed:build": "node scripts/build-seed.mjs",
-    "import:cards": "node scripts/import-concept-cards.mjs --upload-art --import D:/dev/siren-concept/export",
+    "import:cards": "node scripts/import-concept-cards.mjs --upload-art --import ./data/cards",
     "preview": "vite preview",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
