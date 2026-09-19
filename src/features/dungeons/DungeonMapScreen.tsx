@@ -4,16 +4,11 @@ import { Panel, Screen } from '@/components/Screen'
 import { RunRewardsModal } from '@/features/dungeons/RunRewardsModal'
 import { StartRunModal } from '@/features/dungeons/StartRunModal'
 import { useDungeons, useRuns } from '@/features/dungeons/api'
+import { formatDuration } from '@/features/dungeons/format'
 import { useClaimRun } from '@/features/progression/api'
 import type { RunClaim } from '@/features/progression/api'
 import { resolveArtSrc } from '@/lib/art'
 import type { Dungeon, DungeonRun } from '@/types/db'
-
-function formatDuration(seconds: number) {
-  if (seconds < 60) return `${seconds} sec`
-  if (seconds < 3600) return `${Math.round(seconds / 60)} min`
-  return `${Math.round(seconds / 3600)} h`
-}
 
 /**
  * Reads the wall clock once to turn a run into a progress snapshot. Deliberately not a
@@ -86,6 +81,8 @@ export function DungeonMapScreen() {
   const [picking, setPicking] = useState<Dungeon | null>(null)
   const activeRuns = runs?.filter((run) => !run.resolved_at) ?? []
   const claimableRuns = runs?.filter((run) => run.resolved_at && !run.claimed_at) ?? []
+  /** `start_run` refuses account-wide while a finished run is uncollected, so the buttons do too. */
+  const pendingClaims = claimableRuns.length > 0
 
   return (
     <Screen
@@ -99,6 +96,12 @@ export function DungeonMapScreen() {
             No database yet — run <code>npm run db:start</code> then <code>npm run db:reset</code>.
           </p>
         </Panel>
+      ) : null}
+
+      {pendingClaims ? (
+        <p className="mb-2.5 text-xs text-gold-300">
+          Claim your finished runs before sending another party.
+        </p>
       ) : null}
 
       <ul className="space-y-2.5">
@@ -140,9 +143,10 @@ export function DungeonMapScreen() {
                     ))}
                     {claimable.map((run) => (
                       <div key={run.id}>
-                        <p className="text-xs text-faction-verdant">
-                          {run.success ? 'Cleared — rewards ready' : 'Failed — nothing recovered'}
-                        </p>
+                        {/* A failure has no outcome to announce — the Claim button says it all. */}
+                        {run.success ? (
+                          <p className="text-xs text-faction-verdant">Cleared — rewards ready</p>
+                        ) : null}
                         <button
                           type="button"
                           className="mt-2 w-full rounded-card bg-gold-500 px-3 py-2 text-xs font-medium text-ink-950 disabled:opacity-50"
@@ -157,7 +161,9 @@ export function DungeonMapScreen() {
                 ) : (
                   <button
                     type="button"
-                    className="mt-3 w-full rounded-card border border-gold-600 px-3 py-2 text-xs text-gold-300"
+                    className="mt-3 w-full rounded-card border border-gold-600 px-3 py-2 text-xs text-gold-300 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={pendingClaims}
+                    title={pendingClaims ? 'Claim your finished runs first' : undefined}
                     onClick={() => setPicking(dungeon)}
                   >
                     Start run
@@ -171,7 +177,12 @@ export function DungeonMapScreen() {
 
       {claimRun.error ? <p className="mt-3 text-xs text-faction-ember">{claimRun.error.message}</p> : null}
       {picking ? (
-        <StartRunModal dungeon={picking} activeRuns={activeRuns} onClose={() => setPicking(null)} />
+        <StartRunModal
+          dungeon={picking}
+          activeRuns={activeRuns}
+          pendingClaims={claimableRuns.length}
+          onClose={() => setPicking(null)}
+        />
       ) : null}
       {claim ? <RunRewardsModal claim={claim} onClose={() => setClaim(null)} /> : null}
     </Screen>

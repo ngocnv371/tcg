@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 
 import { CardTile } from '@/features/cards/CardTile'
 import { useCardCatalog, useCollection } from '@/features/cards/api'
+import { formatDuration } from '@/features/dungeons/format'
 import { useParties } from '@/features/party/api'
 import { useStartRun } from '@/features/progression/api'
 import { partyPower, successChance } from '@/game/formulas'
@@ -27,10 +28,13 @@ type PartyOption = {
 export function StartRunModal({
   dungeon,
   activeRuns,
+  pendingClaims,
   onClose,
 }: {
   dungeon: Dungeon
   activeRuns: DungeonRun[]
+  /** A run can finish while this picker is open, so the gate is re-checked here too. */
+  pendingClaims: number
   onClose: () => void
 }) {
   const { data: parties, isPending: partiesPending } = useParties()
@@ -85,7 +89,8 @@ export function StartRunModal({
   const firstUsable = options.find((option) => !option.busy && !option.empty)
   const selectedId = pickedId ?? firstUsable?.loadout.party.id ?? null
   const selected = options.find((option) => option.loadout.party.id === selectedId)
-  const canConfirm = Boolean(selected) && !selected?.busy && !selected?.empty && !startRun.isPending
+  const canConfirm =
+    Boolean(selected) && !selected?.busy && !selected?.empty && pendingClaims === 0 && !startRun.isPending
 
   return (
     <div
@@ -209,10 +214,12 @@ export function StartRunModal({
         <footer className="border-t border-ink-800 p-4">
           <p className="mb-2 text-xs text-ink-400">
             Needs {dungeon.req_power.toLocaleString('en-US')} power ·{' '}
-            {dungeon.duration_seconds < 3600
-              ? `${Math.round(dungeon.duration_seconds / 60)} min`
-              : `${Math.round(dungeon.duration_seconds / 3600)} h`}
-            {options.length > 0 && !firstUsable ? ' · every party is already out' : ''}
+            {formatDuration(dungeon.duration_seconds)}
+            {pendingClaims > 0
+              ? ' · claim your finished runs first'
+              : options.length > 0 && !firstUsable
+                ? ' · every party is already out'
+                : ''}
           </p>
           <button
             type="button"

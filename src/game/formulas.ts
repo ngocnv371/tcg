@@ -47,6 +47,12 @@ export const SUCCESS_EXP = 0.8
 export const REWARD_MULT_MIN = 1.0
 export const REWARD_MULT_MAX = 1.5
 
+/**
+ * A failed run still pays this much gold. Without it a bad roll is a dead click, and the
+ * player leaves empty-handed after waiting out the timer.
+ */
+export const FAILED_RUN_PITY_GOLD = 1
+
 /** Extra concurrent runs unlock from player level — the pacing lever. */
 export const RUN_SLOT_UNLOCKS: ReadonlyArray<{ playerLevel: number; slots: number }> = [
   { playerLevel: 1, slots: 2 },

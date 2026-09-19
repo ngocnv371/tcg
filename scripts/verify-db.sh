@@ -79,6 +79,8 @@ MIGRATIONS=(
   "20260919000000_multi_party.sql"
   "20260920000000_one_party_per_card.sql"
   "20260922000000_busy_party_guard.sql"
+  "20260923000000_claim_before_start.sql"
+  "20260924000000_failed_run_pity.sql"
 )
 
 docker cp "$ROOT_HOST/supabase/seed.sql" "$NAME:/tmp/seed.sql" >/dev/null
@@ -225,6 +227,7 @@ begin
     busy_dungeon text := 'verify_busy_dungeon';
     busy_party uuid;
     busy_card uuid;
+    gold_before bigint;
   begin
     insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
                               passive_name, passive_text, lore)
@@ -253,6 +256,19 @@ begin
     exception when others then
       if sqlerrm <> 'that party is already on a run' then raise; end if;
     end;
+
+    -- a failed run pays pity gold: claim has to credit rewards->gold for a loss too
+    select gold into gold_before from public.profiles
+      where id = '00000000-0000-0000-0000-000000000001';
+    update public.dungeon_runs
+      set resolved_at = now(), success = false,
+          rewards = jsonb_build_object('gold', 1, 'materials', jsonb_build_array())
+      where party_id = busy_party;
+    perform public.claim_run((select id from public.dungeon_runs where party_id = busy_party));
+    if (select gold from public.profiles where id = '00000000-0000-0000-0000-000000000001')
+       <> gold_before + 1 then
+      raise exception 'a failed run did not pay its 1 gold pity (mirrors FAILED_RUN_PITY_GOLD)';
+    end if;
 
     -- leave the throwaway database as the assertions found it
     create or replace function auth.uid() returns uuid language sql stable

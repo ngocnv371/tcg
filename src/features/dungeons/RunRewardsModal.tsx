@@ -19,7 +19,9 @@ export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: 
               {claim.success ? 'Run rewards' : 'Run failed'}
             </h2>
             <p className="mt-1 text-sm text-ink-400">
-              {claim.success ? 'Resources added to your vault.' : 'No resources were recovered.'}
+              {claim.success
+                ? 'Resources added to your vault.'
+                : 'No materials recovered — pity gold added.'}
             </p>
           </div>
           <button
@@ -33,12 +35,17 @@ export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: 
           </button>
         </div>
 
-        {claim.success && rewards ? (
+        {rewards ? (
           <ul className="mt-4 divide-y divide-ink-800 border-y border-ink-800 text-sm">
-            <li className="flex items-center justify-between py-3">
-              <span className="text-ink-200">Gold</span>
-              <span className="tabular-nums text-gold-300">+{rewards.gold.toLocaleString('en-US')}</span>
-            </li>
+            {/* Runs resolved before the pity-gold change carry gold: 0 — nothing to show. */}
+            {rewards.gold > 0 ? (
+              <li className="flex items-center justify-between py-3">
+                <span className="text-ink-200">Gold</span>
+                <span className="tabular-nums text-gold-300">
+                  +{rewards.gold.toLocaleString('en-US')}
+                </span>
+              </li>
+            ) : null}
             {rewards.materials.map((material) => (
               <li key={material.material_id} className="flex items-center justify-between py-3">
                 <span className="text-ink-200">{material.material_id.replaceAll('_', ' ')}</span>

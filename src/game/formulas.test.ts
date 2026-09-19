@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   CHEST_ODDS,
+  FAILED_RUN_PITY_GOLD,
   RANK_META,
   cardAtk,
   cardDef,
@@ -84,6 +85,11 @@ describe('rewards', () => {
     expect(levelUpGold(1)).toBe(25)
     expect(levelUpGold(10)).toBe(628)
     expect(levelUpGold(50)).toBe(5977)
+  })
+
+  it('leaves a failed run with pity gold, not nothing', () => {
+    // The SQL failure branch mirrors this number; see 20260924000000_failed_run_pity.sql.
+    expect(FAILED_RUN_PITY_GOLD).toBeGreaterThan(0)
   })
 })
 

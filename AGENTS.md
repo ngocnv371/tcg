@@ -50,10 +50,16 @@ equipped in one party at a time: `party_slots` is unique on `player_card_id`
 (`20260920000000_one_party_per_card.sql`), and `save_party` mirrors that rule with a readable error.
 Dungeons: `start_run` / `claim_run` are wired through `StartRunModal` (party picker showing each
 lineup's members and power, parties with a live run disabled), and a run's status renders on the
-dungeon card itself. The progress bar is pure CSS — the `run-progress` keyframe scaled by the run
+dungeon card itself. One action per card: a live or unclaimed run replaces the "Start run" button
+with the status plus a full-width `Claim`, so a dungeon is one run at a time from the UI. A finished
+run also gates the next one server-side: `20260923000000_claim_before_start.sql` makes `start_run`
+raise `'claim your finished runs first'`. The progress bar is pure CSS — the `run-progress` keyframe
+scaled by the run
 length plus a negative `animation-delay` for the time already spent — so nothing ticks it. A party
 with an unresolved run can no longer be sent again: `20260922000000_busy_party_guard.sql` redefines
-`start_run` with that check (the client badge is display only).
+`start_run` with that check (the client badge is display only). A failed run still pays
+`FAILED_RUN_PITY_GOLD` (1 gold, mirrored in `20260924000000_failed_run_pity.sql`), and `claim_run`
+credits `rewards->gold` for both outcomes.
 
 Next up (weeks 4–8): `level_up_card`, `rank_up_card` — each as a `SECURITY DEFINER` function plus
 its screen wiring.
