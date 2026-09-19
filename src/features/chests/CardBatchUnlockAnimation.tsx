@@ -157,7 +157,7 @@ export function CardBatchUnlockAnimation({ cards }: CardBatchUnlockAnimationProp
         }}
       >
         <div style={{ color: '#ffe08a', fontSize: 13, letterSpacing: 2 }}>
-          {first.wasNew ? 'NEW CARD UNLOCKED' : 'CARD REVEALED'}
+          {first.wasNew ? 'NEW CARD UNLOCKED' : 'ANOTHER COPY'}
         </div>
         <div style={{ color: '#ffffff', fontSize: 20, marginTop: 5 }}>{first.cardName}</div>
       </div>

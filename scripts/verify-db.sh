@@ -82,6 +82,7 @@ MIGRATIONS=(
   "20260923000000_claim_before_start.sql"
   "20260924000000_failed_run_pity.sql"
   "20260925000000_open_chests.sql"
+  "20260926000000_own_multiple_copies.sql"
 )
 
 docker cp "$ROOT_HOST/supabase/seed.sql" "$NAME:/tmp/seed.sql" >/dev/null
@@ -287,6 +288,15 @@ begin
     opened_rows integer;
     pulls integer;
     reveals jsonb;
+    dupe_card text := 'verify_open_card_1';
+    dupe_copies integer;
+    dupe_copies_after integer;
+    first_copies integer;
+    shard_id text;
+    shard_qty integer;
+    shards_before integer;
+    shards_after integer;
+    original_odds jsonb;
   begin
     -- one card per rank, so any common-chest roll has something to return
     insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
@@ -327,7 +337,67 @@ begin
       if sqlerrm <> 'not enough unopened common chests' then raise; end if;
     end;
 
+    -- duplicates now grant a real copy (a second player_cards row for the same card_id)
+    -- instead of only paying shards. Pin the odds onto the single rank-1 card so the
+    -- duplicate is guaranteed rather than a coin flip.
+    select jsonb_agg(jsonb_build_object('rank', rank, 'weight', weight)) into original_odds
+      from public.chest_odds where chest_id = 'common';
+    update public.chest_odds set weight = case when rank = 1 then 100 else 0 end
+      where chest_id = 'common';
+
+    select dupe_shard_material, dupe_shard_qty into shard_id, shard_qty
+      from public.rank_meta where rank = 1;
+
+    perform public.grant_test_chests(2);
+    -- First pull: a new copy if the card is not owned yet, a duplicate otherwise.
+    -- Either way the card is owned afterwards, which makes the next pull deterministic.
+    perform public.open_chests('common', 1);
+
+    select count(*) into dupe_copies
+      from public.player_cards
+      where profile_id = '00000000-0000-0000-0000-000000000001' and card_id = dupe_card;
+    select coalesce(qty, 0) into shards_before
+      from public.player_materials
+      where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = shard_id;
+    shards_before := coalesce(shards_before, 0);
+
+    reveals := public.open_chests('common', 1);
+
+    if (reveals->0->>'was_new')::boolean then
+      raise exception 'a duplicate pull was reported as a new card';
+    end if;
+    if (reveals->0->>'player_card_id') is null then
+      raise exception 'a reveal is missing its player_card_id';
+    end if;
+
+    select count(*) into dupe_copies_after
+      from public.player_cards
+      where profile_id = '00000000-0000-0000-0000-000000000001' and card_id = dupe_card;
+    if dupe_copies_after <> dupe_copies + 1 then
+      raise exception 'a duplicate pull did not grant a copy (% -> %)', dupe_copies, dupe_copies_after;
+    end if;
+
+    -- was_new must fire exactly once per card, however many copies follow it
+    select count(*) into first_copies
+      from public.pull_history
+      where profile_id = '00000000-0000-0000-0000-000000000001' and card_id = dupe_card and was_new;
+    if first_copies <> 1 then
+      raise exception 'was_new must be true exactly once per card, found %', first_copies;
+    end if;
+
+    -- the shard payout is preserved so the rank-up economy is not starved
+    select coalesce(qty, 0) into shards_after
+      from public.player_materials
+      where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = shard_id;
+    if coalesce(shards_after, 0) <> shards_before + shard_qty then
+      raise exception 'a duplicate pull stopped paying its % dupe shards', shard_qty;
+    end if;
+
     -- leave the throwaway database as the assertions found it
+    update public.chest_odds o
+      set weight = (item->>'weight')::numeric
+      from jsonb_array_elements(original_odds) as item
+      where o.chest_id = 'common' and o.rank = (item->>'rank')::smallint;
     create or replace function auth.uid() returns uuid language sql stable
       as $fn$ select null::uuid $fn$;
     delete from public.pull_history where profile_id = '00000000-0000-0000-0000-000000000001';

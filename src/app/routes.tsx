@@ -22,7 +22,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomeScreen /> },
       { path: 'cards', element: <CardLibraryScreen /> },
-      { path: 'cards/:playerCardId', element: <CardDetailScreen /> },
+      { path: 'cards/:cardRefId', element: <CardDetailScreen /> },
       { path: 'party', element: <PartyBuilderScreen /> },
       { path: 'dungeons', element: <DungeonMapScreen /> },
       { path: 'chests', element: <ChestOpenScreen /> },

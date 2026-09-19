@@ -6,9 +6,12 @@ import type { CardRank, ChestInventoryRow, DungeonRun } from '@/types/db'
 
 export type ChestOpening = {
   card_id: string
+  /** The player_cards row this pull granted — a card can now have several copies. */
+  player_card_id: string
   card_name: string
   art_path: string | null
   rank: CardRank
+  /** True only for the FIRST copy of this card; later copies are duplicates. */
   was_new: boolean
   shard_material: string | null
   shard_qty: number

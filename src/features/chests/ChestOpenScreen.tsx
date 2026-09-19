@@ -269,17 +269,19 @@ export function ChestOpenScreen() {
                 Opened {batch.length} chest{batch.length === 1 ? '' : 's'}
               </p>
               <CardGrid>
-                {batch.map((opening, index) => {
+                {batch.map((opening) => {
                   const card = cardById.get(opening.card_id)
                   if (!card) return null
                   return (
-                    <div key={`${opening.card_id}-${index}`} className="space-y-1">
-                      <NavLink to={`/cards/${card.id}`}>
+                    <div key={opening.player_card_id} className="space-y-1">
+                      {/* Open the copy that was just granted, not the catalog card — the
+                          player may already own other copies at different ranks. */}
+                      <NavLink to={`/cards/${opening.player_card_id}`}>
                         <CardTile
                           card={card}
                           owned
                           rank={opening.rank}
-                          badge={opening.was_new ? 'New' : undefined}
+                          badge={opening.was_new ? 'New' : 'Copy'}
                         />
                       </NavLink>
                       {opening.was_new ? null : (

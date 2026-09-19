@@ -61,7 +61,13 @@ stacks unopened chests by type and offers Open 1/2/5/10: `open_chests`
 and returns the reveals as an array. The reveal then plays once for the whole open: one card uses
 `CardUnlockAnimation`, more use `CardBatchUnlockAnimation` — the same single-card intro, then the
 extras fan in behind it (1s) and everything spreads into a grid (1s), so opening ten chests runs 7s,
-not 50s. Fan/grid geometry is pure maths in `src/features/chests/unlockLayout.ts`, unit tested. A party
+not 50s. Fan/grid geometry is pure maths in `src/features/chests/unlockLayout.ts`, unit tested. A player
+owns multiple copies of one card: `20260926000000_own_multiple_copies.sql` makes `open_chest` insert a
+`player_cards` row on *every* pull (a duplicate used to pay shards only) and return that row's
+`player_card_id`. The dupe shard payout is deliberately kept so `rank_up_card` stays fed. Because copies
+level and rank independently, the library renders one tile per owned copy (keyed by `cardBrowserKey` in
+`src/features/cards/CardBrowser.tsx`), the chest reveal links to the copy it granted, and the detail route
+`cards/:cardRefId` resolves a copy id first and falls back to a catalog card id. A party
 with an unresolved run can no longer be sent again: `20260922000000_busy_party_guard.sql` redefines
 `start_run` with that check (the client badge is display only). A failed run still pays
 `FAILED_RUN_PITY_GOLD` (1 gold, mirrored in `20260924000000_failed_run_pity.sql`), and `claim_run`

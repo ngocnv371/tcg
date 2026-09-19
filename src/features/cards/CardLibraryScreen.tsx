@@ -8,6 +8,7 @@ import {
   CardBrowserControls,
   CardBrowserEmpty,
   CardGrid,
+  cardBrowserKey,
   useCardBrowser,
 } from '@/features/cards/CardBrowser'
 import { CardTile } from '@/features/cards/CardTile'
@@ -18,14 +19,27 @@ export function CardLibraryScreen() {
   const { data: collection } = useCollection()
   const [ownedOnly, setOwnedOnly] = useState(false)
 
-  const ownedByCardId = new Map((collection ?? []).map((row) => [row.card_id, row]))
-  const allItems: CardBrowserItem[] = (cards ?? []).map((card) => ({
-    card,
-    playerCard: ownedByCardId.get(card.id),
-  }))
-  const items = ownedOnly ? allItems.filter((item) => item.playerCard) : allItems
+  const cardById = new Map((cards ?? []).map((card) => [card.id, card]))
+
+  // One entry per OWNED COPY, not per catalog card. Copies level and rank independently,
+  // so a player holding three of the same card gets three tiles, each with its own stars —
+  // collapsing by card_id (the old behaviour) could only ever show one of them.
+  const ownedItems: CardBrowserItem[] = (collection ?? []).flatMap((playerCard) => {
+    const card = cardById.get(playerCard.card_id)
+    return card ? [{ card, playerCard }] : []
+  })
+
+  // Catalog rows for cards the player has no copy of, so the library still shows what is
+  // obtainable — greyed out by CardTile's `owned={false}`.
+  const ownedCardIds = new Set((collection ?? []).map((row) => row.card_id))
+  const unownedItems: CardBrowserItem[] = (cards ?? [])
+    .filter((card) => !ownedCardIds.has(card.id))
+    .map((card) => ({ card }))
+
+  const items = ownedOnly ? ownedItems : [...ownedItems, ...unownedItems]
   const browser = useCardBrowser(items, { sorts: CATALOG_SORTS })
 
+  // Catalog star spread — a content readout, unaffected by how many copies are owned.
   const byRank = (cards ?? []).reduce<Record<number, number>>((acc, card) => {
     acc[card.rank] = (acc[card.rank] ?? 0) + 1
     return acc
@@ -35,7 +49,9 @@ export function CardLibraryScreen() {
     <Screen
       title="Card Library"
       week="Built in week 3"
-      hint={`${cards?.length ?? 0} in catalog · ${collection?.length ?? 0} owned`}
+      hint={`${cards?.length ?? 0} in catalog · ${ownedItems.length} owned ${
+        ownedItems.length === 1 ? 'copy' : 'copies'
+      }`}
     >
       {error ? (
         <Panel>
@@ -83,14 +99,16 @@ export function CardLibraryScreen() {
         />
       ) : (
         <CardGrid>
-          {browser.results.map(({ card, playerCard }) => (
-            <NavLink key={card.id} to={`/cards/${card.id}`}>
+          {browser.results.map((item) => (
+            // The key is the player_cards id for an owned copy and the card id otherwise,
+            // so copies of one card stay distinct (and links open the exact copy).
+            <NavLink key={cardBrowserKey(item)} to={`/cards/${cardBrowserKey(item)}`}>
               {/* Show the owned copy's rank/level when there is one — the catalog row is only a template. */}
               <CardTile
-                card={card}
-                owned={Boolean(playerCard)}
-                rank={playerCard?.rank}
-                level={playerCard?.level ?? 1}
+                card={item.card}
+                owned={Boolean(item.playerCard)}
+                rank={item.playerCard?.rank}
+                level={item.playerCard?.level ?? 1}
               />
             </NavLink>
           ))}

@@ -248,7 +248,7 @@ export function CardUnlockAnimation({ cardName, artPath, rank, wasNew }: CardUnl
         }}
       >
         <div style={{ color: '#ffe08a', fontSize: 13, letterSpacing: 2 }}>
-          {wasNew ? 'NEW CARD UNLOCKED' : 'CARD REVEALED'}
+          {wasNew ? 'NEW CARD UNLOCKED' : 'ANOTHER COPY'}
         </div>
         <div style={{ color: '#ffffff', fontSize: 20, marginTop: 5 }}>{cardName}</div>
       </div>

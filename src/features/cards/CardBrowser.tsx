@@ -5,9 +5,13 @@ import { cardPower } from '@/game/formulas'
 import type { Card, CardRank, PlayerCard } from '@/types/db'
 
 /**
- * One row in a browsable card list. `playerCard` is present when browsing the
- * player's collection (the picker) and absent when browsing the catalog (the library) —
- * everything downstream falls back to the catalog values when it is missing.
+ * One row in a browsable card list. `playerCard` is present when browsing an owned
+ * copy (the party picker, and owned entries in the library) and absent when browsing a
+ * catalog card the player does not own — everything downstream falls back to the
+ * catalog values when it is missing.
+ *
+ * A card the player owns several copies of produces one item PER COPY: each copy has
+ * its own rank/level, so they cannot share a row.
  */
 export type CardBrowserItem = {
   card: Card
@@ -31,12 +35,22 @@ const CARD_SORTS: ReadonlyArray<{ value: CardSort; label: string }> = [
   { value: 'name-asc', label: 'Name (A → Z)' },
 ]
 
-/** Sorts that only make sense when browsing owned copies. */
-export const CATALOG_SORTS: readonly CardSort[] = CARD_SORTS.map((option) => option.value).filter(
-  (value) => value !== 'recent',
-)
+/**
+ * Sorts offered by the library. 'recent' belongs here now that the library lists owned
+ * copies (there is an `obtained_at` to sort on) instead of only catalog rows.
+ */
+export const CATALOG_SORTS: readonly CardSort[] = CARD_SORTS.map((option) => option.value)
 
+/** Sorts that only make sense when browsing owned copies. */
 export const OWNED_SORTS: readonly CardSort[] = CARD_SORTS.map((option) => option.value)
+
+/**
+ * React key for a browsable row. Owned copies key off the player_cards row, so two
+ * copies of the same card are distinct entries rather than a duplicate React key.
+ */
+export function cardBrowserKey(item: CardBrowserItem): string {
+  return item.playerCard?.id ?? item.card.id
+}
 
 export function cardRank(item: CardBrowserItem): CardRank {
   return item.playerCard?.rank ?? item.card.rank
@@ -46,7 +60,7 @@ export function cardLevel(item: CardBrowserItem): number {
   return item.playerCard?.level ?? 1
 }
 
-function compare(a: CardBrowserItem, b: CardBrowserItem, sort: CardSort): number {
+function primaryCompare(a: CardBrowserItem, b: CardBrowserItem, sort: CardSort): number {
   switch (sort) {
     case 'power-asc':
       return cardPower(cardRank(a), cardLevel(a)) - cardPower(cardRank(b), cardLevel(b))
@@ -62,6 +76,16 @@ function compare(a: CardBrowserItem, b: CardBrowserItem, sort: CardSort): number
     default:
       return cardPower(cardRank(b), cardLevel(b)) - cardPower(cardRank(a), cardLevel(a))
   }
+}
+
+/**
+ * Sorts by the chosen key, then by name and row id. The tiebreakers keep copies of one
+ * card next to each other instead of scattering them wherever the sort happened to land.
+ */
+function compare(a: CardBrowserItem, b: CardBrowserItem, sort: CardSort): number {
+  const primary = primaryCompare(a, b, sort)
+  if (primary !== 0) return primary
+  return a.card.name.localeCompare(b.card.name) || cardBrowserKey(a).localeCompare(cardBrowserKey(b))
 }
 
 export function useCardBrowser(
@@ -92,9 +116,11 @@ export function useCardBrowser(
   const results = useMemo(() => {
     const needle = nameFilter.trim().toLowerCase()
     return items
-      .filter(({ card }) => {
-        const matchesName = needle === '' || card.name.toLowerCase().includes(needle)
-        return matchesName && (rankFilter === null || card.rank === rankFilter)
+      .filter((item) => {
+        const matchesName = needle === '' || item.card.name.toLowerCase().includes(needle)
+        // Stars filter on the copy the player sees, not the catalog template: a
+        // ranked-up 3★ copy must show up under 3★, not under the card's seed rank.
+        return matchesName && (rankFilter === null || cardRank(item) === rankFilter)
       })
       .filter((item) => {
         // Tags match on any (OR) — requiring every tag would usually empty the grid.

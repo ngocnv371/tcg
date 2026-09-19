@@ -6,6 +6,7 @@ import { useCardCatalog, useCollection } from '@/features/cards/api'
 import { RANK_META, cardAtk, cardDef, cardPower, levelUpGold } from '@/game/formulas'
 import { resolveArtSrc } from '@/lib/art'
 import { supabase } from '@/lib/supabase'
+import { cn } from '@/lib/utils'
 import type { RankCost } from '@/types/db'
 
 function useRankCosts(cardId: string | undefined) {
@@ -25,20 +26,37 @@ function useRankCosts(cardId: string | undefined) {
 }
 
 export function CardDetailScreen() {
-  const { playerCardId } = useParams()
-  const { data: cards } = useCardCatalog()
-  const { data: collection } = useCollection()
-  const card = cards?.find((row) => row.id === playerCardId)
-  const owned = collection?.find((row) => row.card_id === playerCardId)
-  const { data: costs } = useRankCosts(playerCardId)
+  const { cardRefId } = useParams()
+  const { data: cards, isPending: catalogPending } = useCardCatalog()
+  const { data: collection, isPending: collectionPending } = useCollection()
+
+  // The route carries either an owned copy's id (library tiles, chest reveals) or a catalog
+  // card id (a card you do not own yet, and links made before copies existed). Resolve the
+  // copy first: only it knows which instance's rank and level to show.
+  const copyByRef = collection?.find((row) => row.id === cardRefId)
+  const cardId = copyByRef?.card_id ?? cardRefId
+  const card = cards?.find((row) => row.id === cardId)
+
+  // Every copy of this card, strongest first. They level and rank independently, so the
+  // list is how a player moves between, say, their 1★ and their 3★ of the same card.
+  const copies = (collection ?? [])
+    .filter((row) => row.card_id === cardId)
+    .sort((a, b) => cardPower(b.rank, b.level) - cardPower(a.rank, a.level))
+  const owned = copyByRef ?? copies[0]
+  const { data: costs } = useRankCosts(cardId)
 
   if (!card) {
+    const loading = catalogPending || collectionPending
     return (
       <Screen title="Card">
         <Panel>
-          <p className="text-sm text-ink-400">
-            Unknown card. <Link to="/cards" className="underline">Back to library</Link>
-          </p>
+          {loading ? (
+            <p className="text-sm text-ink-400">Loading card…</p>
+          ) : (
+            <p className="text-sm text-ink-400">
+              Unknown card. <Link to="/cards" className="underline">Back to library</Link>
+            </p>
+          )}
         </Panel>
       </Screen>
     )
@@ -85,6 +103,38 @@ export function CardDetailScreen() {
             <p className="mt-3 text-xs text-ink-400">Not in your collection yet — open a chest (week 4).</p>
           )}
         </Panel>
+
+        {copies.length > 1 ? (
+          <Panel title={`Your copies (${copies.length})`}>
+            <ul className="space-y-1.5">
+              {copies.map((copy) => {
+                const isViewing = copy.id === owned?.id
+                return (
+                  <li key={copy.id}>
+                    <Link
+                      to={`/cards/${copy.id}`}
+                      aria-current={isViewing ? 'page' : undefined}
+                      className={cn(
+                        'flex items-center justify-between gap-3 rounded-card border px-3 py-2 text-sm',
+                        isViewing
+                          ? 'border-gold-500/60 bg-gold-500/10 text-ink-100'
+                          : 'border-ink-700 text-ink-300 hover:border-ink-500 hover:text-ink-100',
+                      )}
+                    >
+                      <span className="tabular-nums">
+                        {copy.rank}★ · Lv {copy.level}
+                      </span>
+                      <span className="tabular-nums text-xs text-ink-400">
+                        {cardPower(copy.rank, copy.level)} power
+                        {isViewing ? ' · viewing' : ''}
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </Panel>
+        ) : null}
 
         <Panel title="Passive">
           <p className="text-sm text-ink-100">{card.passive_name}</p>
