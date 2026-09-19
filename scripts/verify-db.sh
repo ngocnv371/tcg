@@ -83,6 +83,7 @@ MIGRATIONS=(
   "20260924000000_failed_run_pity.sql"
   "20260925000000_open_chests.sql"
   "20260926000000_own_multiple_copies.sql"
+  "20260927000000_rank_up_card.sql"
 )
 
 docker cp "$ROOT_HOST/supabase/seed.sql" "$NAME:/tmp/seed.sql" >/dev/null
@@ -405,6 +406,96 @@ begin
     delete from public.player_materials where profile_id = '00000000-0000-0000-0000-000000000001';
     delete from public.player_cards where card_id like 'verify_open_card_%';
     delete from public.cards where id like 'verify_open_card_%';
+  end;
+
+  -- rank_up_card reads the ladder for the copy's CURRENT rank, spends the gold and the
+  -- materials, then moves the copy up one step. A short balance has to raise and roll the
+  -- whole spend back.
+  declare
+    rank_card uuid;
+    other_card uuid;
+    rank_gold_before bigint;
+    rank_rank smallint;
+  begin
+    insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
+                              passive_name, passive_text, lore)
+      values ('verify_rank_card', 'Verify Rank Card', 1, 'ember', 'dps', 1, 0, 'p', 'p', 'p');
+    insert into public.card_rank_costs (card_id, from_rank, to_rank, gold, materials)
+      values ('verify_rank_card', 1, 2, 100, '{"common_shard": 4, "ember_essence": 2}'::jsonb);
+    insert into public.player_cards (profile_id, card_id, rank)
+      values ('00000000-0000-0000-0000-000000000001', 'verify_rank_card', 1)
+      returning id into rank_card;
+
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select '00000000-0000-0000-0000-000000000001'::uuid $fn$;
+
+    select gold into rank_gold_before from public.profiles
+      where id = '00000000-0000-0000-0000-000000000001';
+    update public.profiles set gold = 1000 where id = '00000000-0000-0000-0000-000000000001';
+
+    -- one shard short of the ladder step
+    insert into public.player_materials (profile_id, material_id, qty)
+      values ('00000000-0000-0000-0000-000000000001', 'common_shard', 3),
+             ('00000000-0000-0000-0000-000000000001', 'ember_essence', 2)
+      on conflict (profile_id, material_id) do update set qty = excluded.qty;
+
+    begin
+      perform public.rank_up_card(rank_card);
+      raise exception 'rank_up_card accepted a short material balance';
+    exception when others then
+      if sqlerrm <> 'not enough common_shard' then raise; end if;
+    end;
+    if (select gold from public.profiles where id = '00000000-0000-0000-0000-000000000001') <> 1000 then
+      raise exception 'a rejected rank-up still charged its gold';
+    end if;
+
+    -- top the shard up and the same call goes through
+    update public.player_materials set qty = 4
+      where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = 'common_shard';
+    perform public.rank_up_card(rank_card);
+
+    select rank into rank_rank from public.player_cards where id = rank_card;
+    if rank_rank <> 2 then
+      raise exception 'rank_up_card left the copy at % stars', rank_rank;
+    end if;
+    if (select gold from public.profiles where id = '00000000-0000-0000-0000-000000000001') <> 900 then
+      raise exception 'rank_up_card did not spend its 100 gold';
+    end if;
+    if (select qty from public.player_materials
+        where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = 'common_shard') <> 0 then
+      raise exception 'rank_up_card did not spend its shards';
+    end if;
+
+    -- the ladder stops where card_rank_costs stops: no 2★ -> 3★ row exists here
+    begin
+      perform public.rank_up_card(rank_card);
+      raise exception 'rank_up_card ranked past the end of the ladder';
+    exception when others then
+      if sqlerrm <> 'this card cannot rank up further' then raise; end if;
+    end;
+
+    -- another player's copy is not addressable, even with its uuid
+    insert into public.player_cards (profile_id, card_id, rank)
+      values ('00000000-0000-0000-0000-000000000002', 'verify_rank_card', 1)
+      returning id into other_card;
+    begin
+      perform public.rank_up_card(other_card);
+      raise exception 'rank_up_card ranked a copy the caller does not own';
+    exception when others then
+      if sqlerrm <> 'card not found' then raise; end if;
+    end;
+
+    -- leave the throwaway database as the assertions found it
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select null::uuid $fn$;
+    update public.profiles set gold = rank_gold_before
+      where id = '00000000-0000-0000-0000-000000000001';
+    delete from public.player_materials
+      where profile_id = '00000000-0000-0000-0000-000000000001'
+        and material_id in ('common_shard', 'ember_essence');
+    delete from public.player_cards where card_id = 'verify_rank_card';
+    delete from public.card_rank_costs where card_id = 'verify_rank_card';
+    delete from public.cards where id = 'verify_rank_card';
   end;
 end $$;
 

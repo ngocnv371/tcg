@@ -1,41 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
-
 import { Panel, Screen } from '@/components/Screen'
-import { useSession } from '@/features/auth/useSession'
-import { supabase } from '@/lib/supabase'
-import type { Material, PlayerMaterial } from '@/types/db'
-
-function useInventory() {
-  const { session } = useSession()
-  const userId = session?.user.id
-
-  return useQuery({
-    queryKey: ['inventory', userId],
-    enabled: Boolean(userId),
-    queryFn: async (): Promise<Array<PlayerMaterial & { material: Material | null }>> => {
-      const { data, error } = await supabase
-        .from('player_materials')
-        .select('profile_id, material_id, qty, material:materials(*)')
-        .order('material_id')
-      if (error) throw error
-
-      // PostgREST types an embedded to-one relation as an array even when the
-      // foreign key is singular, so normalise it here.
-      type Row = {
-        profile_id: string
-        material_id: string
-        qty: number
-        material: Material | Material[] | null
-      }
-      return ((data ?? []) as unknown as Row[]).map((row) => ({
-        profile_id: row.profile_id,
-        material_id: row.material_id,
-        qty: row.qty,
-        material: Array.isArray(row.material) ? (row.material[0] ?? null) : row.material,
-      }))
-    },
-  })
-}
+import { useInventory } from '@/features/inventory/api'
 
 export function InventoryScreen() {
   const { data: inventory, error } = useInventory()

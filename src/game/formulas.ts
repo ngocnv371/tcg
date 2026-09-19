@@ -37,6 +37,46 @@ export const ATK_GROWTH_PER_LEVEL = 0.08
 export const LEVELUP_GOLD_BASE = 25
 export const LEVELUP_GOLD_EXP = 1.4
 
+export type RankUpStep = {
+  gold: number
+  /** Fixed materials; the card's faction essence is added on top by `rankUpCost`. */
+  materials: Record<string, number>
+  /** Copies of the card's own faction essence (`<faction>_essence`). */
+  essence: number
+}
+
+/**
+ * Rank-up ladder, keyed by the card's CURRENT rank (plan §6.3). Two cards of the same
+ * faction still farm different dungeons because the shard and ore steps differ per rank,
+ * while the essence step is what sends every card to its faction's route.
+ *
+ * This is the single source for both the seeded `card_rank_costs` rows
+ * (`scripts/build-seed.mjs`) and the ones the card importer writes, so a balance change
+ * here reaches existing content on the next import.
+ */
+export const RANK_UP_LADDER: Record<Exclude<CardRank, 5>, RankUpStep> = {
+  1: { gold: 1000, materials: { common_shard: 10, iron_ore: 5 }, essence: 3 },
+  2: { gold: 5000, materials: { uncommon_shard: 25, iron_ore: 15, beast_fang: 5 }, essence: 8 },
+  3: { gold: 20000, materials: { rare_shard: 50, crystal: 20, beast_fang: 10 }, essence: 15 },
+  4: { gold: 80000, materials: { epic_shard: 100, crystal: 40, boss_core: 1 }, essence: 25 },
+}
+
+/**
+ * What one rank-up costs for a card of this faction, or null at 5★ (the top of the ladder).
+ * Mirrors the `card_rank_costs` lookup `rank_up_card` does server-side.
+ */
+export function rankUpCost(
+  fromRank: CardRank,
+  faction: string,
+): { gold: number; materials: Record<string, number> } | null {
+  const step = RANK_UP_LADDER[fromRank as Exclude<CardRank, 5>]
+  if (!step) return null
+  return {
+    gold: step.gold,
+    materials: { ...step.materials, [`${faction}_essence`]: step.essence },
+  }
+}
+
 /** Success-chance curve: p = clamp(MIN, MAX, K * (power / required) ^ EXP). */
 export const SUCCESS_MIN = 0.1
 export const SUCCESS_MAX = 0.95

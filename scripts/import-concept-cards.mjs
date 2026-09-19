@@ -35,7 +35,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 // requiring it to be exported in the shell first.
 if (existsSync(join(root, '.env.local'))) process.loadEnvFile(join(root, '.env.local'))
 
-import { RANK_META, cardAtk, cardDef } from '../src/game/formulas.ts'
+import { RANK_META, cardAtk, cardDef, rankUpCost } from '../src/game/formulas.ts'
 
 // --- content tables (edit here, not per-card, to keep cards consistent) -----
 
@@ -245,6 +245,29 @@ export async function uploadArtToSupabase(admin, imagePath, id) {
 }
 
 /**
+ * The rank-up ladder a card needs to be upgradeable, derived from the same
+ * `RANK_UP_LADDER` the seed uses (src/game/formulas.ts) so a balance change
+ * reaches imported cards too. Without these rows `rank_up_card` raises
+ * "this card cannot rank up further" and the detail screen shows no path.
+ */
+export function buildRankCostRows(cards) {
+  const rows = []
+  for (const card of cards) {
+    for (let from = Number(card.rank); from < 5; from += 1) {
+      const cost = rankUpCost(from, card.faction)
+      rows.push({
+        card_id: card.id,
+        from_rank: from,
+        materials: cost.materials,
+        to_rank: from + 1,
+        gold: cost.gold,
+      })
+    }
+  }
+  return rows
+}
+
+/**
  * Upserts rows into public.cards using a service-role client (bypasses RLS,
  * same as the seed does over a direct Postgres connection). Cards are catalog
  * data, not player progression, so a trusted server-side write here is fine.
@@ -253,6 +276,21 @@ export async function importCardsToSupabase(admin, cards) {
   const rows = cards.map(({ _meta, ...card }) => card)
   const { data, error } = await admin.from('cards').upsert(rows, { onConflict: 'id' }).select('id')
   if (error) throw new Error(`supabase upsert failed: ${error.message}`)
+  return data
+}
+
+/**
+ * Upserts the per-card rank-up costs. Runs after `importCardsToSupabase` so the
+ * `card_id` foreign key always resolves.
+ */
+export async function importRankCostsToSupabase(admin, cards) {
+  const rows = buildRankCostRows(cards)
+  if (!rows.length) return []
+  const { data, error } = await admin
+    .from('card_rank_costs')
+    .upsert(rows, { onConflict: 'card_id,to_rank' })
+    .select('card_id')
+  if (error) throw new Error(`supabase rank-cost upsert failed: ${error.message}`)
   return data
 }
 
@@ -324,6 +362,8 @@ async function main() {
   if (values.import && !values['dry-run']) {
     const inserted = await importCardsToSupabase(admin, cards)
     console.log(`imported ${inserted.length} card(s) into Supabase`)
+    const costs = await importRankCostsToSupabase(admin, cards)
+    console.log(`imported ${costs.length} rank-up cost row(s) into Supabase`)
   }
 }
 

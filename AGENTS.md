@@ -71,7 +71,16 @@ level and rank independently, the library renders one tile per owned copy (keyed
 with an unresolved run can no longer be sent again: `20260922000000_busy_party_guard.sql` redefines
 `start_run` with that check (the client badge is display only). A failed run still pays
 `FAILED_RUN_PITY_GOLD` (1 gold, mirrored in `20260924000000_failed_run_pity.sql`), and `claim_run`
-credits `rewards->gold` for both outcomes.
+credits `rewards->gold` for both outcomes. Rank-up is live: `rank_up_card`
+(`20260927000000_rank_up_card.sql`) locks the copy, re-reads the `card_rank_costs` step for its
+*current* rank, takes the gold and the materials behind `not found` guards (a short balance raises
+and rolls the whole spend back), then returns the bumped row. The ladder lives once, in
+`RANK_UP_LADDER` / `rankUpCost` (`src/game/formulas.ts`) — `scripts/build-seed.mjs` *and*
+`scripts/import-concept-cards.mjs` both derive `card_rank_costs` from it, so re-run
+`npm run import:cards` after a balance change or already-imported cards have no upgrade path. The
+detail screen previews the next step from `card_rank_costs` (never its own numbers) and enables the
+button only when the gold and every material are covered; on success it plays `RankUpAnimation`
+(`RANK_UP_DURATION` = 140 frames at 30fps ≈ 4.7s) in `RankUpOverlay`, which closes itself. Both the
+chest reveals and the rank-up share `REVEAL_PLAYER_STAGE` (`unlockVisuals.ts`).
 
-Next up (weeks 4–8): `level_up_card`, `rank_up_card` — each as a `SECURITY DEFINER` function plus
-its screen wiring.
+Next up (weeks 4–8): `level_up_card` — a `SECURITY DEFINER` function plus its screen wiring.

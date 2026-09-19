@@ -1,10 +1,12 @@
 import type { CSSProperties } from 'react'
 import { interpolate, spring } from 'remotion'
 
+import { STAGE_FPS, STAGE_SIZE } from '@/features/chests/unlockLayout'
+
 /**
- * Shared vocabulary for the two chest reveals: how long each beat lasts, the rank tint, the
- * reveal curve and the stage backdrop. Kept out of the component files so those only export
- * components (which is what Fast Refresh wants).
+ * Shared vocabulary for the card reveals: how long each beat lasts, the rank tint, the
+ * reveal curve, the stage backdrop and the Player chrome. Kept out of the component files
+ * so those only export components (which is what Fast Refresh wants).
  */
 
 /** Frames the single-card reveal runs for. The batch reveal replays it as its first phase. */
@@ -27,6 +29,25 @@ export const UNLOCK_STAGE_STYLE: CSSProperties = {
   fontFamily: 'Georgia, serif',
   justifyContent: 'center',
   overflow: 'hidden',
+}
+
+/**
+ * Player chrome shared by every reveal, so an opening and a rank-up play on the same stage.
+ * Spread onto `<Player {...REVEAL_PLAYER_STAGE} />`; the caller only adds `component`,
+ * `durationInFrames` and `inputProps`.
+ */
+export const REVEAL_PLAYER_STAGE = {
+  compositionHeight: STAGE_SIZE.height,
+  compositionWidth: STAGE_SIZE.width,
+  controls: false,
+  fps: STAGE_FPS,
+  height: STAGE_SIZE.height,
+  style: {
+    aspectRatio: `${STAGE_SIZE.width} / ${STAGE_SIZE.height}`,
+    height: `min(100vh, ${STAGE_SIZE.height}px)`,
+    width: `min(100vw, ${STAGE_SIZE.width}px)`,
+  } satisfies CSSProperties,
+  width: STAGE_SIZE.width,
 }
 
 const RANK_COLORS = ['#8b93a7', '#57c98a', '#4aa3ff', '#b06bff', '#ffb02e']

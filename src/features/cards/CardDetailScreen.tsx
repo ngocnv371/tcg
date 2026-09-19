@@ -1,28 +1,21 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { Panel, Screen } from '@/components/Screen'
-import { useCardCatalog, useCollection } from '@/features/cards/api'
+import { useCardCatalog, useCollection, useRankCosts, useRankUpCard } from '@/features/cards/api'
+import { RankUpOverlay, type RankUpReveal } from '@/features/cards/RankUpOverlay'
+import { useInventory, useMaterialCatalog } from '@/features/inventory/api'
+import { useProfile } from '@/features/profile/api'
 import { RANK_META, cardAtk, cardDef, cardPower, levelUpGold } from '@/game/formulas'
 import { resolveArtSrc } from '@/lib/art'
-import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
-import type { RankCost } from '@/types/db'
 
-function useRankCosts(cardId: string | undefined) {
-  return useQuery({
-    queryKey: ['card_rank_costs', cardId],
-    enabled: Boolean(cardId),
-    queryFn: async (): Promise<RankCost[]> => {
-      const { data, error } = await supabase
-        .from('card_rank_costs')
-        .select('*')
-        .eq('card_id', cardId!)
-        .order('to_rank')
-      if (error) throw error
-      return (data ?? []) as RankCost[]
-    },
-  })
+/** `ember_essence` → `Ember Essence`, for materials missing from the catalog query. */
+function materialLabel(id: string) {
+  return id
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
 }
 
 export function CardDetailScreen() {
@@ -37,13 +30,20 @@ export function CardDetailScreen() {
   const cardId = copyByRef?.card_id ?? cardRefId
   const card = cards?.find((row) => row.id === cardId)
 
-  // Every copy of this card, strongest first. They level and rank independently, so the
-  // list is how a player moves between, say, their 1★ and their 3★ of the same card.
-  const copies = (collection ?? [])
-    .filter((row) => row.card_id === cardId)
-    .sort((a, b) => cardPower(b.rank, b.level) - cardPower(a.rank, a.level))
-  const owned = copyByRef ?? copies[0]
+  // Copies rank and level independently, so "the card" is whichever instance the route names
+  // (falling back to the strongest one when the link pointed at a catalog id).
+  const owned =
+    copyByRef ??
+    (collection ?? [])
+      .filter((row) => row.card_id === cardId)
+      .sort((a, b) => cardPower(b.rank, b.level) - cardPower(a.rank, a.level))[0]
+
   const { data: costs } = useRankCosts(cardId)
+  const { data: inventory } = useInventory()
+  const { data: materials } = useMaterialCatalog()
+  const { data: profile } = useProfile()
+  const rankUp = useRankUpCard()
+  const [reveal, setReveal] = useState<RankUpReveal | null>(null)
 
   if (!card) {
     const loading = catalogPending || collectionPending
@@ -66,6 +66,45 @@ export function CardDetailScreen() {
   const rank = owned?.rank ?? card.rank
   const tags = card.tags ?? []
   const artSrc = resolveArtSrc(card.art_path)
+
+  // The next step on this card's ladder, and what the player already holds against it. The
+  // client only ever *previews* this: `rank_up_card` re-reads `card_rank_costs` and rejects
+  // the call if the balance moved, so the button can be optimistic without being authoritative.
+  const step = (costs ?? []).find((cost) => cost.from_rank === rank)
+  const ownedQty = new Map((inventory ?? []).map((row) => [row.material_id, row.qty]))
+  const gold = profile?.gold ?? 0
+  const requirements = step
+    ? [
+        { have: gold, id: 'gold', label: 'Gold', need: step.gold },
+        ...Object.entries(step.materials).map(([id, need]) => ({
+          have: ownedQty.get(id) ?? 0,
+          id,
+          label: materials?.find((material) => material.id === id)?.name ?? materialLabel(id),
+          need,
+        })),
+      ]
+    : []
+  const short = requirements.filter((requirement) => requirement.have < requirement.need)
+  const canRankUp = Boolean(owned) && Boolean(step) && short.length === 0 && !rankUp.isPending
+
+  const handleRankUp = () => {
+    if (!owned || !step) return
+    const fromRank = rank
+    rankUp
+      .mutateAsync(owned.id)
+      .then(() => {
+        setReveal({
+          artPath: card.art_path,
+          cardName: card.name,
+          fromRank,
+          key: `${owned.id}-${step.to_rank}-${Date.now()}`,
+          toRank: step.to_rank,
+        })
+      })
+      // The server owns the real check; a rejection (a spend somewhere else, a stale screen)
+      // just leaves the panel showing the new numbers.
+      .catch(() => undefined)
+  }
 
   return (
     <Screen title={card.name} week="Built in weeks 3 + 8" hint={`${rank}★ · ${card.faction} · ${card.role}`}>
@@ -104,65 +143,74 @@ export function CardDetailScreen() {
           )}
         </Panel>
 
-        {copies.length > 1 ? (
-          <Panel title={`Your copies (${copies.length})`}>
-            <ul className="space-y-1.5">
-              {copies.map((copy) => {
-                const isViewing = copy.id === owned?.id
-                return (
-                  <li key={copy.id}>
-                    <Link
-                      to={`/cards/${copy.id}`}
-                      aria-current={isViewing ? 'page' : undefined}
-                      className={cn(
-                        'flex items-center justify-between gap-3 rounded-card border px-3 py-2 text-sm',
-                        isViewing
-                          ? 'border-gold-500/60 bg-gold-500/10 text-ink-100'
-                          : 'border-ink-700 text-ink-300 hover:border-ink-500 hover:text-ink-100',
-                      )}
-                    >
-                      <span className="tabular-nums">
-                        {copy.rank}★ · Lv {copy.level}
-                      </span>
-                      <span className="tabular-nums text-xs text-ink-400">
-                        {cardPower(copy.rank, copy.level)} power
-                        {isViewing ? ' · viewing' : ''}
-                      </span>
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </Panel>
-        ) : null}
-
         <Panel title="Passive">
           <p className="text-sm text-ink-100">{card.passive_name}</p>
           <p className="mt-1 text-sm text-ink-400">{card.passive_text}</p>
           <p className="mt-2 text-xs text-ink-600 italic">{card.lore}</p>
         </Panel>
 
-        <Panel title="Rank-up requirements">
-          <ul className="space-y-1.5 text-sm text-ink-400">
-            {(costs ?? []).map((cost) => (
-              <li key={cost.to_rank} className="flex justify-between gap-3">
-                <span>
-                  {cost.from_rank}★ → {cost.to_rank}★
-                </span>
-                <span className="tabular-nums text-right text-ink-200">
-                  {cost.gold.toLocaleString('en-US')}g
-                  {Object.entries(cost.materials).length
-                    ? ` · ${Object.entries(cost.materials)
-                        .map(([id, qty]) => `${qty}× ${id}`)
-                        .join(', ')}`
-                    : ''}
-                </span>
-              </li>
-            ))}
-            {(costs ?? []).length === 0 ? <li>No rank-up path (already 5★).</li> : null}
-          </ul>
+        <Panel title="Rank up">
+          {!owned ? (
+            <p className="text-sm text-ink-400">Not in your collection yet — open a chest first.</p>
+          ) : !step ? (
+            <p className="text-sm text-ink-400">
+              Already at 5★, the top of the ladder. No further rank-up path.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-ink-400">
+                {step.from_rank}★ → <span className="text-ink-100">{step.to_rank}★</span> · level cap{' '}
+                {RANK_META[step.to_rank].levelCap}
+              </p>
+              <ul className="mt-3 space-y-1.5 text-sm">
+                {requirements.map((requirement) => {
+                  const met = requirement.have >= requirement.need
+                  return (
+                    <li key={requirement.id} className="flex items-baseline justify-between gap-3">
+                      <span className={met ? 'text-ink-300' : 'text-ink-400'}>
+                        <span aria-hidden className={met ? 'text-rank-2' : 'text-ink-600'}>
+                          {met ? '✓' : '✗'}{' '}
+                        </span>
+                        {requirement.label}
+                      </span>
+                      <span
+                        className={cn('tabular-nums', met ? 'text-ink-200' : 'text-faction-ember')}
+                      >
+                        {requirement.have.toLocaleString('en-US')} /{' '}
+                        {requirement.need.toLocaleString('en-US')}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+              <button
+                type="button"
+                className="mt-3 w-full rounded-card bg-gold-500 px-3 py-2 text-sm font-medium text-ink-950 disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={!canRankUp}
+                onClick={handleRankUp}
+              >
+                {rankUp.isPending ? 'Ranking up…' : `Rank up to ${step.to_rank}★`}
+              </button>
+              {short.length ? (
+                <p className="mt-2 text-xs text-ink-500">
+                  Missing{' '}
+                  {short
+                    .map(
+                      (requirement) =>
+                        `${(requirement.need - requirement.have).toLocaleString('en-US')} ${requirement.label}`,
+                    )
+                    .join(', ')}
+                  .
+                </p>
+              ) : null}
+              {rankUp.error ? (
+                <p className="mt-2 text-xs text-faction-ember">{rankUp.error.message}</p>
+              ) : null}
+            </>
+          )}
         </Panel>
       </div>
+      {reveal ? <RankUpOverlay onClose={() => setReveal(null)} reveal={reveal} /> : null}
     </Screen>
   )
 }

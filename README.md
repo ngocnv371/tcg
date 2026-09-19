@@ -74,8 +74,8 @@ npm run db:types  # regenerate src/types/database.gen.ts from the local DB
 `scripts/verify-db.sh` is the fast gate: ~10 seconds, no Supabase stack needed. It stubs the
 `auth` schema and the `anon`/`authenticated` roles, applies the migration and the seed, then
 asserts card/dungeon/material counts, that every rank-up row references real materials, that chest
-odds sum to 100, that **no non-SELECT policies exist** (the anti-cheat invariant), and that signing
-up provisions a profile.
+odds sum to 100, that `rank_up_card` spends and rejects a short balance without charging, that
+**no non-SELECT policies exist** (the anti-cheat invariant), and that signing up provisions a profile.
 
 ## Build order (from the plan)
 
@@ -85,8 +85,9 @@ Week 1 schema + seed · 2 auth/RLS · 3 card library · 4 chest opening · 5 par
 
 Built: daily chest claiming and server-authoritative chest opening. The vault stacks duplicates by
 type and opens 1/2/5/10 at once through `open_chests`, which spends the rows server-side and returns
-one reveal per chest. `start_run`, `resolve_runs`, `claim_run`, `level_up_card`, and `rank_up_card`
-remain on the roadmap.
+one reveal per chest. `rank_up_card` spends the gold and materials from `card_rank_costs` and moves
+one owned copy up a rank, then plays a 5s Remotion reveal. `start_run`, `resolve_runs`,
+`claim_run`, and `level_up_card` remain on the roadmap.
 
 ## Known follow-ups
 

@@ -12,6 +12,7 @@ import {
   levelUpGold,
   partyPower,
   pickRank,
+  rankUpCost,
   rewardMultiplier,
   runSlotsForLevel,
   successChance,
@@ -110,6 +111,25 @@ describe('chest odds', () => {
 
   it('pays dupes by rank', () => {
     expect([1, 2, 3, 4, 5].map((r) => dupeShards(r as CardRank))).toEqual([5, 10, 25, 60, 150])
+  })
+})
+
+describe('rank-up costs', () => {
+  it('folds the card faction essence into the fixed step', () => {
+    expect(rankUpCost(1, 'ember')).toEqual({
+      gold: 1000,
+      materials: { common_shard: 10, iron_ore: 5, ember_essence: 3 },
+    })
+    expect(rankUpCost(4, 'tide')?.materials).toEqual({
+      epic_shard: 100,
+      crystal: 40,
+      boss_core: 1,
+      tide_essence: 25,
+    })
+  })
+
+  it('has no step past 5★', () => {
+    expect(rankUpCost(5, 'ember')).toBeNull()
   })
 })
 

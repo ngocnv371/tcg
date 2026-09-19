@@ -16,6 +16,7 @@ import {
   LEVELUP_GOLD_EXP,
   RANK_META,
   RUN_SLOT_UNLOCKS,
+  rankUpCost,
 } from '../src/game/formulas.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -50,18 +51,6 @@ const MATERIALS = [
   { id: 'radiant_essence', name: 'Radiant Essence', kind: 'essence', rarity: null, tier: 2 },
 ]
 const MATERIAL_IDS = new Set(MATERIALS.map((material) => material.id))
-
-/**
- * Rank-up ladder keyed by the card's CURRENT rank (plan §6.3). `essence` is the
- * placeholder that gets replaced by the card's faction essence, which is what
- * gives every card its own farming route.
- */
-const LADDER = {
-  1: { gold: 1000, common_shard: 10, iron_ore: 5, essence: 3 },
-  2: { gold: 5000, uncommon_shard: 25, iron_ore: 15, beast_fang: 5, essence: 8 },
-  3: { gold: 20000, rare_shard: 50, crystal: 20, beast_fang: 10, essence: 15 },
-  4: { gold: 80000, epic_shard: 100, crystal: 40, boss_core: 1, essence: 25 },
-}
 
 const CHESTS = [
   { id: 'common', name: 'Common Chest', tier: 1, source: 'daily login, T1 clears' },
@@ -236,10 +225,8 @@ push('-- card_rank_costs (ladder by current rank + the card faction essence)')
 const costRows = []
 for (const card of cards) {
   for (let from = Number(card.rank); from < 5; from += 1) {
-    const ladderStep = LADDER[from]
-    const { essence, gold, ...base } = ladderStep
-    const materials = { ...base, [`${card.faction}_essence`]: essence }
-    costRows.push(`  (${sql(card.id)}, ${from}, ${from + 1}, ${gold}, ${json(materials)})`)
+    const cost = rankUpCost(from, card.faction)
+    costRows.push(`  (${sql(card.id)}, ${from}, ${from + 1}, ${cost.gold}, ${json(cost.materials)})`)
   }
 }
 if (costRows.length) {

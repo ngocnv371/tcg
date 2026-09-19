@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Player, type PlayerRef } from '@remotion/player'
 
@@ -8,8 +8,11 @@ import { CardGrid } from '@/features/cards/CardBrowser'
 import { CardTile } from '@/features/cards/CardTile'
 import { CardBatchUnlockAnimation } from '@/features/chests/CardBatchUnlockAnimation'
 import { CardUnlockAnimation } from '@/features/chests/CardUnlockAnimation'
-import { STAGE_FPS, STAGE_SIZE } from '@/features/chests/unlockLayout'
-import { BATCH_DURATION, UNLOCK_DURATION } from '@/features/chests/unlockVisuals'
+import {
+  BATCH_DURATION,
+  REVEAL_PLAYER_STAGE,
+  UNLOCK_DURATION,
+} from '@/features/chests/unlockVisuals'
 import {
   useChestInventory,
   useClaimDailyChest,
@@ -36,21 +39,6 @@ type RevealState = {
   key: string
   /** A single chest reveals one card; a bulk open reveals every card in one animation. */
   openings: ChestOpening[]
-}
-
-/** Player chrome, shared by both reveals — they play on the same stage. */
-const PLAYER_STAGE = {
-  compositionHeight: STAGE_SIZE.height,
-  compositionWidth: STAGE_SIZE.width,
-  controls: false,
-  fps: STAGE_FPS,
-  height: STAGE_SIZE.height,
-  style: {
-    aspectRatio: `${STAGE_SIZE.width} / ${STAGE_SIZE.height}`,
-    height: `min(100vh, ${STAGE_SIZE.height}px)`,
-    width: `min(100vw, ${STAGE_SIZE.width}px)`,
-  } satisfies CSSProperties,
-  width: STAGE_SIZE.width,
 }
 
 function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () => void }) {
@@ -123,7 +111,7 @@ function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () =
               wasNew: opening.was_new,
             })),
           }}
-          {...PLAYER_STAGE}
+          {...REVEAL_PLAYER_STAGE}
         />
       ) : (
         <Player
@@ -137,7 +125,7 @@ function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () =
             rank: first.rank,
             wasNew: first.was_new,
           }}
-          {...PLAYER_STAGE}
+          {...REVEAL_PLAYER_STAGE}
         />
       )}
       <button
