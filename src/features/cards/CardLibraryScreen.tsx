@@ -15,6 +15,14 @@ const RANK_BORDER: Record<number, string> = {
   5: 'border-rank-5',
 }
 
+const RANK_TEXT: Record<number, string> = {
+  1: 'text-rank-1',
+  2: 'text-rank-2',
+  3: 'text-rank-3',
+  4: 'text-rank-4',
+  5: 'text-rank-5',
+}
+
 /** Only http(s) art_path values are real assets today; local `art/cards/*` paths are placeholders. */
 export function resolveArtSrc(artPath: string | null): string | null {
   return artPath?.startsWith('http') ? artPath : null
@@ -24,11 +32,14 @@ export function CardTile({
   card,
   owned,
   selected = false,
+  compact = false,
   onClick,
 }: {
   card: Card
   owned: boolean
   selected?: boolean
+  /** Drops stats and tags for quarter-size tiles (party slots). */
+  compact?: boolean
   onClick?: () => void
 }) {
   const tags = card.tags ?? []
@@ -47,35 +58,59 @@ export function CardTile({
         }
       }}
       className={cn(
-        'rounded-card border-2 bg-ink-900/80 p-2 text-left',
+        'relative aspect-[2/3] w-full overflow-hidden rounded-[10px] border-2 bg-ink-900 text-left',
         RANK_BORDER[card.rank],
         selected ? 'ring-2 ring-gold-400 ring-offset-2 ring-offset-ink-950' : '',
         owned ? '' : 'opacity-45 saturate-0',
         onClick ? 'cursor-pointer' : '',
       )}
     >
-      <div className="aspect-3/4 w-full overflow-hidden rounded-[8px] bg-ink-850">
-        {artSrc ? (
-          <img src={artSrc} alt={card.name} loading="lazy" className="h-full w-full object-cover" />
-        ) : (
-          <span className="grid h-full place-items-center font-display text-2xl text-ink-600">
-            {card.rank}★
-          </span>
-        )}
-      </div>
-      <p className="mt-1.5 truncate text-xs text-ink-100">{card.name}</p>
-      <p className="text-[10px] text-ink-400">
-        {cardAtk(card.rank, 1)} ATK · {cardDef(card.rank, 1)} DEF
-      </p>
-      {tags.length ? (
-        <div className="mt-1 flex flex-wrap gap-1">
-          {tags.map((tag) => (
-            <span key={tag} className="rounded bg-ink-800 px-1 py-0.5 text-[9px] text-ink-300">
+      {artSrc ? (
+        <img
+          src={artSrc}
+          alt={card.name}
+          loading="lazy"
+          className="absolute inset-0 size-full object-cover"
+        />
+      ) : (
+        <span
+          aria-hidden
+          className="absolute inset-0 grid place-items-center font-display text-3xl text-ink-600"
+        >
+          ✦
+        </span>
+      )}
+
+      {tags.length && !compact ? (
+        <div className="absolute left-1 top-1 flex max-w-[68%] flex-wrap gap-0.5">
+          {tags.slice(0, 2).map((tag) => (
+            <span
+              key={tag}
+              className="rounded bg-ink-950/70 px-1 text-[8px] uppercase tracking-wide text-ink-300 backdrop-blur-sm"
+            >
               {tag}
             </span>
           ))}
         </div>
       ) : null}
+
+      <span
+        className={cn(
+          'absolute right-1 top-1 rounded-md bg-ink-950/75 px-1.5 py-px font-display text-[10px] leading-tight backdrop-blur-sm',
+          RANK_TEXT[card.rank],
+        )}
+      >
+        {card.rank}★
+      </span>
+
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-950 via-ink-950/75 to-transparent px-1.5 pb-1.5 pt-5">
+        <p className="truncate text-[11px] leading-tight text-ink-50">{card.name}</p>
+        {compact ? null : (
+          <p className="text-[9px] tabular-nums text-ink-400">
+            {cardAtk(card.rank, 1)} ATK · {cardDef(card.rank, 1)} DEF
+          </p>
+        )}
+      </div>
     </div>
   )
 }
@@ -162,7 +197,7 @@ export function CardLibraryScreen() {
 
       {isPending ? <p className="text-sm text-ink-400">Loading catalog…</p> : null}
 
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-3 gap-2">
         {filteredCards.map((card) => (
           <NavLink key={card.id} to={`/cards/${card.id}`}>
             <CardTile card={card} owned={ownedIds.has(card.id)} />

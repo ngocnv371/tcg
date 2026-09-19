@@ -75,7 +75,7 @@ export function PartyBuilderScreen() {
               const cardInfo = catalog?.find((catalogCard) => catalogCard.id === card?.card_id)
               return card && cardInfo ? (
                 <button key={slot} type="button" onClick={() => setEditingSlot(slot)} className="text-left">
-                  <CardTile card={cardInfo} owned />
+                  <CardTile card={cardInfo} owned compact />
                 </button>
               ) : (
                 <button
@@ -83,7 +83,7 @@ export function PartyBuilderScreen() {
                   type="button"
                   onClick={() => setEditingSlot(slot)}
                   aria-label={`Choose card for slot ${slot + 1}`}
-                  className="grid aspect-3/4 place-items-center rounded-[8px] border border-dashed border-ink-700 bg-ink-850 text-center text-[10px] text-ink-400 hover:border-gold-500 hover:text-gold-300"
+                  className="grid aspect-[2/3] place-items-center rounded-[10px] border border-dashed border-ink-700 bg-ink-850 text-center text-[10px] text-ink-400 hover:border-gold-500 hover:text-gold-300"
                 >
                   +
                 </button>
@@ -176,7 +176,7 @@ export function PartyBuilderScreen() {
                 </button>
               ))}
             </div>
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 gap-2">
               {pickerCards.map(({ card, playerCard }) => (
                 <CardTile
                   key={playerCard.id}
