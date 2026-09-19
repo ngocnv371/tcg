@@ -65,6 +65,7 @@ export type Dungeon = {
   materials: Array<{ material_id: string; weight: number; min: number; max: number }>
   card_id: string | null
   unlocks_at_level: number
+  art_path: string | null
 }
 
 export type Chest = {

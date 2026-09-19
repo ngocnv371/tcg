@@ -1,4 +1,5 @@
 import { cardAtk, cardDef } from '@/game/formulas'
+import { resolveArtSrc } from '@/lib/art'
 import { cn } from '@/lib/utils'
 import type { Card, CardRank } from '@/types/db'
 
@@ -16,11 +17,6 @@ const RANK_TEXT: Record<number, string> = {
   3: 'text-rank-3',
   4: 'text-rank-4',
   5: 'text-rank-5',
-}
-
-/** Only http(s) art_path values are real assets today; local `art/cards/*` paths are placeholders. */
-export function resolveArtSrc(artPath: string | null): string | null {
-  return artPath?.startsWith('http') ? artPath : null
 }
 
 export function CardTile({

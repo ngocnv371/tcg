@@ -12,12 +12,13 @@
     "test:watch": "vitest",
     "seed:build": "node scripts/build-seed.mjs",
     "import:cards": "node scripts/import-concept-cards.mjs --upload-art --import ./data/cards",
+    "import:dungeons": "node scripts/import-concept-dungeons.mjs --upload-art --import ./data/dungeons",
     "preview": "vite preview",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:migrate": "supabase migration up",
-    "db:fullreset": "npm run db:reset && npm run seed:build && npm run import:cards",
+    "db:fullreset": "npm run db:reset && npm run seed:build && npm run import:cards && npm run import:dungeons",
     "db:types": "supabase gen types typescript --local > src/types/database.gen.ts"
   },
   "dependencies": {

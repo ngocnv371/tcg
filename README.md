@@ -33,6 +33,8 @@ its week-by-week output.
 ```
 data/                    cards.csv, dungeons.csv — the content source of truth
 scripts/build-seed.mjs   CSVs + balance constants -> supabase/seed.sql (npm run seed:build)
+scripts/import-concept-cards.mjs     concept-art folder (json + png) -> cards + `card-art` bucket
+scripts/import-concept-dungeons.mjs  concept-art folder (json + png) -> dungeons + `dungeon-art` bucket
 scripts/verify-db.sh     migration + seed against a throwaway Postgres, with assertions
 scripts/make-icons.py    placeholder PWA icons (pure stdlib, replace in week 10)
 src/app/                 router + shell (resource bar, bottom tabs)

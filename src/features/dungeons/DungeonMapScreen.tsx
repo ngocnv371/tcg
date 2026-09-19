@@ -8,6 +8,7 @@ import { useParties } from '@/features/party/api'
 import { useClaimRun, useStartRun } from '@/features/progression/api'
 import type { RunClaim } from '@/features/progression/api'
 import { successChance } from '@/game/formulas'
+import { resolveArtSrc } from '@/lib/art'
 
 function formatDuration(seconds: number) {
   if (seconds < 60) return `${seconds} sec`
@@ -106,45 +107,54 @@ export function DungeonMapScreen() {
         ) : null}
 
         <ul className="space-y-2.5">
-        {(dungeons ?? []).map((dungeon) => (
-          <li key={dungeon.id}>
-            <Panel>
-              <div className="flex items-baseline justify-between gap-2">
-                <h2 className="text-sm text-ink-100">{dungeon.name}</h2>
-                <span className="text-xs text-ink-400">
-                  {dungeon.kind} · tier {dungeon.tier}
-                </span>
-              </div>
-              <dl className="mt-2 grid grid-cols-3 gap-y-1 text-xs">
-                <dt className="text-ink-400">Req power</dt>
-                <dd className="tabular-nums">{dungeon.req_power.toLocaleString('en-US')}</dd>
-                <dd />
-                <dt className="text-ink-400">Timer</dt>
-                <dd className="tabular-nums">{formatDuration(dungeon.duration_seconds)}</dd>
-                <dd />
-                <dt className="text-ink-400">Base gold</dt>
-                <dd className="tabular-nums">{dungeon.gold_base.toLocaleString('en-US')}</dd>
-                <dd className="text-right text-ink-600">
-                  {/* Preview only — the server rolls the real chance. */}
-                  p≈{Math.round(successChance(dungeon.req_power, dungeon.req_power) * 100)}%
-                </dd>
-              </dl>
-              <button
-                type="button"
-                className="mt-3 w-full rounded-card border border-gold-600 px-3 py-2 text-xs text-gold-300 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={startRun.isPending}
-                onClick={() =>
-                  startRun.mutate(
-                    { dungeonId: dungeon.id, partyId: sendPartyId ?? undefined },
-                    { onError: (runError) => setToast(runError.message) },
-                  )
-                }
-              >
-                {startRun.isPending ? 'Starting...' : 'Start run'}
-              </button>
-            </Panel>
-          </li>
-        ))}
+        {(dungeons ?? []).map((dungeon) => {
+          const artSrc = resolveArtSrc(dungeon.art_path)
+
+          return (
+            <li key={dungeon.id}>
+              <Panel>
+                {artSrc ? (
+                  <div className="mb-2.5 aspect-video w-full overflow-hidden rounded-card bg-ink-850">
+                    <img src={artSrc} alt={dungeon.name} className="h-full w-full object-cover" />
+                  </div>
+                ) : null}
+                <div className="flex items-baseline justify-between gap-2">
+                  <h2 className="text-sm text-ink-100">{dungeon.name}</h2>
+                  <span className="text-xs text-ink-400">
+                    {dungeon.kind} · tier {dungeon.tier}
+                  </span>
+                </div>
+                <dl className="mt-2 grid grid-cols-3 gap-y-1 text-xs">
+                  <dt className="text-ink-400">Req power</dt>
+                  <dd className="tabular-nums">{dungeon.req_power.toLocaleString('en-US')}</dd>
+                  <dd />
+                  <dt className="text-ink-400">Timer</dt>
+                  <dd className="tabular-nums">{formatDuration(dungeon.duration_seconds)}</dd>
+                  <dd />
+                  <dt className="text-ink-400">Base gold</dt>
+                  <dd className="tabular-nums">{dungeon.gold_base.toLocaleString('en-US')}</dd>
+                  <dd className="text-right text-ink-600">
+                    {/* Preview only — the server rolls the real chance. */}
+                    p≈{Math.round(successChance(dungeon.req_power, dungeon.req_power) * 100)}%
+                  </dd>
+                </dl>
+                <button
+                  type="button"
+                  className="mt-3 w-full rounded-card border border-gold-600 px-3 py-2 text-xs text-gold-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={startRun.isPending}
+                  onClick={() =>
+                    startRun.mutate(
+                      { dungeonId: dungeon.id, partyId: sendPartyId ?? undefined },
+                      { onError: (runError) => setToast(runError.message) },
+                    )
+                  }
+                >
+                  {startRun.isPending ? 'Starting...' : 'Start run'}
+                </button>
+              </Panel>
+            </li>
+          )
+        })}
         </ul>
       </div>
 
