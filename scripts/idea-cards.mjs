@@ -8,6 +8,9 @@
  * decisions, not dice — which is also why this never touches data/cards/*.json: that
  * folder is the finished art pipeline, this is the sketchbook in front of it.
  *
+ * A roll that matches an id already in the CSV or an art file already rendered in
+ * data/cards/ is dropped, so re-running a batch is additive only (see `takenIds`).
+ *
  * Usage: node scripts/idea-cards.mjs [options]
  *
  * Options:
@@ -125,12 +128,21 @@ function makeRng(seed) {
 
 const pick = (rng, list) => list[Math.floor(rng() * list.length)]
 
-/** "Hearth Cat of Fire" -> "hearth-cat-of-fire", matching art/cards/<id>.webp. */
+/**
+ * "Hearth Cat of Fire" -> "hearth-cat-of-fire": the CSV id convention, which is also the art
+ * filename (`findCardArt` in the card importer looks cards up by id). Apostrophes are dropped
+ * rather than treated as a separator, so "Butterfly Keeper's ..." -> "butterfly-keepers-..."
+ * and this matches the ids the catalog already carries.
+ */
 const slugify = (value) =>
   value
     .toLowerCase()
+    .replace(/['\u2019]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
+
+/** Extensions the card importer accepts as art, so an idea cannot shadow a rendered card. */
+const ART_EXTS = ['.png', '.webp', '.jpg', '.jpeg']
 
 const csvField = (value) => {
   const text = String(value ?? '')
@@ -186,17 +198,28 @@ function parseCsv(text) {
 }
 
 /**
- * Names already taken by the CSV *or* by the finished concept-art folder. The
- * folder matters because a name only becomes a real card via its JSON title, so
- * an idea that collides with one is wasted.
+ * Ids already taken. The CSV's `id` column is the key: it names the DB row *and* the art file,
+ * so it is what an idea must not collide with — deduping on `slugify(name)` instead let a roll
+ * slip past a row whose id does not equal its slugged name.
+ *
+ * The name is checked too, because a hand-written row can carry a name no id mirrors, and so is
+ * the art folder: a rendered `<id>.png` is content in flight even before its row is filled in.
+ * (The folder used to be scanned for `<Title>.json` sidecars, but those were deleted, so the
+ * art extensions are the only thing left in there to collide with.)
  */
-function takenNames(rows) {
-  const taken = new Set(rows.map((row) => slugify(row.name ?? '')))
+function takenIds(rows) {
+  const taken = new Set()
+  for (const row of rows) {
+    const id = (row.id ?? '').trim().toLowerCase()
+    if (id) taken.add(id)
+    const name = slugify(row.name ?? '')
+    if (name) taken.add(name)
+  }
   if (existsSync(CONCEPT_DIR)) {
     for (const file of readdirSync(CONCEPT_DIR)) {
-      if (!file.endsWith('.json')) continue
-      const { title } = JSON.parse(readFileSync(join(CONCEPT_DIR, file), 'utf8'))
-      taken.add(slugify(title))
+      const lower = file.toLowerCase()
+      if (!ART_EXTS.some((ext) => lower.endsWith(ext))) continue
+      taken.add(lower.slice(0, -lower.slice(lower.lastIndexOf('.')).length))
     }
   }
   return taken
@@ -275,7 +298,7 @@ if (!Number.isInteger(seed)) {
 const rng = makeRng(seed)
 
 const { header, rows } = parseCsv(readFileSync(CARDS_CSV, 'utf8'))
-const taken = takenNames(rows)
+const taken = takenIds(rows)
 
 const ideas = []
 const seen = new Set(taken)
