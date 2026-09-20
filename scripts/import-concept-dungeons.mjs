@@ -10,10 +10,14 @@
  * so `--import` alone never clobbers art already in Storage.
  *
  * A dungeon only has a name to carry over from its sidecar; the numbers an
- * economy needs (kind, tier, power, timer, gold, drops) don't exist in the art
- * metadata, so they are *rolled* here. Rolls are seeded from the dungeon name,
- * so the same source always yields the same dungeon across runs (no churn on
- * re-import) while staying comfortably random-looking.
+ * economy needs (kind, tier, power, timer, gold, rank, tags, drops) don't exist
+ * in the art metadata, so they are *rolled* here. Rolls are seeded from the
+ * dungeon name, so the same source always yields the same dungeon across runs
+ * while staying comfortably random-looking.
+ *
+ * `rank` and `tags` are rolled AFTER the stats for a reason: they are the only
+ * inputs to the drop table, so re-running an import refreshes which Cores a
+ * dungeon farms without moving its power, timer or gold.
  *
  * This is a content-authoring tool, not app code: it talks to Postgres with the
  * service_role key (never the anon key), so it must only ever be run from a
@@ -43,6 +47,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 // Picks up SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY from .env.local without
 // requiring it to be exported in the shell first.
 if (existsSync(join(root, '.env.local'))) process.loadEnvFile(join(root, '.env.local'))
+
+import { CORE_TAGS, coreVariantForRank, tagCoreId } from '../src/game/formulas.ts'
 
 // --- content tables (edit here, not per-dungeon, to keep dungeons coherent) ---
 
@@ -78,14 +84,21 @@ const TIER_WEIGHTS = [
   [5, 12],
 ]
 
-/** Material pool a tier can drop — mirrors MATERIALS in scripts/build-seed.mjs. */
-const MATERIALS_BY_TIER = {
-  1: ['common_shard', 'iron_ore'],
-  2: ['uncommon_shard', 'iron_ore', 'ember_essence', 'tide_essence', 'verdant_essence', 'umbral_essence', 'radiant_essence'],
-  3: ['rare_shard', 'crystal', 'beast_fang', 'ember_essence', 'tide_essence'],
-  4: ['epic_shard', 'crystal', 'beast_fang', 'boss_core'],
-  5: ['mythic_shard', 'boss_core', 'epic_shard'],
+/** Material a dungeon of this rank hands out; mirrors SHARD_BY_RANK in scripts/build-seed.mjs. */
+const SHARD_BY_RANK = {
+  1: 'common_shard',
+  2: 'uncommon_shard',
+  3: 'rare_shard',
+  4: 'epic_shard',
+  5: 'mythic_shard',
 }
+
+/**
+ * Tag pool a dungeon can be themed on — exactly the card tags that own a Core family.
+ * A dungeon's tags ARE its yield, which is what lets a player farm for a specific card's
+ * rank-up cost instead of rolling a generic material table.
+ */
+const DUNGEON_TAG_POOL = [...CORE_TAGS]
 
 /** The chest a clear hands out — one step up the ladder per tier. */
 const CHEST_BY_TIER = { 1: 'common', 2: 'rare', 3: 'epic', 4: 'legendary', 5: 'mythic' }
@@ -186,22 +199,41 @@ function weightsSummingTo100(count, rng) {
   return weights
 }
 
-function buildDrops(tier, rng) {
-  const pool = [...MATERIALS_BY_TIER[tier]]
-  const count = Math.min(pool.length, rng() < 0.5 ? 2 : 3)
-  const chosen = []
-  for (let i = 0; i < count; i += 1) {
-    chosen.push(pool.splice(Math.floor(rng() * pool.length), 1)[0])
-  }
+function buildDrops(rank, tags, rng) {
+  // The rank's shard plus one Core per tag: a dungeon pays its whole table on every
+  // clear, so the pool is what the Resources button promises.
+  const variant = coreVariantForRank(rank)
+  const pool = [SHARD_BY_RANK[rank], ...tags.map((tag) => tagCoreId(tag, variant))]
 
-  const weights = weightsSummingTo100(chosen.length, rng)
-  return chosen.map((material_id, index) => ({
+  const weights = weightsSummingTo100(pool.length, rng)
+  return pool.map((material_id, index) => ({
     material_id,
     weight: weights[index],
     min: 1,
-    // Deeper tiers hand out bigger stacks, so the material sink stays meaningful.
-    max: 1 + tier + Math.floor(rng() * 2),
+    // Deeper ranks hand out bigger stacks, so the material sink stays meaningful.
+    max: 1 + rank + Math.floor(rng() * 2),
   }))
+}
+
+/** 1-3 tags off the Core pool, so a dungeon farms a few specific families. */
+function buildTags(rng) {
+  const pool = [...DUNGEON_TAG_POOL]
+  const count = 1 + Math.floor(rng() * 3)
+  const chosen = []
+  for (let i = 0; i < count && pool.length; i += 1) {
+    chosen.push(pool.splice(Math.floor(rng() * pool.length), 1)[0])
+  }
+  return chosen
+}
+
+/**
+ * Rank tracks the tier band so deeper dungeons yield better Core grades, with a little
+ * jitter. Rolled AFTER the stats so inserting it here cannot churn an existing row's
+ * kind/tier/power/gold/timer on re-import — only `materials` is meant to change.
+ */
+function buildRank(tier, rng) {
+  const jitter = rng() < 0.3 ? -1 : rng() < 0.3 ? 1 : 0
+  return Math.max(1, Math.min(5, tier + jitter))
 }
 
 /**
@@ -234,6 +266,11 @@ export function buildDungeonRecord({ title }, existingIds = new Set(), existingA
   // Timers land on whole minutes — a 47-second dungeon isn't a thing to check back on.
   const duration = Math.max(60, Math.round((band.duration * (0.8 + rng() * 0.4)) / 60) * 60)
 
+  // Rolled last on purpose: everything above must stay byte-identical across re-imports
+  // so an already-imported dungeon never silently changes its difficulty.
+  const rank = buildRank(tier, rng)
+  const tags = buildTags(rng)
+
   const uploadedArtPath = existingArtPaths.get(id)
 
   return {
@@ -241,10 +278,12 @@ export function buildDungeonRecord({ title }, existingIds = new Set(), existingA
     name,
     kind,
     tier,
+    rank,
+    tags,
     req_power: power,
     duration_seconds: duration,
     gold_base: gold,
-    materials: buildDrops(tier, rng),
+    materials: buildDrops(rank, tags, rng),
     card_id: null,
     unlocks_at_level: UNLOCK_LEVEL_BY_TIER[tier],
     chest_on_clear: CHEST_BY_TIER[tier],
@@ -391,8 +430,9 @@ async function main() {
   for (const pair of pairs) {
     const dungeon = buildDungeonRecord(pair, existingIds, existingArtPaths)
     console.log(
-      `${pair.title} -> ${dungeon.name} (${dungeon.id}) [${dungeon.kind}/T${dungeon.tier}, ` +
-        `${dungeon.req_power} power, ${dungeon.duration_seconds}s, ${dungeon.gold_base}g]`,
+      `${pair.title} -> ${dungeon.name} (${dungeon.id}) [${dungeon.kind}/T${dungeon.tier}/R${dungeon.rank}, ` +
+        `${dungeon.req_power} power, ${dungeon.duration_seconds}s, ${dungeon.gold_base}g, ` +
+        `tags: ${dungeon.tags.join('+')}, drops: ${dungeon.materials.map((m) => m.material_id).join(', ')}]`,
     )
 
     if (!values['dry-run']) {

@@ -12,11 +12,15 @@ import { fileURLToPath } from 'node:url'
 import {
   ATK_GROWTH_PER_LEVEL,
   CHEST_ODDS,
+  CORE_TAGS,
+  CORE_VARIANT_LABELS,
+  CORE_VARIANTS,
   LEVELUP_GOLD_BASE,
   LEVELUP_GOLD_EXP,
   RANK_META,
   RUN_SLOT_UNLOCKS,
   rankUpCost,
+  tagCoreId,
 } from '../src/game/formulas.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -34,22 +38,31 @@ const SHARD_BY_RANK = {
   5: 'mythic_shard',
 }
 
-const MATERIALS = [
+/** Shards are the dupe payout AND a rank-up ingredient, so they stay in the catalog. */
+const SHARD_MATERIALS = [
   { id: 'common_shard', name: 'Common Shard', kind: 'shard', rarity: 1, tier: 1 },
   { id: 'uncommon_shard', name: 'Uncommon Shard', kind: 'shard', rarity: 2, tier: 2 },
   { id: 'rare_shard', name: 'Rare Shard', kind: 'shard', rarity: 3, tier: 3 },
   { id: 'epic_shard', name: 'Epic Shard', kind: 'shard', rarity: 4, tier: 4 },
   { id: 'mythic_shard', name: 'Mythic Shard', kind: 'shard', rarity: 5, tier: 5 },
-  { id: 'iron_ore', name: 'Iron Ore', kind: 'ore', rarity: null, tier: 1 },
-  { id: 'crystal', name: 'Crystal', kind: 'crystal', rarity: null, tier: 3 },
-  { id: 'beast_fang', name: 'Beast Fang', kind: 'essence', rarity: null, tier: 3 },
-  { id: 'boss_core', name: 'Boss Core', kind: 'core', rarity: null, tier: 5 },
-  { id: 'ember_essence', name: 'Ember Essence', kind: 'essence', rarity: null, tier: 2 },
-  { id: 'tide_essence', name: 'Tide Essence', kind: 'essence', rarity: null, tier: 2 },
-  { id: 'verdant_essence', name: 'Verdant Essence', kind: 'essence', rarity: null, tier: 2 },
-  { id: 'umbral_essence', name: 'Umbral Essence', kind: 'essence', rarity: null, tier: 2 },
-  { id: 'radiant_essence', name: 'Radiant Essence', kind: 'essence', rarity: null, tier: 2 },
 ]
+
+/**
+ * One Core per card tag per grade — the rank-up currency. Derived from CORE_TAGS /
+ * CORE_VARIANTS so the catalog can never drift from `tagCoreId()` in formulas.ts.
+ * `tier` carries the grade (1 lesser … 4 legendary) so the vault can order them.
+ */
+const CORE_MATERIALS = CORE_TAGS.flatMap((tag) =>
+  CORE_VARIANTS.map((variant, index) => ({
+    id: tagCoreId(tag, variant),
+    name: `${CORE_VARIANT_LABELS[variant]} ${tag} Core`,
+    kind: 'core',
+    rarity: index + 1,
+    tier: index + 1,
+  })),
+)
+
+const MATERIALS = [...SHARD_MATERIALS, ...CORE_MATERIALS]
 const MATERIAL_IDS = new Set(MATERIALS.map((material) => material.id))
 
 const CHESTS = [
@@ -132,6 +145,7 @@ const byRank = cards.reduce((acc, card) => {
 }, {})
 // Cards ship via scripts/import-concept-cards.mjs now; data/cards.csv is deliberately empty.
 const dungeonsIds = dungeons.map((dungeon) => dungeon.id)
+const dungeonTags = new Set(CORE_TAGS.map((tag) => tag.toLowerCase()))
 for (const dungeon of dungeons) {
   if (dungeon.card_id && !ids.includes(dungeon.card_id))
     errors.push(`dungeon ${dungeon.id}: unknown card_id ${dungeon.card_id}`)
@@ -141,6 +155,14 @@ for (const dungeon of dungeons) {
     const [materialId] = drop.split(':')
     if (!MATERIAL_IDS.has(materialId)) errors.push(`dungeon ${dungeon.id}: unknown material ${materialId}`)
   }
+  // Tags are what make a dungeon a farm spot for a card's Cores, so blank ones are a bug.
+  const tags = (dungeon.tags ?? '').split(';').filter(Boolean)
+  if (!tags.length) errors.push(`dungeon ${dungeon.id}: needs at least one tag`)
+  for (const tag of tags) {
+    if (!dungeonTags.has(tag.toLowerCase())) errors.push(`dungeon ${dungeon.id}: unknown tag ${tag}`)
+  }
+  const rank = Number(dungeon.rank ?? dungeon.tier)
+  if (!(rank >= 1 && rank <= 5)) errors.push(`dungeon ${dungeon.id}: rank must be 1..5, got ${dungeon.rank}`)
 }
 for (const [chestId, odds] of Object.entries(CHEST_ODDS)) {
   if (!CHESTS.some((chest) => chest.id === chestId)) errors.push(`odds for unknown chest ${chestId}`)
@@ -221,11 +243,12 @@ if (cards.length) {
   )
 }
 
-push('-- card_rank_costs (ladder by current rank + the card faction essence)')
+push('-- card_rank_costs (ladder by current rank + one Core per card tag)')
 const costRows = []
 for (const card of cards) {
+  const tags = (card.tags ?? '').split(';').filter(Boolean)
   for (let from = Number(card.rank); from < 5; from += 1) {
-    const cost = rankUpCost(from, card.faction)
+    const cost = rankUpCost(from, tags)
     costRows.push(`  (${sql(card.id)}, ${from}, ${from + 1}, ${cost.gold}, ${json(cost.materials)})`)
   }
 }
@@ -241,9 +264,10 @@ if (costRows.length) {
 
 push('-- dungeons')
 // dungeons.csv is deliberately empty now; dungeon content ships via scripts/import-concept-dungeons.mjs.
+// A CSV row still wins on `drops`; rank + tags are what the importer generates them from.
 if (dungeons.length) {
   push(
-    'insert into public.dungeons (id, name, kind, tier, req_power, duration_seconds, gold_base, materials, card_id, unlocks_at_level, chest_on_clear) values',
+    'insert into public.dungeons (id, name, kind, tier, rank, tags, req_power, duration_seconds, gold_base, materials, card_id, unlocks_at_level, chest_on_clear) values',
     dungeons
       .map((dungeon) => {
         const materials = dungeon.drops
@@ -253,11 +277,13 @@ if (dungeons.length) {
             const [material_id, weight, min, max] = drop.split(':')
             return { material_id, weight: Number(weight), min: Number(min), max: Number(max) }
           })
-        return `  (${sql(dungeon.id)}, ${sql(dungeon.name)}, ${sql(dungeon.kind)}, ${dungeon.tier}, ${dungeon.req_power}, ${dungeon.duration_seconds}, ${dungeon.gold_base}, ${json(materials)}, ${sqlNullable(dungeon.card_id)}, ${dungeon.unlocks_at_level}, ${sqlNullable(dungeon.chest_on_clear)})`
+        const tags = (dungeon.tags ?? '').split(';').filter(Boolean)
+        return `  (${sql(dungeon.id)}, ${sql(dungeon.name)}, ${sql(dungeon.kind)}, ${dungeon.tier}, ${Number(dungeon.rank ?? dungeon.tier)}, ${sql(`{${tags.join(',')}}`)}, ${dungeon.req_power}, ${dungeon.duration_seconds}, ${dungeon.gold_base}, ${json(materials)}, ${sqlNullable(dungeon.card_id)}, ${dungeon.unlocks_at_level}, ${sqlNullable(dungeon.chest_on_clear)})`
       })
       .join(',\n'),
     'on conflict (id) do update set',
     '  name = excluded.name, kind = excluded.kind, tier = excluded.tier,',
+    '  rank = excluded.rank, tags = excluded.tags,',
     '  req_power = excluded.req_power, duration_seconds = excluded.duration_seconds,',
     '  gold_base = excluded.gold_base, materials = excluded.materials, card_id = excluded.card_id,',
     '  unlocks_at_level = excluded.unlocks_at_level, chest_on_clear = excluded.chest_on_clear;',

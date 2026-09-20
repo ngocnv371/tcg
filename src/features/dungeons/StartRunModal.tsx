@@ -6,7 +6,7 @@ import { useCardCatalog, useCollection } from '@/features/cards/api'
 import { formatDuration } from '@/features/dungeons/format'
 import { useParties } from '@/features/party/api'
 import { useStartRun } from '@/features/progression/api'
-import { partyPower, successChance } from '@/game/formulas'
+import { partyPower, rewardMultiplier } from '@/game/formulas'
 import { cn } from '@/lib/utils'
 import type { PartyLoadout } from '@/features/party/api'
 import type { Card, CardRank, Dungeon, DungeonRun, PlayerCard } from '@/types/db'
@@ -23,7 +23,7 @@ type PartyOption = {
 
 /**
  * Party picker for one dungeon. Everything here is a preview: the server decides the
- * power snapshot, the roll and the end time when `start_run` is called.
+ * power snapshot, the yield multiplier and the end time when `start_run` is called.
  */
 export function StartRunModal({
   dungeon,
@@ -199,10 +199,10 @@ export function StartRunModal({
                     </dd>
                   </div>
                   <div className="flex gap-1.5">
-                    <dt className="text-ink-400">Odds</dt>
-                    {/* Preview only — the server rolls the real chance at resolve time. */}
+                    <dt className="text-ink-400">Yield</dt>
+                    {/* Preview only — the server scales the payout from the power snapshot. */}
                     <dd className="tabular-nums text-ink-200">
-                      p≈{Math.round(successChance(option.power, dungeon.req_power) * 100)}%
+                      ×{rewardMultiplier(option.power, dungeon.req_power).toFixed(2)}
                     </dd>
                   </div>
                 </dl>

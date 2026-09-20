@@ -37,61 +37,118 @@ export const ATK_GROWTH_PER_LEVEL = 0.08
 export const LEVELUP_GOLD_BASE = 25
 export const LEVELUP_GOLD_EXP = 1.4
 
-export type RankUpStep = {
-  gold: number
-  /** Fixed materials; the card's faction essence is added on top by `rankUpCost`. */
-  materials: Record<string, number>
-  /** Copies of the card's own faction essence (`<faction>_essence`). */
-  essence: number
+/**
+ * Card tags are a card's farming identity: every tag owns a Core family, and a rank-up
+ * spends one Core per tag the card carries (a Beast + Fire card needs Beast *and* Fire
+ * Cores). This list mirrors the element words the card importer reads out of a concept
+ * title (`scripts/import-concept-cards.mjs`) plus the universal `Beast` tag.
+ */
+export const CORE_TAGS = [
+  'Fire',
+  'Water',
+  'Ice',
+  'Earth',
+  'Nature',
+  'Dark',
+  'Light',
+  'Air',
+  'Thunder',
+  'Dragon',
+  'Beast',
+] as const
+
+export type CoreTag = (typeof CORE_TAGS)[number]
+
+/** One grade per rank-up step, weakest first: 1→2 lesser … 4→5 legendary. */
+export const CORE_VARIANTS = ['lesser', 'greater', 'mythic', 'legendary'] as const
+
+export type CoreVariant = (typeof CORE_VARIANTS)[number]
+
+export const CORE_VARIANT_LABELS: Record<CoreVariant, string> = {
+  lesser: 'Lesser',
+  greater: 'Greater',
+  mythic: 'Mythic',
+  legendary: 'Legendary',
+}
+
+/** `lesser_fire_core` — the same id the seeded `materials` rows use. */
+export function tagCoreId(tag: string, variant: CoreVariant): string {
+  return `${variant}_${tag.toLowerCase()}_core`
 }
 
 /**
- * Rank-up ladder, keyed by the card's CURRENT rank (plan §6.3). Two cards of the same
- * faction still farm different dungeons because the shard and ore steps differ per rank,
- * while the essence step is what sends every card to its faction's route.
+ * The card's tags that own a Core family, in catalog order and deduped. A card whose
+ * titles matched no known element still carries `Beast`, so the list is never empty.
+ */
+export function coreTagsForCard(tags: readonly string[]): CoreTag[] {
+  const lowered = new Set(tags.map((tag) => tag.toLowerCase()))
+  return CORE_TAGS.filter((tag) => lowered.has(tag.toLowerCase()))
+}
+
+/** Every Core material id the economy can hand out — 4 grades × every tag. */
+export function allCoreIds(): string[] {
+  return CORE_TAGS.flatMap((tag) => CORE_VARIANTS.map((variant) => tagCoreId(tag, variant)))
+}
+
+/**
+ * Which Core grade a dungeon of this rank yields. Dungeons rank 1..5 while there are only
+ * four grades, so the top rank shares the legendary band with rank 4.
+ */
+export function coreVariantForRank(rank: number): CoreVariant {
+  const index = Math.min(Math.max(Math.trunc(rank), 1), CORE_VARIANTS.length)
+  return CORE_VARIANTS[index - 1]
+}
+
+export type RankUpStep = {
+  gold: number
+  /** Fixed materials for the step; the card's tag Cores are added on top by `rankUpCost`. */
+  materials: Record<string, number>
+  /** Grade of Core this step consumes. */
+  coreVariant: CoreVariant
+  /** How many of EACH of the card's tag Cores this step consumes. */
+  coreQty: number
+}
+
+/**
+ * Rank-up ladder, keyed by the card's CURRENT rank. A card's route is decided by its tags,
+ * not its faction: two cards of the same faction farm different dungeons whenever their
+ * tag sets differ.
  *
  * This is the single source for both the seeded `card_rank_costs` rows
  * (`scripts/build-seed.mjs`) and the ones the card importer writes, so a balance change
  * here reaches existing content on the next import.
  */
 export const RANK_UP_LADDER: Record<Exclude<CardRank, 5>, RankUpStep> = {
-  1: { gold: 1000, materials: { common_shard: 10, iron_ore: 5 }, essence: 3 },
-  2: { gold: 5000, materials: { uncommon_shard: 25, iron_ore: 15, beast_fang: 5 }, essence: 8 },
-  3: { gold: 20000, materials: { rare_shard: 50, crystal: 20, beast_fang: 10 }, essence: 15 },
-  4: { gold: 80000, materials: { epic_shard: 100, crystal: 40, boss_core: 1 }, essence: 25 },
+  1: { gold: 1000, materials: { common_shard: 10 }, coreVariant: 'lesser', coreQty: 3 },
+  2: { gold: 5000, materials: { uncommon_shard: 25 }, coreVariant: 'greater', coreQty: 8 },
+  3: { gold: 20000, materials: { rare_shard: 50 }, coreVariant: 'mythic', coreQty: 15 },
+  4: { gold: 80000, materials: { epic_shard: 100 }, coreVariant: 'legendary', coreQty: 25 },
 }
 
 /**
- * What one rank-up costs for a card of this faction, or null at 5★ (the top of the ladder).
- * Mirrors the `card_rank_costs` lookup `rank_up_card` does server-side.
+ * What one rank-up costs for a card carrying these tags, or null at 5★ (the top of the
+ * ladder). Mirrors the `card_rank_costs` lookup `rank_up_card` does server-side.
  */
 export function rankUpCost(
   fromRank: CardRank,
-  faction: string,
+  tags: readonly string[],
 ): { gold: number; materials: Record<string, number> } | null {
   const step = RANK_UP_LADDER[fromRank as Exclude<CardRank, 5>]
   if (!step) return null
-  return {
-    gold: step.gold,
-    materials: { ...step.materials, [`${faction}_essence`]: step.essence },
+
+  const materials: Record<string, number> = { ...step.materials }
+  for (const tag of coreTagsForCard(tags)) {
+    materials[tagCoreId(tag, step.coreVariant)] = step.coreQty
   }
+  return { gold: step.gold, materials }
 }
 
-/** Success-chance curve: p = clamp(MIN, MAX, K * (power / required) ^ EXP). */
-export const SUCCESS_MIN = 0.1
-export const SUCCESS_MAX = 0.95
-export const SUCCESS_K = 0.6
-export const SUCCESS_EXP = 0.8
-
-/** Reward scaling band for the over/under-powered reward multiplier. */
+/**
+ * Reward scaling band for the over/under-powered yield multiplier. A run never fails any
+ * more — power only decides how much the same dungeon pays out.
+ */
 export const REWARD_MULT_MIN = 1.0
 export const REWARD_MULT_MAX = 1.5
-
-/**
- * A failed run still pays this much gold. Without it a bad roll is a dead click, and the
- * player leaves empty-handed after waiting out the timer.
- */
-export const FAILED_RUN_PITY_GOLD = 1
 
 /** Extra concurrent runs unlock from player level — the pacing lever. */
 export const RUN_SLOT_UNLOCKS: ReadonlyArray<{ playerLevel: number; slots: number }> = [
@@ -131,12 +188,10 @@ export function levelUpGold(level: number): number {
   return Math.round(LEVELUP_GOLD_BASE * Math.pow(level, LEVELUP_GOLD_EXP))
 }
 
-export function successChance(power: number, requiredPower: number): number {
-  if (requiredPower <= 0) return SUCCESS_MAX
-  const raw = SUCCESS_K * Math.pow(power / requiredPower, SUCCESS_EXP)
-  return Math.min(SUCCESS_MAX, Math.max(SUCCESS_MIN, raw))
-}
-
+/**
+ * Yield multiplier: how much of a dungeon's listed payout a party actually brings home.
+ * Sending a stronger team is the only lever — there is no win/lose roll to preview.
+ */
 export function rewardMultiplier(power: number, requiredPower: number): number {
   if (requiredPower <= 0) return REWARD_MULT_MAX
   const raw = power / requiredPower

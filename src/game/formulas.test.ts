@@ -2,11 +2,16 @@ import { describe, expect, it } from 'vitest'
 
 import {
   CHEST_ODDS,
-  FAILED_RUN_PITY_GOLD,
+  CORE_TAGS,
+  CORE_VARIANTS,
   RANK_META,
+  RANK_UP_LADDER,
+  allCoreIds,
   cardAtk,
   cardDef,
   cardPower,
+  coreTagsForCard,
+  coreVariantForRank,
   dupeShards,
   goldReward,
   levelUpGold,
@@ -15,7 +20,7 @@ import {
   rankUpCost,
   rewardMultiplier,
   runSlotsForLevel,
-  successChance,
+  tagCoreId,
   type CardRank,
 } from './formulas'
 
@@ -56,30 +61,10 @@ describe('party power', () => {
   })
 })
 
-describe('dungeon success chance', () => {
-  it('is 60% at parity', () => {
-    expect(successChance(500, 500)).toBeCloseTo(0.6, 5)
-  })
-
-  it('clamps to 10%..95%', () => {
-    expect(successChance(1, 10_000)).toBe(0.1)
-    expect(successChance(999_999, 150)).toBe(0.95)
-  })
-
-  it('is monotonically increasing in power', () => {
-    const series = [150, 300, 500, 900, 1500].map((p) => successChance(p, 500))
-    for (let i = 1; i < series.length; i += 1) {
-      expect(series[i]).toBeGreaterThanOrEqual(series[i - 1])
-    }
-  })
-})
-
 describe('rewards', () => {
-  it('scales between 1.0x and 1.5x of base gold', () => {
+  it('scales between 1.0x and 1.5x of base, with no win/lose roll', () => {
     expect(rewardMultiplier(250, 500)).toBe(1.0)
     expect(rewardMultiplier(750, 500)).toBe(1.5)
-    expect(goldReward(60, 500, 500)).toBe(60)
-    expect(goldReward(60, 5000, 500)).toBe(90)
   })
 
   it('prices level-ups on a 25 * L^1.4 curve', () => {
@@ -88,9 +73,9 @@ describe('rewards', () => {
     expect(levelUpGold(50)).toBe(5977)
   })
 
-  it('leaves a failed run with pity gold, not nothing', () => {
-    // The SQL failure branch mirrors this number; see 20260924000000_failed_run_pity.sql.
-    expect(FAILED_RUN_PITY_GOLD).toBeGreaterThan(0)
+  it('pays a stronger team strictly more of the same dungeon', () => {
+    expect(goldReward(60, 500, 500)).toBe(60)
+    expect(goldReward(60, 5000, 500)).toBe(90)
   })
 })
 
@@ -115,21 +100,65 @@ describe('chest odds', () => {
 })
 
 describe('rank-up costs', () => {
-  it('folds the card faction essence into the fixed step', () => {
-    expect(rankUpCost(1, 'ember')).toEqual({
+  it('charges one Core per card tag, graded by the step', () => {
+    expect(rankUpCost(1, ['Fire', 'Beast'])).toEqual({
       gold: 1000,
-      materials: { common_shard: 10, iron_ore: 5, ember_essence: 3 },
+      materials: {
+        common_shard: 10,
+        lesser_fire_core: 3,
+        lesser_beast_core: 3,
+      },
     })
-    expect(rankUpCost(4, 'tide')?.materials).toEqual({
+    expect(rankUpCost(4, ['Tide', 'Beast'])?.materials).toEqual({
       epic_shard: 100,
-      crystal: 40,
-      boss_core: 1,
-      tide_essence: 25,
+      legendary_beast_core: 25,
+    })
+  })
+
+  it('uses a different Core grade on every step', () => {
+    expect(RANK_UP_LADDER[1].coreVariant).toBe('lesser')
+    expect(RANK_UP_LADDER[2].coreVariant).toBe('greater')
+    expect(RANK_UP_LADDER[3].coreVariant).toBe('mythic')
+    expect(RANK_UP_LADDER[4].coreVariant).toBe('legendary')
+  })
+
+  it('never charges two tags for a card that carries one', () => {
+    expect(rankUpCost(2, ['Beast'])?.materials).toEqual({
+      uncommon_shard: 25,
+      greater_beast_core: 8,
     })
   })
 
   it('has no step past 5★', () => {
-    expect(rankUpCost(5, 'ember')).toBeNull()
+    expect(rankUpCost(5, ['Fire', 'Beast'])).toBeNull()
+  })
+})
+
+describe('core catalog', () => {
+  it('ignores tags with no Core family and keeps the card\'s own', () => {
+    expect(coreTagsForCard(['Fire', 'Beast', 'Robot'])).toEqual(['Fire', 'Beast'])
+    expect(coreTagsForCard(['beast'])).toEqual(['Beast'])
+    expect(coreTagsForCard([])).toEqual([])
+  })
+
+  it('names Core ids the way the seeded materials rows do', () => {
+    expect(tagCoreId('Fire', 'lesser')).toBe('lesser_fire_core')
+    expect(tagCoreId('Beast', 'legendary')).toBe('legendary_beast_core')
+  })
+
+  it('ships one Core material per tag per grade', () => {
+    expect(allCoreIds()).toHaveLength(CORE_TAGS.length * CORE_VARIANTS.length)
+    expect(new Set(allCoreIds()).size).toBe(allCoreIds().length)
+  })
+
+  it('bands dungeon ranks to grades, with rank 5 sharing the top grade', () => {
+    expect([1, 2, 3, 4, 5].map(coreVariantForRank)).toEqual([
+      'lesser',
+      'greater',
+      'mythic',
+      'legendary',
+      'legendary',
+    ])
   })
 })
 

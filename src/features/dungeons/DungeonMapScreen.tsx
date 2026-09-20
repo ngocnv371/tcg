@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react'
 
 import { Panel, Screen } from '@/components/Screen'
+import { DungeonResourcesModal } from '@/features/dungeons/DungeonResourcesModal'
 import { RunRewardsModal } from '@/features/dungeons/RunRewardsModal'
 import { StartRunModal } from '@/features/dungeons/StartRunModal'
 import { useDungeons, useRuns } from '@/features/dungeons/api'
@@ -79,6 +80,8 @@ export function DungeonMapScreen() {
   const [claim, setClaim] = useState<RunClaim | null>(null)
   /** The dungeon whose party picker is open — at most one at a time. */
   const [picking, setPicking] = useState<Dungeon | null>(null)
+  /** The dungeon whose resource yield is on screen — also one at a time. */
+  const [resources, setResources] = useState<Dungeon | null>(null)
   const activeRuns = runs?.filter((run) => !run.resolved_at) ?? []
   const claimableRuns = runs?.filter((run) => run.resolved_at && !run.claimed_at) ?? []
   /** `start_run` refuses account-wide while a finished run is uncollected, so the buttons do too. */
@@ -136,6 +139,21 @@ export function DungeonMapScreen() {
                   <dd />
                 </dl>
 
+                {/* The tags are what the dungeon farms, so they belong on the card: this is
+                    how a player spots where a card's Cores come from. */}
+                {dungeon.tags.length ? (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {dungeon.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-card bg-ink-850 px-2 py-0.5 text-[11px] text-ink-300"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
                 {running.length > 0 || claimable.length > 0 ? (
                   <div className="mt-3 space-y-2.5 border-t border-ink-800 pt-3">
                     {running.map((run) => (
@@ -143,10 +161,7 @@ export function DungeonMapScreen() {
                     ))}
                     {claimable.map((run) => (
                       <div key={run.id}>
-                        {/* A failure has no outcome to announce — the Claim button says it all. */}
-                        {run.success ? (
-                          <p className="text-xs text-faction-verdant">Cleared — rewards ready</p>
-                        ) : null}
+                        <p className="text-xs text-faction-verdant">Cleared — rewards ready</p>
                         <button
                           type="button"
                           className="mt-2 w-full rounded-card bg-gold-500 px-3 py-2 text-xs font-medium text-ink-950 disabled:opacity-50"
@@ -169,6 +184,14 @@ export function DungeonMapScreen() {
                     Start run
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  className="mt-2 w-full rounded-card border border-ink-700 px-3 py-2 text-xs text-ink-300 hover:border-ink-600"
+                  onClick={() => setResources(dungeon)}
+                >
+                  Resources
+                </button>
               </Panel>
             </li>
           )
@@ -183,6 +206,9 @@ export function DungeonMapScreen() {
           pendingClaims={claimableRuns.length}
           onClose={() => setPicking(null)}
         />
+      ) : null}
+      {resources ? (
+        <DungeonResourcesModal dungeon={resources} onClose={() => setResources(null)} />
       ) : null}
       {claim ? <RunRewardsModal claim={claim} onClose={() => setClaim(null)} /> : null}
     </Screen>

@@ -86,6 +86,7 @@ MIGRATIONS=(
   "20260927000000_rank_up_card.sql"
   "20260928000000_telemetry.sql"
   "20260929000000_notifications.sql"
+  "20260930000000_core_dungeons.sql"
 )
 
 docker cp "$ROOT_HOST/supabase/seed.sql" "$NAME:/tmp/seed.sql" >/dev/null
@@ -109,6 +110,8 @@ declare
   starter_slot_count integer;
   write_policies integer;
   missing_power integer;
+  missing_drops integer;
+  core_count integer;
 begin
   select count(*) into card_count from public.cards;
   -- cards.csv is deliberately empty now; catalog content ships via scripts/import-concept-cards.mjs.
@@ -142,6 +145,18 @@ begin
   cross join lateral jsonb_each_text(c.materials) as m(material_id, qty)
   where not exists (select 1 from public.materials mm where mm.id = m.material_id);
   if missing_power > 0 then raise exception '% rank-up rows reference unknown materials', missing_power; end if;
+
+  -- every dungeon drop must name a real material too: the pool is generated from the
+  -- dungeon's tags + rank at import time, so a typo ships a run that pays nothing
+  select count(*) into missing_drops
+  from public.dungeons d
+  cross join lateral jsonb_array_elements(d.materials) as item
+  where not exists (select 1 from public.materials m where m.id = item ->> 'material_id');
+  if missing_drops > 0 then raise exception '% dungeon drops reference unknown materials', missing_drops; end if;
+
+  -- one Core material per tag per grade: 11 tags x 4 grades
+  select count(*) into core_count from public.materials where kind = 'core';
+  if core_count <> 44 then raise exception 'expected 44 core materials, found %', core_count; end if;
 
   -- chest odds must sum to 100 per chest
   perform 1 from (
@@ -262,17 +277,50 @@ begin
       if sqlerrm <> 'that party is already on a run' then raise; end if;
     end;
 
-    -- a failed run pays pity gold: claim has to credit rewards->gold for a loss too
+    -- a run always clears now: resolve pays the WHOLE drop table, with party power only
+    -- scaling the yield (gold and every stack) between 1.0x and 1.5x
+    update public.dungeons
+      set rank = 1,
+          tags = array['Fire', 'Beast'],
+          materials = jsonb_build_array(
+            jsonb_build_object('material_id', 'lesser_fire_core', 'weight', 50, 'min', 2, 'max', 4),
+            jsonb_build_object('material_id', 'lesser_beast_core', 'weight', 50, 'min', 2, 'max', 4)
+          )
+      where id = busy_dungeon;
+
+    -- fast-forward the run instead of ending it at now(): `now()` is the transaction
+    -- timestamp, so started_at and a `now()` ends_at would be equal and trip the
+    -- `ends_at > started_at` constraint.
+    update public.dungeon_runs
+      set started_at = now() - interval '2 hours', ends_at = now() - interval '1 hour'
+      where party_id = busy_party;
+    perform public.resolve_runs();
+
+    if (select success from public.dungeon_runs where party_id = busy_party) is not true then
+      raise exception 'a resolved run did not clear — failure is gone, every run pays';
+    end if;
+
+    if (select jsonb_array_length(rewards -> 'materials')
+        from public.dungeon_runs where party_id = busy_party) <> 2 then
+      raise exception 'a clear paid only part of its drop table';
+    end if;
+
     select gold into gold_before from public.profiles
       where id = '00000000-0000-0000-0000-000000000001';
-    update public.dungeon_runs
-      set resolved_at = now(), success = false,
-          rewards = jsonb_build_object('gold', 1, 'materials', jsonb_build_array())
-      where party_id = busy_party;
     perform public.claim_run((select id from public.dungeon_runs where party_id = busy_party));
+
     if (select gold from public.profiles where id = '00000000-0000-0000-0000-000000000001')
-       <> gold_before + 1 then
-      raise exception 'a failed run did not pay its 1 gold pity (mirrors FAILED_RUN_PITY_GOLD)';
+       <= gold_before then
+      raise exception 'a cleared run paid no gold';
+    end if;
+
+    if not exists (
+      select 1 from public.player_materials
+      where profile_id = '00000000-0000-0000-0000-000000000001'
+        and material_id in ('lesser_fire_core', 'lesser_beast_core')
+        and qty >= 1
+    ) then
+      raise exception 'a cleared run paid no materials into the vault';
     end if;
 
     -- leave the throwaway database as the assertions found it
@@ -423,7 +471,7 @@ begin
                               passive_name, passive_text, lore)
       values ('verify_rank_card', 'Verify Rank Card', 1, 'ember', 'dps', 1, 0, 'p', 'p', 'p');
     insert into public.card_rank_costs (card_id, from_rank, to_rank, gold, materials)
-      values ('verify_rank_card', 1, 2, 100, '{"common_shard": 4, "ember_essence": 2}'::jsonb);
+      values ('verify_rank_card', 1, 2, 100, '{"common_shard": 4, "lesser_fire_core": 2}'::jsonb);
     insert into public.player_cards (profile_id, card_id, rank)
       values ('00000000-0000-0000-0000-000000000001', 'verify_rank_card', 1)
       returning id into rank_card;
@@ -438,7 +486,7 @@ begin
     -- one shard short of the ladder step
     insert into public.player_materials (profile_id, material_id, qty)
       values ('00000000-0000-0000-0000-000000000001', 'common_shard', 3),
-             ('00000000-0000-0000-0000-000000000001', 'ember_essence', 2)
+             ('00000000-0000-0000-0000-000000000001', 'lesser_fire_core', 2)
       on conflict (profile_id, material_id) do update set qty = excluded.qty;
 
     begin
@@ -467,6 +515,10 @@ begin
         where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = 'common_shard') <> 0 then
       raise exception 'rank_up_card did not spend its shards';
     end if;
+    if (select qty from public.player_materials
+        where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = 'lesser_fire_core') <> 0 then
+      raise exception 'rank_up_card did not spend its Cores';
+    end if;
 
     -- the ladder stops where card_rank_costs stops: no 2★ -> 3★ row exists here
     begin
@@ -494,7 +546,7 @@ begin
       where id = '00000000-0000-0000-0000-000000000001';
     delete from public.player_materials
       where profile_id = '00000000-0000-0000-0000-000000000001'
-        and material_id in ('common_shard', 'ember_essence');
+        and material_id in ('common_shard', 'lesser_fire_core');
     delete from public.player_cards where card_id = 'verify_rank_card';
     delete from public.card_rank_costs where card_id = 'verify_rank_card';
     delete from public.cards where id = 'verify_rank_card';

@@ -6,6 +6,10 @@
 --
 -- The amount mirrors FAILED_RUN_PITY_GOLD in src/game/formulas.ts — change both together.
 --
+-- SUPERSEDED by 20260930000000_core_dungeons.sql: a run never fails any more, so the pity
+-- gold and FAILED_RUN_PITY_GOLD itself are gone. Kept as history; its resolve_runs and
+-- claim_run definitions are overridden by the later migration.
+--
 -- `private.resolve_due_runs` is normally created by 20260918000002_schedule_dungeon_run_resolution.sql
 -- alongside the pg_cron job; the schema is created here too so this migration stands alone in
 -- environments without pg_cron (scripts/verify-db.sh).

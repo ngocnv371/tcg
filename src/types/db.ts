@@ -58,13 +58,24 @@ export type Dungeon = {
   id: string
   name: string
   kind: DungeonKind
+  /** Difficulty band, also the tier of the chest a clear hands out. */
   tier: number
+  /** Which Core grade this dungeon yields (1..4 = lesser..legendary, 5 = legendary). */
+  rank: number
+  /** The Core families this dungeon farms. Drives `materials` at import time. */
+  tags: string[]
   req_power: number
   duration_seconds: number
   gold_base: number
+  /**
+   * The drop table. Generated from `tags` + `rank` at import time and paid IN FULL on
+   * every clear, so `weight` is legacy share data the resolver no longer reads.
+   */
   materials: Array<{ material_id: string; weight: number; min: number; max: number }>
   card_id: string | null
   unlocks_at_level: number
+  /** Chest handed out by a clear; null when the dungeon only pays resources. */
+  chest_on_clear: string | null
   art_path: string | null
 }
 
@@ -140,6 +151,8 @@ export type RunRewards = {
   gold: number
   materials: Array<{ material_id: string; qty: number }>
   chest_id?: string
+  /** The party's yield multiplier at resolve time; absent on pre-multiplier rows. */
+  multiplier?: number
 }
 
 export type ChestInventoryRow = {

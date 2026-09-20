@@ -48,7 +48,7 @@ Done: schema + RLS + derived SQL functions, generated seed (0 catalog cards, 0 c
 dungeons, 5 chests — card *and* dungeon content ships via `scripts/import-concept-cards.mjs` /
 `scripts/import-concept-dungeons.mjs`), app shell with routing and auth gate, balance module
 with tests, DB verification script. The dungeon importer takes the same json+image folder shape
-and rolls kind/tier/power/timer/gold/drops seeded by name, uploads to the `dungeon-art` bucket,
+and rolls kind/tier/rank/tags/power/timer/gold/drops seeded by name, uploads to the `dungeon-art` bucket,
 and reads art back from the DB rather than the source json. Dungeon art renders in
 `DungeonMapScreen`; `resolveArtSrc` lives in `src/lib/art.ts`. Teams are unlimited:
 `create_party` / `rename_party` / `delete_party` (migration `20260919000000_multi_party.sql`)
@@ -76,9 +76,12 @@ level and rank independently, the library renders one tile per owned copy (keyed
 `src/features/cards/CardBrowser.tsx`), the chest reveal links to the copy it granted, and the detail route
 `cards/:cardRefId` resolves a copy id first and falls back to a catalog card id. A party
 with an unresolved run can no longer be sent again: `20260922000000_busy_party_guard.sql` redefines
-`start_run` with that check (the client badge is display only). A failed run still pays
-`FAILED_RUN_PITY_GOLD` (1 gold, mirrored in `20260924000000_failed_run_pity.sql`), and `claim_run`
-credits `rewards->gold` for both outcomes. Rank-up is live: `rank_up_card`
+`start_run` with that check (the client badge is display only). **A run never fails**
+(`20260930000000_core_dungeons.sql`): `resolve_runs` always clears and party power only scales the
+payout between ×1.00 and ×1.50 — that multiplier is recorded on `rewards.multiplier`, and it scales
+both the gold and *every* stack in the drop table, which is paid in full rather than as one weighted
+pick. So the party picker shows `Yield ×N` where it used to show success odds, and the failure
+messaging and pity gold are gone. Rank-up is live: `rank_up_card`
 (`20260927000000_rank_up_card.sql`) locks the copy, re-reads the `card_rank_costs` step for its
 *current* rank, takes the gold and the materials behind `not found` guards (a short balance raises
 and rolls the whole spend back), then returns the bumped row. The ladder lives once, in
@@ -89,6 +92,25 @@ detail screen previews the next step from `card_rank_costs` (never its own numbe
 button only when the gold and every material are covered; on success it plays `RankUpAnimation`
 (`RANK_UP_DURATION` = 140 frames at 30fps ≈ 4.7s) in `RankUpOverlay`, which closes itself. Both the
 chest reveals and the rank-up share `REVEAL_PLAYER_STAGE` (`unlockVisuals.ts`).
+
+Cores are the material economy (`src/game/formulas.ts`): every **card tag** owns a Core family
+(`CORE_TAGS`), and a rank-up spends gold + the step's shard + **one Core per tag the card carries** —
+a Beast + Fire card needs both Beast and Fire Cores. `rankUpCost(fromRank, tags)` takes tags, not
+faction, so a card's farm route follows its tags. Cores come in four grades (`CORE_VARIANTS`: lesser
+→ greater → mythic → legendary) and there is **one grade per rank step**: 1→2 lesser, 2→3 greater,
+3→4 mythic, 4→5 legendary. The seeded catalog is `CORE_TAGS.length × CORE_VARIANTS.length` = 44 core
+materials, derived from `tagCoreId()` by `scripts/build-seed.mjs`; `verify-db.sh` asserts 44. Rank-up
+no longer uses ore/crystal/essence/boss_core — those rows are no longer seeded (they are not deleted
+from an existing DB, since `player_materials` references them).
+
+Dungeons are farm spots: `dungeons.rank` (1..5, `coreVariantForRank` maps 4 and 5 both to legendary)
+picks the Core grade, and `dungeons.tags` names the Core families. `scripts/import-concept-dungeons.mjs`
+rolls both seeded by name — *after* the stats, deliberately, so re-importing refreshes a dungeon's
+drops without moving its power/timer/gold — and generates `dungeons.materials` from them (the rank's
+shard + one Core per tag). `materials` stays the table the server pays; its `weight` field is legacy
+and unread. `DungeonMapScreen` shows the tags on each card and a **Resources** button opening
+`DungeonResourcesModal`, which lists what the dungeon yields (gold and stack ranges at ×1.00–×1.50,
+Core grade, chest, timer) so a player can target-farm a specific card's Cores.
 
 Next up: the week-9 first-session script (free Rare chest → guaranteed 3★ starter → guided
 5-min run → guided rank-up) and the week-12 balance pass.

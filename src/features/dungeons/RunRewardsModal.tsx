@@ -1,9 +1,22 @@
 import { X } from 'lucide-react'
 
+import { useMaterialCatalog } from '@/features/inventory/api'
 import type { RunClaim } from '@/features/progression/api'
+
+/** `lesser_fire_core` → `Lesser Fire Core`, for drops missing from the catalog query. */
+function materialLabel(id: string) {
+  return id
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
 
 export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: () => void }) {
   const rewards = claim.rewards
+  const { data: materials } = useMaterialCatalog()
+
+  const nameOf = (id: string) =>
+    materials?.find((material) => material.id === id)?.name ?? materialLabel(id)
 
   return (
     <div
@@ -16,12 +29,13 @@ export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: 
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 id="run-rewards-title" className="font-display text-lg text-ink-50">
-              {claim.success ? 'Run rewards' : 'Run failed'}
+              Run rewards
             </h2>
             <p className="mt-1 text-sm text-ink-400">
-              {claim.success
-                ? 'Resources added to your vault.'
-                : 'No materials recovered — pity gold added.'}
+              {/* A run always clears now; the only variable is how much it paid. */}
+              {rewards?.multiplier
+                ? `Yield ×${rewards.multiplier.toFixed(2)} — added to your vault.`
+                : 'Resources added to your vault.'}
             </p>
           </div>
           <button
@@ -37,7 +51,7 @@ export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: 
 
         {rewards ? (
           <ul className="mt-4 divide-y divide-ink-800 border-y border-ink-800 text-sm">
-            {/* Runs resolved before the pity-gold change carry gold: 0 — nothing to show. */}
+            {/* Runs resolved before the yield-multiplier change carry gold: 0 — nothing to show. */}
             {rewards.gold > 0 ? (
               <li className="flex items-center justify-between py-3">
                 <span className="text-ink-200">Gold</span>
@@ -48,7 +62,7 @@ export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: 
             ) : null}
             {rewards.materials.map((material) => (
               <li key={material.material_id} className="flex items-center justify-between py-3">
-                <span className="text-ink-200">{material.material_id.replaceAll('_', ' ')}</span>
+                <span className="text-ink-200">{nameOf(material.material_id)}</span>
                 <span className="tabular-nums text-ink-50">+{material.qty}</span>
               </li>
             ))}

@@ -29,20 +29,55 @@ insert into public.materials (id, name, kind, rarity, tier, icon) values
   ('rare_shard', 'Rare Shard', 'shard', 3, 3, null),
   ('epic_shard', 'Epic Shard', 'shard', 4, 4, null),
   ('mythic_shard', 'Mythic Shard', 'shard', 5, 5, null),
-  ('iron_ore', 'Iron Ore', 'ore', null, 1, null),
-  ('crystal', 'Crystal', 'crystal', null, 3, null),
-  ('beast_fang', 'Beast Fang', 'essence', null, 3, null),
-  ('boss_core', 'Boss Core', 'core', null, 5, null),
-  ('ember_essence', 'Ember Essence', 'essence', null, 2, null),
-  ('tide_essence', 'Tide Essence', 'essence', null, 2, null),
-  ('verdant_essence', 'Verdant Essence', 'essence', null, 2, null),
-  ('umbral_essence', 'Umbral Essence', 'essence', null, 2, null),
-  ('radiant_essence', 'Radiant Essence', 'essence', null, 2, null)
+  ('lesser_fire_core', 'Lesser Fire Core', 'core', 1, 1, null),
+  ('greater_fire_core', 'Greater Fire Core', 'core', 2, 2, null),
+  ('mythic_fire_core', 'Mythic Fire Core', 'core', 3, 3, null),
+  ('legendary_fire_core', 'Legendary Fire Core', 'core', 4, 4, null),
+  ('lesser_water_core', 'Lesser Water Core', 'core', 1, 1, null),
+  ('greater_water_core', 'Greater Water Core', 'core', 2, 2, null),
+  ('mythic_water_core', 'Mythic Water Core', 'core', 3, 3, null),
+  ('legendary_water_core', 'Legendary Water Core', 'core', 4, 4, null),
+  ('lesser_ice_core', 'Lesser Ice Core', 'core', 1, 1, null),
+  ('greater_ice_core', 'Greater Ice Core', 'core', 2, 2, null),
+  ('mythic_ice_core', 'Mythic Ice Core', 'core', 3, 3, null),
+  ('legendary_ice_core', 'Legendary Ice Core', 'core', 4, 4, null),
+  ('lesser_earth_core', 'Lesser Earth Core', 'core', 1, 1, null),
+  ('greater_earth_core', 'Greater Earth Core', 'core', 2, 2, null),
+  ('mythic_earth_core', 'Mythic Earth Core', 'core', 3, 3, null),
+  ('legendary_earth_core', 'Legendary Earth Core', 'core', 4, 4, null),
+  ('lesser_nature_core', 'Lesser Nature Core', 'core', 1, 1, null),
+  ('greater_nature_core', 'Greater Nature Core', 'core', 2, 2, null),
+  ('mythic_nature_core', 'Mythic Nature Core', 'core', 3, 3, null),
+  ('legendary_nature_core', 'Legendary Nature Core', 'core', 4, 4, null),
+  ('lesser_dark_core', 'Lesser Dark Core', 'core', 1, 1, null),
+  ('greater_dark_core', 'Greater Dark Core', 'core', 2, 2, null),
+  ('mythic_dark_core', 'Mythic Dark Core', 'core', 3, 3, null),
+  ('legendary_dark_core', 'Legendary Dark Core', 'core', 4, 4, null),
+  ('lesser_light_core', 'Lesser Light Core', 'core', 1, 1, null),
+  ('greater_light_core', 'Greater Light Core', 'core', 2, 2, null),
+  ('mythic_light_core', 'Mythic Light Core', 'core', 3, 3, null),
+  ('legendary_light_core', 'Legendary Light Core', 'core', 4, 4, null),
+  ('lesser_air_core', 'Lesser Air Core', 'core', 1, 1, null),
+  ('greater_air_core', 'Greater Air Core', 'core', 2, 2, null),
+  ('mythic_air_core', 'Mythic Air Core', 'core', 3, 3, null),
+  ('legendary_air_core', 'Legendary Air Core', 'core', 4, 4, null),
+  ('lesser_thunder_core', 'Lesser Thunder Core', 'core', 1, 1, null),
+  ('greater_thunder_core', 'Greater Thunder Core', 'core', 2, 2, null),
+  ('mythic_thunder_core', 'Mythic Thunder Core', 'core', 3, 3, null),
+  ('legendary_thunder_core', 'Legendary Thunder Core', 'core', 4, 4, null),
+  ('lesser_dragon_core', 'Lesser Dragon Core', 'core', 1, 1, null),
+  ('greater_dragon_core', 'Greater Dragon Core', 'core', 2, 2, null),
+  ('mythic_dragon_core', 'Mythic Dragon Core', 'core', 3, 3, null),
+  ('legendary_dragon_core', 'Legendary Dragon Core', 'core', 4, 4, null),
+  ('lesser_beast_core', 'Lesser Beast Core', 'core', 1, 1, null),
+  ('greater_beast_core', 'Greater Beast Core', 'core', 2, 2, null),
+  ('mythic_beast_core', 'Mythic Beast Core', 'core', 3, 3, null),
+  ('legendary_beast_core', 'Legendary Beast Core', 'core', 4, 4, null)
 on conflict (id) do update set
   name = excluded.name, kind = excluded.kind, rarity = excluded.rarity, tier = excluded.tier;
 
 -- cards
--- card_rank_costs (ladder by current rank + the card faction essence)
+-- card_rank_costs (ladder by current rank + one Core per card tag)
 -- dungeons
 -- chests
 insert into public.chests (id, name, tier, source) values
@@ -88,6 +123,6 @@ commit;
 -- local development account's starter cards and party
 select public.provision_starter_loadout('00000000-0000-0000-0000-000000000002'::uuid);
 
--- summary: 0 cards (), 0 dungeons, 5 chests, 14 materials
+-- summary: 0 cards (), 0 dungeons, 5 chests, 49 materials
 -- dungeons: none seeded — shipped via scripts/import-concept-dungeons.mjs
 -- rank-up cost rows: 0, chest odds rows: 19

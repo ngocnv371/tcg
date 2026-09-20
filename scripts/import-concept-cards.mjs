@@ -249,12 +249,16 @@ export async function uploadArtToSupabase(admin, imagePath, id) {
  * `RANK_UP_LADDER` the seed uses (src/game/formulas.ts) so a balance change
  * reaches imported cards too. Without these rows `rank_up_card` raises
  * "this card cannot rank up further" and the detail screen shows no path.
+ *
+ * The cost is charged by TAG, not faction: `rankUpCost` turns the card's tags into one
+ * Core requirement per tag (Beast + Fire needs Beast *and* Fire Cores), so re-run the
+ * card import after any change to the ladder or to a card's tags.
  */
 export function buildRankCostRows(cards) {
   const rows = []
   for (const card of cards) {
     for (let from = Number(card.rank); from < 5; from += 1) {
-      const cost = rankUpCost(from, card.faction)
+      const cost = rankUpCost(from, card.tags ?? [])
       rows.push({
         card_id: card.id,
         from_rank: from,

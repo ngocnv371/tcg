@@ -10,7 +10,7 @@ import { RANK_META, cardAtk, cardDef, cardPower, levelUpGold } from '@/game/form
 import { resolveArtSrc } from '@/lib/art'
 import { cn } from '@/lib/utils'
 
-/** `ember_essence` → `Ember Essence`, for materials missing from the catalog query. */
+/** `greater_fire_core` → `Greater Fire Core`, for materials missing from the catalog query. */
 function materialLabel(id: string) {
   return id
     .split('_')

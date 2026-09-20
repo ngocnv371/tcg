@@ -1,1 +1,1 @@
-id,name,kind,tier,req_power,duration_seconds,gold_base,unlocks_at_level,card_id,chest_on_clear,drops
+id,name,kind,tier,rank,tags,req_power,duration_seconds,gold_base,unlocks_at_level,card_id,chest_on_clear,drops
