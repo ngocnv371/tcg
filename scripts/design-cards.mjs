@@ -40,7 +40,7 @@ if (existsSync(join(root, '.env.local'))) process.loadEnvFile(join(root, '.env.l
 // --- art direction ------------------------------------------------------------
 
 /** The one style every card shares. Editable here, not per card. */
-const HOUSE_STYLE = 'cartoonish, dramatic rim lighting, rich saturated color with accents'
+const HOUSE_STYLE = 'cartoonish digital illustration, dramatic rim lighting, rich saturated color with accents'
 
 const DESIGN_COLUMN = 'design'
 
