@@ -1,15 +1,8 @@
 import { X } from 'lucide-react'
 
+import { materialLabel } from '@/features/dungeons/format'
 import { useMaterialCatalog } from '@/features/inventory/api'
 import type { RunClaim } from '@/features/progression/api'
-
-/** `lesser_fire_core` → `Lesser Fire Core`, for drops missing from the catalog query. */
-function materialLabel(id: string) {
-  return id
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
 
 export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: () => void }) {
   const rewards = claim.rewards
