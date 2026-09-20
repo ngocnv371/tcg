@@ -106,11 +106,12 @@ declare
   core_count integer;
 begin
   select count(*) into card_count from public.cards;
-  -- cards.csv is deliberately empty now; catalog content ships via scripts/import-concept-cards.mjs.
+  -- the seed deliberately writes no cards; catalog content ships via scripts/import-concept-cards.mjs
+  -- (data/cards.csv + data/cards/<id>.png).
   if card_count <> 0 then raise exception 'expected 0 seed cards, found %', card_count; end if;
 
   select count(*) into dungeon_count from public.dungeons;
-  -- dungeons.csv is deliberately empty now; content ships via scripts/import-concept-dungeons.mjs.
+  -- nor any dungeons: content ships via scripts/import-concept-dungeons.mjs.
   if dungeon_count <> 0 then raise exception 'expected 0 seed dungeons, found %', dungeon_count; end if;
 
   insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000001', 'tester@example.com');

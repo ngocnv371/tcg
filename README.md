@@ -24,16 +24,21 @@ its week-by-week output.
    computed in Postgres, which is what makes offline progress work without a tick loop.
 2. **The client never writes progression tables.** RLS grants SELECT on your own rows and nothing
    else; every mutation arrives through a `SECURITY DEFINER` function.
-3. **Balance is data.** Numbers live in `src/game/formulas.ts` (shared constants) and
-   `data/*.csv` (content), which generate `supabase/seed.sql`. Editing numbers means re-seeding,
-   not shipping app code.
+3. **Balance is data.** Economy numbers live in `src/game/formulas.ts` (shared constants), which
+   generates `supabase/seed.sql` — rank metadata, materials, chests and pacing only. Card and
+   dungeon content is catalog data and ships through the importers, not the seed. Editing numbers
+   means re-seeding, not shipping app code.
 
 ## Layout
 
 ```
-data/                    concept art (cards/, dungeons/) + the CSVs seed:build reads
-scripts/build-seed.mjs   CSVs + balance constants -> supabase/seed.sql (npm run seed:build)
-scripts/import-concept-cards.mjs     concept-art folder (json + png) -> cards + `card-art` bucket
+data/                    concept art (cards/, dungeons/) + the card catalog CSV
+data/cards.csv           the card catalog: idea -> design -> render -> import
+scripts/build-seed.mjs   balance constants -> supabase/seed.sql (no cards, no dungeons)
+scripts/idea-cards.mjs   IDEATE.MD pools -> new rows in data/cards.csv
+scripts/design-cards.mjs blank `design` cells -> AI-written art prompts
+scripts/generate-cards.mjs  `design` -> data/cards/<id>.png via a local ComfyUI
+scripts/import-concept-cards.mjs  data/cards.csv + data/cards/<id>.png -> cards + `card-art` bucket
 scripts/import-concept-dungeons.mjs  concept-art folder (json + png) -> dungeons + `dungeon-art` bucket
 scripts/verify-db.sh     migration + seed against a throwaway Postgres, with assertions
 scripts/make-icons.py    placeholder PWA icons (pure stdlib, replace in week 10)

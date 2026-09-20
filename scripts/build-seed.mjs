@@ -1,11 +1,19 @@
 /**
- * Generates supabase/seed.sql from data/*.csv plus the balance constants in
- * src/game/formulas.ts. Cards, dungeons and odds are content: edit the CSV (or
- * the constants) and re-run `npm run seed:build` — never hand-edit seed.sql.
+ * Generates supabase/seed.sql from the balance constants in src/game/formulas.ts.
+ *
+ * The seed owns the *economy scaffolding* and nothing else: rank metadata, the material
+ * catalog, chests, chest odds and run-slot pacing. It deliberately seeds NO cards and NO
+ * dungeons — those are catalog content, and they ship through the importers
+ * (`npm run import:cards` reads data/cards.csv + data/cards/<id>.png; import:dungeons reads
+ * its own source folder). Two writers of the same rows would only disagree about art paths
+ * and rank-up costs.
+ *
+ * Edit src/game/formulas.ts (or the content tables below) and re-run `npm run seed:build` —
+ * never hand-edit seed.sql.
  *
  * Usage: node scripts/build-seed.mjs
  */
-import { readFileSync, writeFileSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -19,7 +27,6 @@ import {
   LEVELUP_GOLD_EXP,
   RANK_META,
   RUN_SLOT_UNLOCKS,
-  rankUpCost,
   tagCoreId,
   tagLabel,
 } from '../src/game/formulas.ts'
@@ -64,7 +71,6 @@ const CORE_MATERIALS = CORE_TAGS.flatMap((tag) =>
 )
 
 const MATERIALS = [...SHARD_MATERIALS, ...CORE_MATERIALS]
-const MATERIAL_IDS = new Set(MATERIALS.map((material) => material.id))
 
 const CHESTS = [
   { id: 'common', name: 'Common Chest', tier: 1, source: 'daily login, T1 clears' },
@@ -74,107 +80,10 @@ const CHESTS = [
   { id: 'mythic', name: 'Mythic Chest', tier: 5, source: 'boss clears' },
 ]
 
-/** Minimal RFC-4180-ish CSV reader: quoted fields, doubled quotes, CRLF. */
-function parseCsv(text) {
-  const rows = []
-  let row = []
-  let field = ''
-  let quoted = false
-
-  for (let i = 0; i < text.length; i += 1) {
-    const char = text[i]
-    if (quoted) {
-      if (char === '"') {
-        if (text[i + 1] === '"') {
-          field += '"'
-          i += 1
-        } else {
-          quoted = false
-        }
-      } else {
-        field += char
-      }
-      continue
-    }
-    if (char === '"') {
-      quoted = true
-    } else if (char === ',') {
-      row.push(field)
-      field = ''
-    } else if (char === '\n') {
-      row.push(field)
-      rows.push(row)
-      row = []
-      field = ''
-    } else if (char !== '\r') {
-      field += char
-    }
-  }
-  if (field.length || row.length) {
-    row.push(field)
-    rows.push(row)
-  }
-
-  const populated = rows.filter((line) => line.some((cell) => cell !== ''))
-  const [header, ...body] = populated
-  return body.map((line) =>
-    Object.fromEntries(header.map((key, index) => [key.trim(), (line[index] ?? '').trim()])),
-  )
-}
-
 const sql = (value) => `'${String(value).replace(/'/g, "''")}'`
-const sqlNullable = (value) => (value === '' || value === undefined ? 'null' : sql(value))
-const json = (value) => `${sql(JSON.stringify(value))}::jsonb`
-
-const cardRows = parseCsv(readFileSync(join(root, 'data/cards.csv'), 'utf8'))
-const dungeons = parseCsv(readFileSync(join(root, 'data/dungeons.csv'), 'utf8'))
-
-/**
- * scripts/idea-cards.mjs appends sketches to the CSV flagged `status=idea`. An idea has no
- * role or passive yet and could not be inserted, so it is skipped instead of failing the
- * build. The flag is an explicit column on purpose: parking this marker on a content field
- * (faction, then rank) meant the marker had to move every time a column got filled in.
- */
-const IDEA_STATUS = 'idea'
-const ideaRows = cardRows.filter((card) => card.status === IDEA_STATUS)
-const cards = cardRows.filter((card) => card.status !== IDEA_STATUS)
 
 // --- integrity checks: fail the build instead of seeding a broken economy -----
 const errors = []
-const knownFactions = ['ember', 'tide', 'verdant', 'umbral', 'radiant']
-for (const card of cards) {
-  if (!RANK_META[Number(card.rank)]) errors.push(`card ${card.id}: unknown rank ${card.rank}`)
-  if (!knownFactions.includes(card.faction)) errors.push(`card ${card.id}: unknown faction ${card.faction}`)
-  if (!['tank', 'dps', 'support'].includes(card.role)) errors.push(`card ${card.id}: unknown role ${card.role}`)
-}
-const ids = cards.map((card) => card.id)
-const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index)
-if (duplicates.length) errors.push(`duplicate card ids: ${duplicates.join(', ')}`)
-const byRank = cards.reduce((acc, card) => {
-  acc[card.rank] = (acc[card.rank] ?? 0) + 1
-  return acc
-}, {})
-// Cards ship via scripts/import-concept-cards.mjs now; data/cards.csv is deliberately empty.
-const dungeonsIds = dungeons.map((dungeon) => dungeon.id)
-const dungeonTags = new Set(CORE_TAGS.map((tag) => tag.toLowerCase()))
-for (const dungeon of dungeons) {
-  if (dungeon.card_id && !ids.includes(dungeon.card_id))
-    errors.push(`dungeon ${dungeon.id}: unknown card_id ${dungeon.card_id}`)
-  if (!CHESTS.some((chest) => chest.id === dungeon.chest_on_clear))
-    errors.push(`dungeon ${dungeon.id}: unknown chest ${dungeon.chest_on_clear}`)
-  for (const drop of dungeon.drops.split(';').filter(Boolean)) {
-    const [materialId] = drop.split(':')
-    if (!MATERIAL_IDS.has(materialId)) errors.push(`dungeon ${dungeon.id}: unknown material ${materialId}`)
-  }
-  // Tags are what make a dungeon a farm spot for a card's Cores, so blank ones are a bug.
-  const tags = (dungeon.tags ?? '').split(';').filter(Boolean)
-  if (!tags.length) errors.push(`dungeon ${dungeon.id}: needs at least one tag`)
-  for (const tag of tags) {
-    if (!dungeonTags.has(tag.toLowerCase())) errors.push(`dungeon ${dungeon.id}: unknown tag ${tag}`)
-  }
-  const rank = Number(dungeon.rank ?? dungeon.tier)
-  if (!(rank >= 1 && rank <= 5)) errors.push(`dungeon ${dungeon.id}: rank must be 1..5, got ${dungeon.rank}`)
-}
 for (const [chestId, odds] of Object.entries(CHEST_ODDS)) {
   if (!CHESTS.some((chest) => chest.id === chestId)) errors.push(`odds for unknown chest ${chestId}`)
   const total = Object.values(odds).reduce((sum, weight) => sum + weight, 0)
@@ -192,7 +101,8 @@ const push = (...rows) => lines.push(...rows)
 push(
   '-- GENERATED FILE — do not edit by hand.',
   '-- Rebuild with: npm run seed:build',
-  '-- Sources: data/cards.csv, data/dungeons.csv, src/game/formulas.ts',
+  '-- Sources: src/game/formulas.ts',
+  '-- Cards and dungeons are deliberately NOT seeded — they ship via the importers.',
   '',
   'begin;',
   '',
@@ -234,75 +144,6 @@ push(
 )
 
 push(
-  '-- cards',
-)
-if (cards.length) {
-  push(
-    'insert into public.cards (id, name, rank, faction, role, base_atk, base_def, passive_name, passive_text, lore, tags, art_path, sort_order) values',
-    cards
-      .map(
-        (card, index) =>
-          `  (${sql(card.id)}, ${sql(card.name)}, ${card.rank}, ${sql(card.faction)}, ${sql(card.role)}, ${card.base_atk}, ${card.base_def}, ${sql(card.passive_name)}, ${sql(card.passive_text)}, ${sql(card.lore)}, ${sql(`{${(card.tags ?? '').split(';').filter(Boolean).join(',')}}`)}, ${sql(`art/cards/${card.id}.webp`)}, ${index})`,
-      )
-      .join(',\n'),
-    'on conflict (id) do update set',
-    '  name = excluded.name, rank = excluded.rank, faction = excluded.faction, role = excluded.role,',
-    '  base_atk = excluded.base_atk, base_def = excluded.base_def,',
-    '  passive_name = excluded.passive_name, passive_text = excluded.passive_text,',
-    '  lore = excluded.lore, tags = excluded.tags, art_path = excluded.art_path, sort_order = excluded.sort_order;',
-    '',
-  )
-}
-
-push('-- card_rank_costs (ladder by current rank + one Core per card tag)')
-const costRows = []
-for (const card of cards) {
-  const tags = (card.tags ?? '').split(';').filter(Boolean)
-  for (let from = Number(card.rank); from < 5; from += 1) {
-    const cost = rankUpCost(from, tags)
-    costRows.push(`  (${sql(card.id)}, ${from}, ${from + 1}, ${cost.gold}, ${json(cost.materials)})`)
-  }
-}
-if (costRows.length) {
-  push(
-    'insert into public.card_rank_costs (card_id, from_rank, to_rank, gold, materials) values',
-    costRows.join(',\n'),
-    'on conflict (card_id, to_rank) do update set',
-    '  from_rank = excluded.from_rank, gold = excluded.gold, materials = excluded.materials;',
-    '',
-  )
-}
-
-push('-- dungeons')
-// dungeons.csv is deliberately empty now; dungeon content ships via scripts/import-concept-dungeons.mjs.
-// A CSV row still wins on `drops`; rank + tags are what the importer generates them from.
-if (dungeons.length) {
-  push(
-    'insert into public.dungeons (id, name, kind, tier, rank, tags, req_power, duration_seconds, gold_base, materials, card_id, unlocks_at_level, chest_on_clear) values',
-    dungeons
-      .map((dungeon) => {
-        const materials = dungeon.drops
-          .split(';')
-          .filter(Boolean)
-          .map((drop) => {
-            const [material_id, weight, min, max] = drop.split(':')
-            return { material_id, weight: Number(weight), min: Number(min), max: Number(max) }
-          })
-        const tags = (dungeon.tags ?? '').split(';').filter(Boolean)
-        return `  (${sql(dungeon.id)}, ${sql(dungeon.name)}, ${sql(dungeon.kind)}, ${dungeon.tier}, ${Number(dungeon.rank ?? dungeon.tier)}, ${sql(`{${tags.join(',')}}`)}, ${dungeon.req_power}, ${dungeon.duration_seconds}, ${dungeon.gold_base}, ${json(materials)}, ${sqlNullable(dungeon.card_id)}, ${dungeon.unlocks_at_level}, ${sqlNullable(dungeon.chest_on_clear)})`
-      })
-      .join(',\n'),
-    'on conflict (id) do update set',
-    '  name = excluded.name, kind = excluded.kind, tier = excluded.tier,',
-    '  rank = excluded.rank, tags = excluded.tags,',
-    '  req_power = excluded.req_power, duration_seconds = excluded.duration_seconds,',
-    '  gold_base = excluded.gold_base, materials = excluded.materials, card_id = excluded.card_id,',
-    '  unlocks_at_level = excluded.unlocks_at_level, chest_on_clear = excluded.chest_on_clear;',
-    '',
-  )
-}
-
-push(
   '-- chests',
   'insert into public.chests (id, name, tier, source) values',
   CHESTS.map((chest) => `  (${sql(chest.id)}, ${sql(chest.name)}, ${chest.tier}, ${sql(chest.source)})`).join(
@@ -335,21 +176,11 @@ push(
   "-- local development account's starter cards and party",
   "select public.provision_starter_loadout('00000000-0000-0000-0000-000000000002'::uuid);",
   '',
-  `-- summary: ${cards.length} cards (${Object.entries(byRank)
-    .map(([rank, count]) => `${rank}star:${count}`)
-    .join(' ')}), ${dungeons.length} dungeons, ${CHESTS.length} chests, ${MATERIALS.length} materials`,
-  dungeons.length
-    ? `-- dungeons: ${dungeonsIds.join(', ')}`
-    : '-- dungeons: none seeded — shipped via scripts/import-concept-dungeons.mjs',
-  `-- rank-up cost rows: ${costRows.length}, chest odds rows: ${oddRows.length}`,
-  ideaRows.length
-    ? `-- skipped ${ideaRows.length} un-promoted idea rows from data/cards.csv (scripts/idea-cards.mjs)`
-    : '',
+  `-- summary: ${MATERIALS.length} materials, ${CHESTS.length} chests, ${oddRows.length} chest odds rows, ${RUN_SLOT_UNLOCKS.length} run-slot rows`,
+  '-- no cards and no dungeons: catalog content ships via npm run import:cards / import:dungeons',
 )
 
 writeFileSync(join(root, 'supabase/seed.sql'), `${lines.join('\n')}\n`)
 console.log(
-  `seed.sql written — ${cards.length} cards, ${dungeons.length} dungeons, ${MATERIALS.length} materials, ${oddRows.length} odds rows, ${costRows.length} rank-up rows`,
+  `seed.sql written — ${MATERIALS.length} materials, ${CHESTS.length} chests, ${oddRows.length} odds rows (no cards, no dungeons)`,
 )
-if (ideaRows.length)
-  console.log(`skipped ${ideaRows.length} un-promoted idea rows — promote them before they can ship`)

@@ -1,17 +1,26 @@
 /**
- * Reusable pipeline for turning a folder of concept-art exports (one
- * `<Title>.json` + `<Title>.png` pair per card) into rows that match the
- * `Card` model (src/types/db.ts) and, optionally, pushing them straight into
- * Supabase with a service-role token.
+ * Reusable pipeline for pushing the card catalog into Supabase: one row of data/cards.csv per
+ * card, plus that card's art at data/cards/<id>.png — the file scripts/generate-cards.mjs
+ * renders. Rows are turned into `Card` records (src/types/db.ts) and, optionally, upserted
+ * straight into Supabase with a service-role token.
+ *
+ * The CSV is the source of truth for id / name / lore / tags / rank / role / passives; whatever
+ * a row leaves blank is derived here (tags from the title, rank from the tag count, role and
+ * passives by hash on the id) so a half-filled idea row can still import. Only rows whose
+ * `<id>.png` actually exists in the art folder are imported — a row with no art is still an
+ * idea, not content, and shipping it would put a placeholder in the catalog. The legacy
+ * `<Title>.json` sidecars are NOT read: they are kept as provenance of how the first cards were
+ * made, not as an input.
  *
  * This is a content-authoring tool, not app code: it talks to Postgres with
  * the service_role key (never the anon key), so it must only ever be run
  * from a trusted machine/CI, never shipped to the client.
  *
  * Usage:
- *   node scripts/import-concept-cards.mjs <folder> [options]
+ *   node scripts/import-concept-cards.mjs [artFolder] [options]
  *
  * Options:
+ *   --csv=<path>          Catalog to read. Defaults to data/cards.csv.
  *   --import              Also upsert the derived cards into Supabase.
  *   --upload-art          Re-encode each image to WebP, upload it to the public
  *                         `card-art` Storage bucket, and point art_path at its
@@ -24,12 +33,18 @@
  * Each step is exposed as a standalone function so other scripts can import
  * and reuse them (e.g. from a batch job or a one-off REPL session).
  */
-import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync } from 'node:fs'
-import { basename, dirname, extname, join } from 'node:path'
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+/** The catalog: one row per card, in display order. */
+const CARDS_CSV = join(root, 'data/cards.csv')
+
+/** Where the card art lives — `<card id>.png` files, not json pairs. */
+const DEFAULT_ART_FOLDER = join(root, 'data/cards')
 
 // Picks up SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY from .env.local without
 // requiring it to be exported in the shell first.
@@ -90,36 +105,61 @@ const FACTION_PASSIVES = {
   radiant: { name: 'Gentle Light', text: '+2% success chance on any run it joins.' },
 }
 
-// --- step 1: scan the export folder ------------------------------------------
+// --- step 1: read the catalog csv -------------------------------------------
 
-/**
- * Finds every `<name>.json` that has a matching image next to it.
- * Returns raw pairs; nothing here touches disk beyond reading directory entries.
- */
-export function scanExportFolder(folder) {
-  const entries = readdirSync(folder)
-  const jsonFiles = entries.filter((f) => extname(f).toLowerCase() === '.json')
-  const imageExts = new Set(['.png', '.webp', '.jpg', '.jpeg'])
+/** Minimal RFC-4180-ish CSV reader: quoted fields, doubled quotes, CRLF. */
+function parseCsv(text) {
+  const rows = []
+  let row = []
+  let field = ''
+  let quoted = false
 
-  const pairs = []
-  for (const jsonFile of jsonFiles) {
-    const stem = basename(jsonFile, extname(jsonFile))
-    const imageFile = entries.find((f) => basename(f, extname(f)) === stem && imageExts.has(extname(f).toLowerCase()))
-    if (!imageFile) {
-      console.warn(`skipping ${jsonFile}: no matching image found`)
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i]
+    if (quoted) {
+      if (char === '"') {
+        if (text[i + 1] === '"') {
+          field += '"'
+          i += 1
+        } else {
+          quoted = false
+        }
+      } else {
+        field += char
+      }
       continue
     }
-    const jsonPath = join(folder, jsonFile)
-    const raw = JSON.parse(readFileSync(jsonPath, 'utf8'))
-    pairs.push({
-      jsonPath,
-      imagePath: join(folder, imageFile),
-      title: raw.title ?? stem,
-      summary: raw.summary ?? '',
-      raw,
-    })
+    if (char === '"') {
+      quoted = true
+    } else if (char === ',') {
+      row.push(field)
+      field = ''
+    } else if (char === '\n') {
+      row.push(field)
+      rows.push(row)
+      row = []
+      field = ''
+    } else if (char !== '\r') {
+      field += char
+    }
   }
-  return pairs
+  if (field.length || row.length) {
+    row.push(field)
+    rows.push(row)
+  }
+
+  const populated = rows.filter((line) => line.some((cell) => cell !== ''))
+  const [header, ...body] = populated
+  return body
+    .map((line) =>
+      Object.fromEntries(header.map((key, index) => [key.trim(), (line[index] ?? '').trim()])),
+    )
+    .filter((card) => card.id || card.name)
+}
+
+/** Reads the catalog csv into row objects, in file order. */
+export function readCatalog(csvPath = CARDS_CSV) {
+  return parseCsv(readFileSync(csvPath, 'utf8'))
 }
 
 // --- step 2: derive Card-model fields from title + summary -------------------
@@ -156,24 +196,30 @@ function pickByHash(id, list) {
 }
 
 /**
- * Builds a full Card record (src/types/db.ts) from a scanned {title, summary,
- * raw} pair. `existingIds` is a Set used to dedupe slugs across a batch.
- * Reuses a previously-uploaded art_path (a real URL) if the sidecar json
- * already has one, so re-running --import alone doesn't clobber it.
+ * Builds a full Card record (src/types/db.ts) from one catalog row.
+ *
+ * The CSV wins wherever it has a value; blanks are filled the way the old json-pair importer
+ * always did, so an un-promoted idea row still imports. `existingIds` dedupes across the batch.
  */
-export function buildCardRecord({ title, summary, raw }, existingIds = new Set()) {
+export function buildCardRecord(row, { index = 0, existingIds = new Set() } = {}) {
+  const title = (row.name ?? '').trim()
   const elements = elementsFromTitle(title)
   // A tag per known element, deduped in title order; the neutral tag is the fallback rather
   // than something every card carries, so a single-type card is genuinely single-type.
-  const tags = [...new Set(elements.map((element) => ELEMENT_TO_TAG[element]).filter(Boolean))]
+  const rowTags = (row.tags ?? '').split(';').map((tag) => tag.trim()).filter(Boolean)
+  const tags = rowTags.length
+    ? rowTags
+    : [...new Set(elements.map((element) => ELEMENT_TO_TAG[element]).filter(Boolean))]
   if (!tags.length) tags.push(NEUTRAL_TAG)
   // First tag that actually has an affinity — a Light+Dark card is umbral, not neutral.
   const faction = tags.map((tag) => TAG_TO_FACTION[tag]).find(Boolean) ?? 'verdant'
-  const rank = elements.length >= 2 ? 2 : 1
+
+  const rowRank = Number(row.rank)
+  const rank = RANK_META[rowRank] ? rowRank : elements.length >= 2 ? 2 : 1
   const meta = RANK_META[rank]
 
-  const name = shortenName(title)
-  let id = slugify(name)
+  // The id names the art file, so the CSV owns it; only a hand-written row needs one minted.
+  let id = (row.id ?? '').trim() || slugify(shortenName(title))
   if (existingIds.has(id)) {
     let n = 2
     while (existingIds.has(`${id}_${n}`)) n += 1
@@ -181,36 +227,42 @@ export function buildCardRecord({ title, summary, raw }, existingIds = new Set()
   }
   existingIds.add(id)
 
-  const role = pickByHash(id, ROLES)
+  const role = (row.role ?? '').trim()
   const passive = FACTION_PASSIVES[faction]
-  const uploadedArtPath = typeof raw?.art_path === 'string' && raw.art_path.startsWith('http') ? raw.art_path : null
 
   return {
     id,
-    name,
+    name: title || shortenName(id),
     rank,
     faction,
-    role,
+    role: ROLES.includes(role) ? role : pickByHash(id, ROLES),
+    // Stat re-derived from RANK_META on purpose: the CSV's atk/def is a rolled sketch
+    // (scripts/idea-cards.mjs writes 1-100), so the balance stays in src/game/formulas.ts.
     base_atk: cardAtk(rank, 1),
     base_def: cardDef(rank, 1),
-    passive_name: passive.name,
-    passive_text: passive.text,
-    lore: summary,
+    passive_name: (row.passive_name ?? '').trim() || passive.name,
+    passive_text: (row.passive_text ?? '').trim() || passive.text,
+    lore: (row.lore ?? '').trim(),
     tags,
-    art_path: uploadedArtPath ?? `art/cards/${id}.webp`,
-    sort_order: 0,
+    // Only --stage-art produces this local path; --upload-art replaces it with the public URL.
+    art_path: `art/cards/${id}.webp`,
+    sort_order: index,
     _meta: { levelCap: meta.levelCap }, // not persisted; handy for a sanity check
   }
 }
 
-// --- step 3: write the card fields back into the sidecar json ---------------
+// --- step 3: art ---------------------------------------------------------------
 
-/** Merges the derived card fields into the original json and writes it back. */
-export function updateConceptJson(pair, cardRecord) {
-  const { _meta, ...card } = cardRecord
-  const updated = { ...pair.raw, ...card }
-  writeFileSync(pair.jsonPath, `${JSON.stringify(updated, null, 2)}\n`, 'utf8')
-  return updated
+/** Extensions an art folder may use for `<id><ext>`, in preference order. */
+const ART_EXTS = ['.png', '.webp', '.jpg', '.jpeg']
+
+/** The image for a card id, or null when that card has not been rendered yet. */
+export function findCardArt(folder, id) {
+  for (const ext of ART_EXTS) {
+    const candidate = join(folder, `${id}${ext}`)
+    if (existsSync(candidate)) return candidate
+  }
+  return null
 }
 
 /** Converts the source image to WebP and writes it into public/art/cards/<id>.webp. */
@@ -345,6 +397,7 @@ async function main() {
     args: rawArgs,
     allowPositionals: true,
     options: {
+      csv: { type: 'string' },
       import: { type: 'boolean', default: false },
       'upload-art': { type: 'boolean', default: false },
       'stage-art': { type: 'boolean', default: false },
@@ -354,15 +407,11 @@ async function main() {
     },
   })
 
-  const folder = positionals[0]?.replace(/["']+$/, '')
-  if (!folder) {
-    console.error('usage: node scripts/import-concept-cards.mjs <folder> [--import] [--upload-art] [--stage-art] [--dry-run]')
-    process.exit(1)
-  }
-
-  const pairs = scanExportFolder(folder)
-  if (!pairs.length) {
-    console.error(`no json+image pairs found in ${folder}`)
+  const artFolder = positionals[0]?.replace(/["']+$/, '') || DEFAULT_ART_FOLDER
+  const csvPath = values.csv ? join(root, values.csv) : CARDS_CSV
+  const rows = readCatalog(csvPath)
+  if (!rows.length) {
+    console.error(`no card rows found in ${csvPath}`)
     process.exit(1)
   }
 
@@ -376,22 +425,37 @@ async function main() {
 
   const existingIds = new Set()
   const cards = []
-  for (const pair of pairs) {
-    const card = buildCardRecord(pair, existingIds)
+  const withoutArt = []
+  for (const [index, row] of rows.entries()) {
+    const card = buildCardRecord(row, { index, existingIds })
+    // Art is found by card id — the name scripts/generate-cards.mjs writes it under. A row with
+    // no image is still an idea, not content, so it is skipped instead of imported artless.
+    const imagePath = findCardArt(artFolder, card.id)
+    if (!imagePath) {
+      withoutArt.push(card.id)
+      console.warn(`skipping ${card.id}: no art in ${artFolder}`)
+      continue
+    }
+
     console.log(
-      `${pair.title} -> ${card.name} (${card.id}) [${card.faction}/${card.role}, ${card.rank}★, ` +
-        `tags: ${card.tags.join('+')}]`,
+      `${card.id} -> ${card.name} [${card.faction}/${card.role}, ${card.rank}★, tags: ${card.tags.join('+')}]`,
     )
 
     if (!values['dry-run']) {
       if (values['upload-art']) {
-        card.art_path = await uploadArtToSupabase(admin, pair.imagePath, card.id)
+        card.art_path = await uploadArtToSupabase(admin, imagePath, card.id)
         console.log(`  uploaded art -> ${card.art_path}`)
       }
-      updateConceptJson(pair, card)
-      if (values['stage-art']) stageArt(pair.imagePath, card.id)
+      if (values['stage-art']) stageArt(imagePath, card.id)
     }
     cards.push(card)
+  }
+  if (withoutArt.length) {
+    console.warn(`${withoutArt.length} of ${rows.length} row(s) skipped for missing art — run npm run generate:cards`)
+  }
+  if (!cards.length) {
+    console.error(`no card in ${csvPath} has art in ${artFolder} — nothing to import`)
+    process.exit(1)
   }
 
   if (values.import && !values['dry-run']) {

@@ -1,6 +1,7 @@
 -- GENERATED FILE — do not edit by hand.
 -- Rebuild with: npm run seed:build
--- Sources: data/cards.csv, data/dungeons.csv, src/game/formulas.ts
+-- Sources: src/game/formulas.ts
+-- Cards and dungeons are deliberately NOT seeded — they ship via the importers.
 
 begin;
 
@@ -68,9 +69,6 @@ insert into public.materials (id, name, kind, rarity, tier, icon) values
 on conflict (id) do update set
   name = excluded.name, kind = excluded.kind, rarity = excluded.rarity, tier = excluded.tier;
 
--- cards
--- card_rank_costs (ladder by current rank + one Core per card tag)
--- dungeons
 -- chests
 insert into public.chests (id, name, tier, source) values
   ('common', 'Common Chest', 1, 'daily login, T1 clears'),
@@ -115,7 +113,5 @@ commit;
 -- local development account's starter cards and party
 select public.provision_starter_loadout('00000000-0000-0000-0000-000000000002'::uuid);
 
--- summary: 0 cards (), 0 dungeons, 5 chests, 41 materials
--- dungeons: none seeded — shipped via scripts/import-concept-dungeons.mjs
--- rank-up cost rows: 0, chest odds rows: 19
--- skipped 7 un-promoted idea rows from data/cards.csv (scripts/idea-cards.mjs)
+-- summary: 41 materials, 5 chests, 19 chest odds rows, 3 run-slot rows
+-- no cards and no dungeons: catalog content ships via npm run import:cards / import:dungeons
