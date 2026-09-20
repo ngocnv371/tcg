@@ -1,8 +1,10 @@
 /**
- * Renders card concept art with a local ComfyUI instance, one card at a time.
+ * Card pipeline, stage 3 of 4 — *render*: renders card concept art with a local ComfyUI
+ * instance, one card at a time. Stage 4 is scripts/cards-4-import.mjs, which pushes the rows
+ * plus this art into Supabase.
  *
  * For every row in data/cards.csv it takes the `design` column (the concept-art prompt
- * written by scripts/design-cards.mjs), drops it into the __PROMPT__ placeholder of the
+ * written by scripts/cards-2-design.mjs), drops it into the __PROMPT__ placeholder of the
  * workflow json and queues that workflow. If data/cards/<card id>.png already exists the
  * card is skipped, so this is resumable: kill it, re-run it, and it picks up the cards that
  * never finished.
@@ -10,7 +12,7 @@
  * Cards are rendered strictly one at a time on purpose — one local GPU, and serialising the
  * queue keeps the ~50s per image predictable instead of thrashing VRAM across queued jobs.
  *
- * Usage: node scripts/generate-cards.mjs [options]
+ * Usage: node scripts/cards-3-render.mjs [options]
  *
  * Options:
  *   --url=<url>       ComfyUI base url. Defaults to env COMFY_URL (fallback COMFYUI_URL),
@@ -259,7 +261,7 @@ if (values.help) {
       'Render card concept art with a local ComfyUI instance, one card at a time.',
       'Skips any card that already has data/cards/<id>.png.',
       '',
-      'Usage: node scripts/generate-cards.mjs [options]',
+      'Usage: node scripts/cards-3-render.mjs [options]',
       '  --url=<url>       Defaults to env COMFY_URL / COMFYUI_URL, then http://127.0.0.1:8188.',
       '  --workflow=<p>    Default data/comfy-zimage.json.',
       '  --limit=<n>       Stop after n cards.',
@@ -314,10 +316,10 @@ const column = (name) => {
 const idIndex = column('id')
 const designIndex = column('design')
 
-/** A card with no design has no prompt, so it can never render — that is design-cards' job. */
+/** A card with no design has no prompt, so it can never render — that is cards-2-design's job. */
 const undesign = rows.filter((row) => !(row[designIndex] ?? '').trim())
 if (undesign.length) {
-  console.warn(`warn: ${undesign.length} row(s) have no design yet — run \`npm run design:cards\` first`)
+  console.warn(`warn: ${undesign.length} row(s) have no design yet — run \`npm run cards:2:design\` first`)
 }
 
 let pending = rows.filter((row) => (row[designIndex] ?? '').trim())
@@ -348,7 +350,7 @@ if (!(await client.isReachable())) {
       `ComfyUI is not answering at ${baseUrl}.`,
       'Start it (or point the script at it) then re-run:',
       '  COMFY_URL=http://127.0.0.1:8188',
-      '  node scripts/generate-cards.mjs --url=http://<host>:8188',
+      '  node scripts/cards-3-render.mjs --url=http://<host>:8188',
     ].join('\n'),
   )
   process.exit(1)

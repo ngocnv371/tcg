@@ -1,8 +1,8 @@
 /**
- * Reusable pipeline for turning a folder of dungeon key-art exports (one
- * `<Title>.json` + `<Title>.png` pair per dungeon) into rows that match the
- * `dungeons` table (src/types/db.ts) and, optionally, pushing them straight into
- * Supabase with a service-role token.
+ * Dungeon pipeline, stage 1 of 1 — *import*: turns a folder of dungeon key-art exports (one
+ * `<Title>.json` + `<Title>.png` pair per dungeon) into rows that match the `dungeons` table
+ * (src/types/db.ts) and, optionally, pushes them straight into Supabase with a service-role
+ * token. Dungeons have no idea/design/render stages: the art export IS the source.
  *
  * The sidecar JSON is treated as a read-only *source*: unlike the card importer
  * this script never writes derived fields back into it. Re-runs therefore read
@@ -24,7 +24,7 @@
  * trusted machine/CI, never shipped to the client.
  *
  * Usage:
- *   node scripts/import-concept-dungeons.mjs <folder> [options]
+ *   node scripts/dungeons-1-import.mjs <folder> [options]
  *
  * Options:
  *   --import              Also upsert the derived dungeons into Supabase.
@@ -404,7 +404,7 @@ async function main() {
   const folder = positionals[0]?.replace(/["']+$/, '')
   if (!folder) {
     console.error(
-      'usage: node scripts/import-concept-dungeons.mjs <folder> [--import] [--upload-art] [--stage-art] [--dry-run]',
+      'usage: node scripts/dungeons-1-import.mjs <folder> [--import] [--upload-art] [--stage-art] [--dry-run]',
     )
     process.exit(1)
   }

@@ -45,16 +45,17 @@ proposing scope.
 
 ## Asset pipeline (cards)
 
-`data/cards.csv` is the card catalog — one row per card, in display order — and four scripts move
-one card along it. Each step owns one column or one folder, skips what is already done and can be
-re-run at will:
+`data/cards.csv` is the card catalog — one row per card, in display order — and four stage-numbered
+scripts move one card along it. Each step owns one column or one folder, skips what is already done
+and can be re-run at will. Dungeons have no earlier stages: `dungeons-1-import.mjs` turns an art
+export folder straight into rows.
 
-| Step | Command | Reads | Writes |
-| --- | --- | --- | --- |
-| 1 idea | `npm run idea:cards` | `IDEATE.MD` pools | new rows in `data/cards.csv` |
-| 2 design | `npm run design:cards` | rows whose `design` is blank | `design` (the concept-art prompt) |
-| 3 render | `npm run generate:cards` | `design` + `data/comfy-zimage.json` | `data/cards/<id>.png` (local ComfyUI) |
-| 4 import | `npm run import:cards` | `data/cards.csv` + `data/cards/<id>.png` | `cards` + `card_rank_costs`, `card-art` bucket |
+| Step | Script | Command | Reads | Writes |
+| --- | --- | --- | --- | --- |
+| 1 idea | `scripts/cards-1-idea.mjs` | `npm run cards:1:idea` | `IDEATE.MD` pools | new rows in `data/cards.csv` |
+| 2 design | `scripts/cards-2-design.mjs` | `npm run cards:2:design` | rows whose `design` is blank | `design` (the concept-art prompt) |
+| 3 render | `scripts/cards-3-render.mjs` | `npm run cards:3:render` | `design` + `data/comfy-zimage.json` | `data/cards/<id>.png` (local ComfyUI) |
+| 4 import | `scripts/cards-4-import.mjs` | `npm run cards:4:import` | `data/cards.csv` + `data/cards/<id>.png` | `cards` + `card_rank_costs`, `card-art` bucket |
 
 `npm run seed:build` reads none of it. Step 4 fills whatever a row leaves blank (tags from the
 title, rank from the tag count, role and passives hashed from the id) and always re-derives
@@ -62,8 +63,8 @@ title, rank from the tag count, role and passives hashed from the id) and always
 balance table. Art is looked up by card id, never by a json sidecar, and **only rows whose
 `<id>.png` exists are imported** — a row with no art is still an idea, so it is skipped with a
 warning rather than shipped with a placeholder. The `<Title>.json` files in `data/cards/` are
-provenance from before this pipeline existed (`scripts/adopt-concept-art.mjs` is what moved the
-first 39 cards into the CSV) — nothing reads them, and they have since been deleted.
+provenance from before this pipeline existed (the first 39 cards were moved into the CSV by
+`scripts/adopt-concept-art.mjs`, since deleted along with them) — nothing reads them.
 
 ## Migrations
 
@@ -88,8 +89,8 @@ globs the folder rather than keeping a list that can drift.
 ## Where things stand
 
 Done: schema + RLS + derived SQL functions, generated seed (the economy only — materials, chests,
-odds, pacing; it seeds no cards and no dungeons, which ship via `scripts/import-concept-cards.mjs` /
-`scripts/import-concept-dungeons.mjs`), app shell with routing and auth gate, balance module
+odds, pacing; it seeds no cards and no dungeons, which ship via `scripts/cards-4-import.mjs` /
+`scripts/dungeons-1-import.mjs`), app shell with routing and auth gate, balance module
 with tests, DB verification script. The dungeon importer takes the same json+image folder shape
 and rolls kind/tier/rank/tags/power/timer/gold/drops seeded by name, uploads to the `dungeon-art` bucket,
 and reads art back from the DB rather than the source json. Dungeon art renders in
@@ -129,9 +130,9 @@ run cannot expire two different ways. Rank-up is live: `rank_up_card`
 locks the copy, re-reads the `card_rank_costs` step for its
 *current* rank, takes the gold and the materials behind `not found` guards (a short balance raises
 and rolls the whole spend back), then returns the bumped row. The ladder lives once, in
-`RANK_UP_LADDER` / `rankUpCost` (`src/game/formulas.ts`) — `scripts/import-concept-cards.mjs`
+`RANK_UP_LADDER` / `rankUpCost` (`src/game/formulas.ts`) — `scripts/cards-4-import.mjs`
 derives `card_rank_costs` from it (the seed no longer writes them), so re-run
-`npm run import:cards` after a balance change or already-imported cards have no upgrade path. The
+`npm run cards:4:import` after a balance change or already-imported cards have no upgrade path. The
 detail screen previews the next step from `card_rank_costs` (never its own numbers) and enables the
 button only when the gold and every material are covered; on success it plays `RankUpAnimation`
 (`RANK_UP_DURATION` = 140 frames at 30fps ≈ 4.7s) in `RankUpOverlay`, which closes itself. Both the
@@ -152,7 +153,7 @@ from an existing DB, since `player_materials` references them).
 
 Dungeons are farm spots: `dungeons.rank` (1..5, `coreVariantForRank` maps 4 and 5 both to legendary)
 picks the Core grade, and `dungeons.tags` names the Core families (same lowercase tag ids).
-`scripts/import-concept-dungeons.mjs`
+`scripts/dungeons-1-import.mjs`
 rolls both seeded by name — *after* the stats, deliberately, so re-importing refreshes a dungeon's
 drops without moving its power/timer/gold — and generates `dungeons.materials` from them (the rank's
 shard + one Core per tag). `materials` stays the table the server pays; its `weight` field is legacy

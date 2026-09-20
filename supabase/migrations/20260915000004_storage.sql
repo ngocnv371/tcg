@@ -4,8 +4,8 @@
 -- read policy is fine — writes stay service_role-only (there is no insert/update/delete
 -- policy for anon/authenticated), the same rule as every other catalog table. Two buckets
 -- rather than one so the two content pipelines never collide on object names and access
--- rules can diverge later. Populated by scripts/import-concept-cards.mjs and
--- scripts/import-concept-dungeons.mjs; a row keeps a null art_path until its art lands.
+-- rules can diverge later. Populated by scripts/cards-4-import.mjs and
+-- scripts/dungeons-1-import.mjs; a row keeps a null art_path until its art lands.
 --
 -- Guarded: `storage` only exists on the real Supabase stack, so scripts/verify-db.sh can
 -- apply every migration to a bare Postgres and still reach the schema assertions.

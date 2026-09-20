@@ -114,4 +114,4 @@ commit;
 select public.provision_starter_loadout('00000000-0000-0000-0000-000000000002'::uuid);
 
 -- summary: 41 materials, 5 chests, 19 chest odds rows, 3 run-slot rows
--- no cards and no dungeons: catalog content ships via npm run import:cards / import:dungeons
+-- no cards and no dungeons: catalog content ships via npm run cards:4:import / dungeons:1:import

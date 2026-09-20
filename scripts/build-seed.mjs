@@ -4,7 +4,7 @@
  * The seed owns the *economy scaffolding* and nothing else: rank metadata, the material
  * catalog, chests, chest odds and run-slot pacing. It deliberately seeds NO cards and NO
  * dungeons — those are catalog content, and they ship through the importers
- * (`npm run import:cards` reads data/cards.csv + data/cards/<id>.png; import:dungeons reads
+ * (`npm run cards:4:import` reads data/cards.csv + data/cards/<id>.png; dungeons:1:import reads
  * its own source folder). Two writers of the same rows would only disagree about art paths
  * and rank-up costs.
  *
@@ -177,7 +177,7 @@ push(
   "select public.provision_starter_loadout('00000000-0000-0000-0000-000000000002'::uuid);",
   '',
   `-- summary: ${MATERIALS.length} materials, ${CHESTS.length} chests, ${oddRows.length} chest odds rows, ${RUN_SLOT_UNLOCKS.length} run-slot rows`,
-  '-- no cards and no dungeons: catalog content ships via npm run import:cards / import:dungeons',
+  '-- no cards and no dungeons: catalog content ships via npm run cards:4:import / dungeons:1:import',
 )
 
 writeFileSync(join(root, 'supabase/seed.sql'), `${lines.join('\n')}\n`)

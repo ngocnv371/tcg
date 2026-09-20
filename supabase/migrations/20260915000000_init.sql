@@ -97,7 +97,7 @@ create table public.dungeons (
   duration_seconds integer not null check (duration_seconds > 0),
   gold_base integer not null check (gold_base >= 0),
   -- [{ "material_id": "lesser_fire_core", "weight": 50, "min": 2, "max": 4 }, ...]
-  -- Derived from rank + tags by scripts/import-concept-dungeons.mjs; every entry pays.
+  -- Derived from rank + tags by scripts/dungeons-1-import.mjs; every entry pays.
   materials jsonb not null default '[]'::jsonb,
   card_id text references public.cards (id) on delete set null,
   unlocks_at_level smallint not null default 1,
@@ -108,7 +108,7 @@ create table public.dungeons (
 comment on column public.dungeons.rank is
   'Core grade this dungeon yields; mirrors coreVariantForRank() in src/game/formulas.ts.';
 comment on column public.dungeons.tags is
-  'Core families this dungeon farms. Regenerate `materials` from these with npm run import:dungeons.';
+  'Core families this dungeon farms. Regenerate `materials` from these with npm run dungeons:1:import.';
 
 create table public.chests (
   id text primary key,

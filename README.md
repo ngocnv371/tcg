@@ -34,14 +34,14 @@ its week-by-week output.
 ```
 data/                    concept art (cards/, dungeons/) + the card catalog CSV
 data/cards.csv           the card catalog: idea -> design -> render -> import
-scripts/build-seed.mjs   balance constants -> supabase/seed.sql (no cards, no dungeons)
-scripts/idea-cards.mjs   IDEATE.MD pools -> new rows in data/cards.csv
-scripts/design-cards.mjs blank `design` cells -> AI-written art prompts
-scripts/generate-cards.mjs  `design` -> data/cards/<id>.png via a local ComfyUI
-scripts/import-concept-cards.mjs  data/cards.csv + data/cards/<id>.png -> cards + `card-art` bucket
-scripts/import-concept-dungeons.mjs  concept-art folder (json + png) -> dungeons + `dungeon-art` bucket
-scripts/verify-db.sh     migration + seed against a throwaway Postgres, with assertions
-scripts/make-icons.py    placeholder PWA icons (pure stdlib, replace in week 10)
+scripts/build-seed.mjs              balance constants -> supabase/seed.sql (no cards, no dungeons)
+scripts/cards-1-idea.mjs            IDEATE.MD pools -> new rows in data/cards.csv
+scripts/cards-2-design.mjs          blank `design` cells -> AI-written art prompts
+scripts/cards-3-render.mjs          `design` -> data/cards/<id>.png via a local ComfyUI
+scripts/cards-4-import.mjs          data/cards.csv + data/cards/<id>.png -> cards + `card-art` bucket
+scripts/dungeons-1-import.mjs       concept-art folder (json + png) -> dungeons + `dungeon-art` bucket
+scripts/verify-db.sh                migration + seed against a throwaway Postgres, with assertions
+scripts/make-icons.py               placeholder PWA icons (pure stdlib, replace in week 10)
 src/app/                 router + shell (resource bar, bottom tabs)
 src/components/          shared UI atoms
 src/features/<domain>/   api.ts (queries) + screens per domain

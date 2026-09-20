@@ -1,6 +1,8 @@
 /**
- * Fills the `design` column of data/cards.csv — the concept-art prompt for a card —
- * using an OpenAI-compatible chat endpoint (DeepSeek, OpenAI, a local vLLM, …).
+ * Card pipeline, stage 2 of 4 — *design*: fills the `design` column of data/cards.csv, the
+ * concept-art prompt for a card, using an OpenAI-compatible chat endpoint (DeepSeek, OpenAI,
+ * a local vLLM, …). Stage 1 is scripts/cards-1-idea.mjs (it writes the rows); stage 3 is
+ * scripts/cards-3-render.mjs, which renders this prompt.
  *
  * Only rows with a BLANK design are touched, so this is resumable: re-running after a
  * crash (or a rate-limit that killed one batch) picks up exactly where it stopped. The
@@ -10,7 +12,7 @@
  * The house style lives in HOUSE_STYLE and is handed to the model as a verbatim clause;
  * that keeps every prompt in one art direction instead of one per request.
  *
- * Usage: node scripts/design-cards.mjs [options]
+ * Usage: node scripts/cards-2-design.mjs [options]
  *
  * Options:
  *   --url=<url>     Chat completions base url. Defaults to env CARD_DESIGN_API_URL
@@ -248,7 +250,7 @@ if (values.help) {
       'Generate the `design` (concept-art prompt) for every card in data/cards.csv with a blank one.',
       `House style: ${HOUSE_STYLE}`,
       '',
-      'Usage: node scripts/design-cards.mjs [options]',
+      'Usage: node scripts/cards-2-design.mjs [options]',
       '  --url=<url>     Defaults to env CARD_DESIGN_API_URL / OPENAI_BASE_URL.',
       '  --key=<key>     Defaults to env CARD_DESIGN_API_KEY / OPENAI_API_KEY.',
       '  --model=<name>  Defaults to env CARD_DESIGN_MODEL, then "deepseek-chat".',

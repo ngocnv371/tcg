@@ -1,8 +1,8 @@
 /**
- * Reusable pipeline for pushing the card catalog into Supabase: one row of data/cards.csv per
- * card, plus that card's art at data/cards/<id>.png — the file scripts/generate-cards.mjs
- * renders. Rows are turned into `Card` records (src/types/db.ts) and, optionally, upserted
- * straight into Supabase with a service-role token.
+ * Card pipeline, stage 4 of 4 — *import*: pushes the card catalog into Supabase: one row of
+ * data/cards.csv per card, plus that card's art at data/cards/<id>.png — the file
+ * scripts/cards-3-render.mjs renders. Rows are turned into `Card` records (src/types/db.ts)
+ * and, optionally, upserted straight into Supabase with a service-role token.
  *
  * The CSV is the source of truth for id / name / lore / tags / rank / role / passives; whatever
  * a row leaves blank is derived here (tags from the title, rank from the tag count, role and
@@ -17,7 +17,7 @@
  * from a trusted machine/CI, never shipped to the client.
  *
  * Usage:
- *   node scripts/import-concept-cards.mjs [artFolder] [options]
+ *   node scripts/cards-4-import.mjs [artFolder] [options]
  *
  * Options:
  *   --csv=<path>          Catalog to read. Defaults to data/cards.csv.
@@ -237,7 +237,7 @@ export function buildCardRecord(row, { index = 0, existingIds = new Set() } = {}
     faction,
     role: ROLES.includes(role) ? role : pickByHash(id, ROLES),
     // Stat re-derived from RANK_META on purpose: the CSV's atk/def is a rolled sketch
-    // (scripts/idea-cards.mjs writes 1-100), so the balance stays in src/game/formulas.ts.
+    // (scripts/cards-1-idea.mjs writes 1-100), so the balance stays in src/game/formulas.ts.
     base_atk: cardAtk(rank, 1),
     base_def: cardDef(rank, 1),
     passive_name: (row.passive_name ?? '').trim() || passive.name,
@@ -428,7 +428,7 @@ async function main() {
   const withoutArt = []
   for (const [index, row] of rows.entries()) {
     const card = buildCardRecord(row, { index, existingIds })
-    // Art is found by card id — the name scripts/generate-cards.mjs writes it under. A row with
+    // Art is found by card id — the name scripts/cards-3-render.mjs writes it under. A row with
     // no image is still an idea, not content, so it is skipped instead of imported artless.
     const imagePath = findCardArt(artFolder, card.id)
     if (!imagePath) {
@@ -451,7 +451,7 @@ async function main() {
     cards.push(card)
   }
   if (withoutArt.length) {
-    console.warn(`${withoutArt.length} of ${rows.length} row(s) skipped for missing art — run npm run generate:cards`)
+    console.warn(`${withoutArt.length} of ${rows.length} row(s) skipped for missing art — run npm run cards:3:render`)
   }
   if (!cards.length) {
     console.error(`no card in ${csvPath} has art in ${artFolder} — nothing to import`)

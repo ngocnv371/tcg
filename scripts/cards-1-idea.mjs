@@ -1,6 +1,7 @@
 /**
- * Rolls new card *ideas* from the pools in IDEATE.MD (animal + 1-2 elements +
- * habitat) and appends them to data/cards.csv.
+ * Card pipeline, stage 1 of 4 — *idea*: rolls new card ideas from the pools in IDEATE.MD
+ * (animal + 1-2 elements + habitat) and appends them to data/cards.csv. Stage 2 is
+ * scripts/cards-2-design.mjs, which writes the `design` prompt for those rows.
  *
  * These are seeds, not content: only the columns we can roll from IDEATE.MD are filled
  * (id, name, rank, faction, base_atk, base_def, tags, plus the `status=idea` marker).
@@ -11,7 +12,7 @@
  * A roll that matches an id already in the CSV or an art file already rendered in
  * data/cards/ is dropped, so re-running a batch is additive only (see `takenIds`).
  *
- * Usage: node scripts/idea-cards.mjs [options]
+ * Usage: node scripts/cards-1-idea.mjs [options]
  *
  * Options:
  *   --count=<n>   How many ideas to append. Default 25.
@@ -61,7 +62,7 @@ const ANIMALS = [
 
 /**
  * Element word -> card tag id. Mirrors ELEMENT_TO_TAG in
- * scripts/import-concept-cards.mjs so an idea tagged here means the same thing
+ * scripts/cards-4-import.mjs so an idea tagged here means the same thing
  * once it becomes real content. `Physical` is the neutral single-type only.
  */
 const ELEMENTS = [
@@ -275,7 +276,7 @@ if (values.help) {
       'Roll card ideas from IDEATE.MD pools and append them to data/cards.csv.',
       'Rank 1, faction "radiant", ATK/DEF rolled 1-100, status "idea".',
       '',
-      'Usage: node scripts/idea-cards.mjs [options]',
+      'Usage: node scripts/cards-1-idea.mjs [options]',
       '  --count=<n>   How many ideas to append. Default 25.',
       '  --seed=<n>    PRNG seed for a reproducible batch. Omit for a random seed.',
       '  --dry-run     Print the ideas without writing to the CSV.',
