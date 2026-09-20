@@ -11,15 +11,27 @@ import { STAGE_FPS, STAGE_SIZE } from '@/features/chests/unlockLayout'
 
 /** Frames the single-card reveal runs for. The batch reveal replays it as its first phase. */
 export const UNLOCK_DURATION = 150
-/** The fan beat: one second for the extras to take their places behind the first card. */
+/**
+ * Frame the fan beat opens on. It sits inside the single-card intro rather than after it, so the
+ * extras take their places behind the first card *while* its caption rises — the fan and the title
+ * read as one beat instead of two in sequence.
+ */
+export const FAN_START = 34
+/** Frames the first card's caption takes to rise into place; the fan springs over the same beat. */
+export const CAPTION_DURATION = 18
+/** The window the extras are staggered across as they take their places in the fan. */
 export const FAN_DURATION = 30
+/** The grid beat opens as the intro caption hands off, so the fan beat no longer delays it. */
+export const SPREAD_START = UNLOCK_DURATION
 /** The grid beat: one second for every card to spread into its slot. */
 export const SPREAD_DURATION = 30
+/** How long the finished grid holds while the total caption rises. */
+export const SETTLE_DURATION = 30
 /**
- * Two beats on top of the single reveal, so opening ten chests replays that same 5s intro once
- * instead of running 5s per card.
+ * Intro (with the fan inside it), grid beat, settle — so opening ten chests replays that same 5s
+ * intro once instead of running 5s per card.
  */
-export const BATCH_DURATION = UNLOCK_DURATION + FAN_DURATION + SPREAD_DURATION
+export const BATCH_DURATION = SPREAD_START + SPREAD_DURATION + SETTLE_DURATION
 
 /** Backdrop both reveals render in, so a multi open never jumps to a different stage. */
 export const UNLOCK_STAGE_STYLE: CSSProperties = {

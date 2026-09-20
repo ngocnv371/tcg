@@ -4,7 +4,12 @@ import { AbsoluteFill, Easing, interpolate, spring, useCurrentFrame, useVideoCon
 import { UnlockCardFace, UnlockStage } from '@/features/chests/CardUnlockAnimation'
 import {
   BATCH_DURATION,
+  CAPTION_DURATION,
   FAN_DURATION,
+  FAN_START,
+  SETTLE_DURATION,
+  SPREAD_DURATION,
+  SPREAD_START,
   UNLOCK_DURATION,
   UNLOCK_STAGE_STYLE,
   cardReveal,
@@ -49,9 +54,10 @@ function positionedBox(placement: Placement, zIndex: number, opacity: number): C
 }
 
 /**
- * The multi-chest reveal: the first card plays the single-card intro, the rest pop into a fan
- * behind it, then every card spreads into a grid. Positions come from `unlockLayout` so the
- * whole path is deterministic from the frame number alone.
+ * The multi-chest reveal: the first card plays the single-card intro while the rest pop into a fan
+ * behind it — the fan opens as that card's caption rises, so the two beats run together rather than
+ * one after the other — then every card spreads into a grid. Positions come from `unlockLayout` so
+ * the whole path is deterministic from the frame number alone.
  */
 export function CardBatchUnlockAnimation({ cards }: CardBatchUnlockAnimationProps) {
   const frame = useCurrentFrame()
@@ -68,7 +74,7 @@ export function CardBatchUnlockAnimation({ cards }: CardBatchUnlockAnimationProp
       extrapolateRight: 'clamp',
     }),
   )
-  const spread = interpolate(frame, [UNLOCK_DURATION + FAN_DURATION, BATCH_DURATION], [0, 1], {
+  const spread = interpolate(frame, [SPREAD_START, SPREAD_START + SPREAD_DURATION], [0, 1], {
     easing: Easing.out(Easing.cubic),
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -84,15 +90,17 @@ export function CardBatchUnlockAnimation({ cards }: CardBatchUnlockAnimationProp
     y: firstSlot.y * spread,
   }
   const stagger = Math.min(EXTRA_STAGGER_MAX, FAN_DURATION / (extras.length + 1))
-  // The intro caption hands over to the total as the cards start fanning.
+  // The fan opens on this same frame, so the caption rises onto cards that are already landing.
   const introOpacity =
-    interpolate(frame, [34, 52], [0, 1], { extrapolateRight: 'clamp' }) *
+    interpolate(frame, [FAN_START, FAN_START + CAPTION_DURATION], [0, 1], { extrapolateRight: 'clamp' }) *
     interpolate(frame, [UNLOCK_DURATION - 10, UNLOCK_DURATION], [1, 0], {
       extrapolateLeft: 'clamp',
       extrapolateRight: 'clamp',
     })
-  const introY = interpolate(frame, [34, 52], [18, 0], { extrapolateRight: 'clamp' })
-  const totalOpacity = interpolate(frame, [UNLOCK_DURATION + FAN_DURATION, BATCH_DURATION], [0, 1], {
+  const introY = interpolate(frame, [FAN_START, FAN_START + CAPTION_DURATION], [18, 0], {
+    extrapolateRight: 'clamp',
+  })
+  const totalOpacity = interpolate(frame, [BATCH_DURATION - SETTLE_DURATION, BATCH_DURATION], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   })
@@ -106,7 +114,7 @@ export function CardBatchUnlockAnimation({ cards }: CardBatchUnlockAnimationProp
         const slot = gridPlacement(index + 1, cards.length)
         const appear = spring({
           config: EXTRA_SPRING,
-          delay: UNLOCK_DURATION + stagger * index,
+          delay: FAN_START + stagger * index,
           fps,
           frame,
         })

@@ -110,9 +110,9 @@ length plus a negative `animation-delay` for the time already spent — so nothi
 stacks unopened chests by type and offers Open 1/2/5/10: `open_chests`
 spends the oldest rows of that type, calls `open_chest` per chest
 and returns the reveals as an array. The reveal then plays once for the whole open: one card uses
-`CardUnlockAnimation`, more use `CardBatchUnlockAnimation` — the same single-card intro, then the
-extras fan in behind it (1s) and everything spreads into a grid (1s), so opening ten chests runs 7s,
-not 50s. Fan/grid geometry is pure maths in `src/features/chests/unlockLayout.ts`, unit tested. A player
+`CardUnlockAnimation`, more use `CardBatchUnlockAnimation` — the same single-card intro with the
+extras fanning in behind it as its caption rises, then everything spreads into a grid (1s), so
+opening ten chests runs 7s, not 50s. Fan/grid geometry is pure maths in `src/features/chests/unlockLayout.ts`, unit tested. A player
 owns multiple copies of one card: `open_chest` inserts a
 `player_cards` row on *every* pull (a duplicate used to pay shards only) and return that row's
 `player_card_id`. The dupe shard payout is deliberately kept so `rank_up_card` stays fed. Because copies
