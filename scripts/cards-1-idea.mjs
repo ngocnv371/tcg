@@ -1,7 +1,8 @@
 /**
  * Card pipeline, stage 1 of 4 — *idea*: rolls new card ideas from the pools in IDEATE.MD
- * (animal + 1-2 elements + habitat) and appends them to data/cards.csv. Stage 2 is
- * scripts/cards-2-design.mjs, which writes the `design` prompt for those rows.
+ * (an animal + 1-2 elements, named animal-first so the catalog sorts by species) and
+ * appends them to data/cards.csv. Stage 2 is scripts/cards-2-design.mjs, which writes the
+ * `design` prompt for those rows.
  *
  * These are seeds, not content: only the columns we can roll from IDEATE.MD are filled
  * (id, name, rank, faction, base_atk, base_def, tags, plus the `status=idea` marker).
@@ -63,10 +64,13 @@ const ANIMALS = [
 /**
  * Element word -> card tag id. Mirrors ELEMENT_TO_TAG in
  * scripts/cards-4-import.mjs so an idea tagged here means the same thing
- * once it becomes real content. `Physical` is the neutral single-type only.
+ * once it becomes real content.
+ *
+ * `physical` is deliberately absent: it is the *fallback* tag for a card whose title names
+ * no known element (see the importer), so rolling it as an element would invent cards whose
+ * only tag is the one that means "we could not tell". Ideas always name a real element.
  */
 const ELEMENTS = [
-  { word: 'Physical', tag: 'physical' },
   { word: 'Fire', tag: 'fire' },
   { word: 'Water', tag: 'water' },
   { word: 'Ice', tag: 'ice' },
@@ -75,20 +79,6 @@ const ELEMENTS = [
   { word: 'Dark', tag: 'dark' },
   { word: 'Dragon', tag: 'dragon' },
   { word: 'Earth', tag: 'earth' },
-]
-
-const HABITATS = [
-  'Desert',
-  'River',
-  'Tundra',
-  'Forest',
-  'Mountain',
-  'Ruins',
-  'Swamp',
-  'Volcano',
-  'Plains',
-  'Crypts',
-  'Caves',
 ]
 
 /**
@@ -226,26 +216,27 @@ function takenIds(rows) {
   return taken
 }
 
-/** One idea: "<Element> <Animal> of the <Habitat>", or "<A> and <B> ..." for duals. */
+/**
+ * One idea: "<Animal> of <Element>", or "<Animal> of <A> and <B>" for duals. The animal
+ * leads on purpose — it is the species, so a name-first sort groups every Cat together
+ * instead of scattering them by element (which is also why the habitat was dropped: it
+ * added a third axis to the name without changing how the card plays).
+ */
 function rollIdea(rng) {
   const elementCount = rng() < 0.7 ? 1 : 2
   let elements
   if (elementCount === 1) {
     elements = [pick(rng, ELEMENTS)]
   } else {
-    // Physical is the neutral type and never pairs, so duals only draw from the
-    // elemental pool — otherwise "Physical and Fire" would be a nonsense tag line.
-    const pool = ELEMENTS.filter((element) => element.tag !== 'physical')
-    const first = pick(rng, pool)
-    let second = pick(rng, pool)
-    while (second.tag === first.tag) second = pick(rng, pool)
+    const first = pick(rng, ELEMENTS)
+    let second = pick(rng, ELEMENTS)
+    while (second.tag === first.tag) second = pick(rng, ELEMENTS)
     elements = [first, second]
   }
 
   const animal = pick(rng, ANIMALS)
-  const habitat = pick(rng, HABITATS)
-  const prefix = elements.map((element) => element.word).join(' and ')
-  const name = `${prefix} ${animal} of the ${habitat}`
+  const elementWords = elements.map((element) => element.word).join(' and ')
+  const name = `${animal} of ${elementWords}`
 
   const rollStat = () => STAT_MIN + Math.floor(rng() * (STAT_MAX - STAT_MIN + 1))
   return {
@@ -303,7 +294,7 @@ const taken = takenIds(rows)
 
 const ideas = []
 const seen = new Set(taken)
-// Bounded attempts: a small animal/element/habitat cross-product can otherwise
+// Bounded attempts: a small animal/element cross-product can otherwise
 // spin forever once the obvious combinations are taken.
 const maxAttempts = count * 50
 for (let attempt = 0; attempt < maxAttempts && ideas.length < count; attempt += 1) {
