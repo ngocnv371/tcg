@@ -94,7 +94,11 @@ function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () =
     <div
       aria-label={isBatch ? 'New cards unlocked' : 'New card unlocked'}
       aria-modal="true"
+      // Any click ends the reveal: the animation is decoration and the cards are already granted,
+      // so waiting it out is never load-bearing. The Skip button stays as the hint that it can be cut
+      // short (and as the focusable/keyboard path to the same thing).
       className="fixed inset-0 z-50 grid place-items-center bg-ink-950"
+      onClick={onClose}
       role="dialog"
     >
       {isBatch ? (
