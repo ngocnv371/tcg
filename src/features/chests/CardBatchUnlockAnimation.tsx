@@ -26,7 +26,6 @@ export type BatchUnlockCard = {
   cardName: string
   artPath: string | null
   rank: number
-  wasNew: boolean
 }
 
 export type CardBatchUnlockAnimationProps = {
@@ -54,9 +53,9 @@ function positionedBox(placement: Placement, zIndex: number, opacity: number): C
 
 /**
  * The multi-chest reveal: the first card plays the single-card intro while the rest pop into a fan
- * behind it — the fan opens as that card's caption rises, so the two beats run together rather than
- * one after the other — then every card spreads into a grid. Positions come from `unlockLayout` so
- * the whole path is deterministic from the frame number alone.
+ * behind it — the fan opens on the same frame the `UNLOCK N CARDS` caption rises, so the two beats
+ * run together rather than one after the other — then every card spreads into a grid. Positions come
+ * from `unlockLayout` so the whole path is deterministic from the frame number alone.
  */
 export function CardBatchUnlockAnimation({ cards }: CardBatchUnlockAnimationProps) {
   const frame = useCurrentFrame()
@@ -164,9 +163,8 @@ export function CardBatchUnlockAnimation({ cards }: CardBatchUnlockAnimationProp
         }}
       >
         <div style={{ color: '#ffe08a', fontSize: 13, letterSpacing: 2 }}>
-          {first.wasNew ? 'NEW CARD UNLOCKED' : 'ANOTHER COPY'}
+          UNLOCK {cards.length} CARDS
         </div>
-        <div style={{ color: '#ffffff', fontSize: 20, marginTop: 5 }}>{first.cardName}</div>
       </div>
 
       <div

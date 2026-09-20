@@ -108,7 +108,6 @@ function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () =
               artPath: opening.art_path,
               cardName: opening.card_name,
               rank: opening.rank,
-              wasNew: opening.was_new,
             })),
           }}
           {...REVEAL_PLAYER_STAGE}
