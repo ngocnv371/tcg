@@ -1,8 +1,9 @@
 import { Coins, Gem, LogOut, Swords } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 
 import { supabase } from '@/lib/supabase'
+import { track } from '@/lib/telemetry'
 import { useProfile } from '@/features/profile/api'
 import { cn } from '@/lib/utils'
 
@@ -24,12 +25,25 @@ function Resource({ icon, value }: { icon: React.ReactNode; value: string }) {
   )
 }
 
+// Module scope, not component state: a remount or a StrictMode double-invoke is still one
+// app open, and this event is how D1/D3 return is measured.
+let appOpenTracked = false
+
 /** Shell: resource bar on top, bottom tab bar, outlet in between. */
 export function AppShell() {
   const { data: profile } = useProfile()
   const [signingOut, setSigningOut] = useState(false)
   const num = (value: number | undefined) =>
     value === undefined ? '—' : value.toLocaleString('en-US')
+
+  useEffect(() => {
+    if (appOpenTracked) return
+    appOpenTracked = true
+    track('app_open', {
+      // Tells the tuning pass whether the tester actually installed the PWA.
+      standalone: window.matchMedia('(display-mode: standalone)').matches,
+    })
+  }, [])
 
   async function signOut() {
     setSigningOut(true)

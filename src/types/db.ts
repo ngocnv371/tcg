@@ -161,3 +161,26 @@ export type PullHistoryRow = {
   pity_counter: number
   pulled_at: string
 }
+
+/** Append-only. `client` rows come from track_event, `server` rows from DB triggers. */
+export type TelemetryEvent = {
+  id: number
+  profile_id: string | null
+  name: string
+  source: 'client' | 'server'
+  props: Record<string, unknown>
+  created_at: string
+}
+
+/** One browser/device endpoint for run-finished push. */
+export type NotificationToken = {
+  id: string
+  profile_id: string
+  endpoint: string
+  p256dh: string
+  auth: string
+  user_agent: string | null
+  created_at: string
+  last_seen_at: string
+  disabled_at: string | null
+}

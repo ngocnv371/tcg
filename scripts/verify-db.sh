@@ -84,6 +84,8 @@ MIGRATIONS=(
   "20260925000000_open_chests.sql"
   "20260926000000_own_multiple_copies.sql"
   "20260927000000_rank_up_card.sql"
+  "20260928000000_telemetry.sql"
+  "20260929000000_notifications.sql"
 )
 
 docker cp "$ROOT_HOST/supabase/seed.sql" "$NAME:/tmp/seed.sql" >/dev/null
@@ -497,6 +499,188 @@ begin
     delete from public.card_rank_costs where card_id = 'verify_rank_card';
     delete from public.cards where id = 'verify_rank_card';
   end;
+
+  -- telemetry is written by triggers on the tables the server already owns, so the
+  -- client cannot skip or forge a progression event; track_event is allow-listed
+  declare
+    tel_card uuid;
+    tel_dungeon text := 'verify_notify_dungeon';
+    tel_party uuid;
+    tel_run uuid;
+    tel_ooutbox_id bigint;
+  begin
+    insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
+                              passive_name, passive_text, lore)
+      values ('verify_tel_card', 'Verify Telemetry Card', 1, 'ember', 'dps', 1, 0, 'p', 'p', 'p');
+
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select '00000000-0000-0000-0000-000000000001'::uuid $fn$;
+
+    -- a granted copy logs itself, with no client involvement
+    insert into public.player_cards (profile_id, card_id, rank)
+      values ('00000000-0000-0000-0000-000000000001', 'verify_tel_card', 1)
+      returning id into tel_card;
+
+    if (select count(*) from public.telemetry_events
+        where name = 'card_acquired' and source = 'server'
+          and props ->> 'player_card_id' = tel_card::text) <> 1 then
+      raise exception 'granting a card wrote no card_acquired telemetry';
+    end if;
+
+    -- player_cards keeps no history, so the rank->rank transition is the only record a
+    -- rank-up leaves; without it 'time to first rank-up' is unanswerable
+    update public.player_cards set rank = 2 where id = tel_card;
+
+    if (select count(*) from public.telemetry_events
+        where name = 'card_ranked_up' and source = 'server'
+          and props ->> 'player_card_id' = tel_card::text
+          and (props ->> 'from_rank')::integer = 1
+          and (props ->> 'to_rank')::integer = 2) <> 1 then
+      raise exception 'a rank-up wrote no card_ranked_up telemetry';
+    end if;
+
+    -- the client may log its own lifecycle...
+    perform public.track_event('app_open', jsonb_build_object('build', 'verify'));
+    if not exists (
+      select 1 from public.telemetry_events
+      where profile_id = '00000000-0000-0000-0000-000000000001'
+        and name = 'app_open' and source = 'client'
+    ) then raise exception 'track_event did not record app_open'; end if;
+
+    -- ...but not a progression step
+    begin
+      perform public.track_event('card_ranked_up', '{}'::jsonb);
+      raise exception 'track_event accepted a server-only event name';
+    exception when others then
+      if sqlerrm not like 'unknown client event%' then raise; end if;
+    end;
+
+    begin
+      perform public.track_event('app_open', '[]'::jsonb);
+      raise exception 'track_event accepted non-object props';
+    exception when others then
+      if sqlerrm <> 'event props must be a json object' then raise; end if;
+    end;
+
+    -- telemetry is append-only observation: players can read their own rows, nobody else's
+    if not has_table_privilege('authenticated', 'public.telemetry_events', 'select') then
+      raise exception 'authenticated cannot read its own telemetry';
+    end if;
+    if has_table_privilege('authenticated', 'public.telemetry_events', 'insert') then
+      raise exception 'authenticated can insert telemetry rows directly';
+    end if;
+
+    insert into public.parties (profile_id, name, slot_index)
+      values ('00000000-0000-0000-0000-000000000001', 'Notify team', 6)
+      returning id into tel_party;
+    insert into public.party_slots (party_id, slot, player_card_id)
+      values (tel_party, 1, tel_card);
+    insert into public.dungeons (id, name, kind, tier, req_power, duration_seconds, gold_base)
+      values (tel_dungeon, 'Verify Notify Dungeon', 'resource', 1, 10, 3600, 5);
+
+    -- with no registered device there is nothing to send, so nothing is queued
+    insert into public.dungeon_runs (profile_id, dungeon_id, party_id, power_snapshot,
+                                     started_at, ends_at)
+      values ('00000000-0000-0000-0000-000000000001', tel_dungeon, tel_party, 100,
+              now() - interval '2 hours', now() - interval '1 minute')
+      returning id into tel_run;
+
+    update public.dungeon_runs set resolved_at = now(), success = true, rewards = '{"gold": 5}'::jsonb
+      where id = tel_run;
+
+    if exists (select 1 from public.notification_outbox
+               where dedupe_key = 'run_finished:' || tel_run::text) then
+      raise exception 'a run queued a notification with no registered device';
+    end if;
+
+    perform public.register_notification_token('https://push.example/verify-1', 'p256', 'auth', 'verify-agent');
+    if (select count(*) from public.notification_tokens
+        where profile_id = '00000000-0000-0000-0000-000000000001' and disabled_at is null) <> 1 then
+      raise exception 'register_notification_token stored no active token';
+    end if;
+
+    -- an endpoint is unique: resubscribing updates the row rather than adding a second
+    perform public.register_notification_token('https://push.example/verify-1', 'p256b', 'authb', null);
+    if (select count(*) from public.notification_tokens
+        where endpoint = 'https://push.example/verify-1') <> 1 then
+      raise exception 're-registering an endpoint created a second token';
+    end if;
+
+    -- now the same transition claims a notification
+    insert into public.dungeon_runs (profile_id, dungeon_id, party_id, power_snapshot,
+                                     started_at, ends_at)
+      values ('00000000-0000-0000-0000-000000000001', tel_dungeon, tel_party, 100,
+              now() - interval '2 hours', now() - interval '1 minute')
+      returning id into tel_run;
+
+    update public.dungeon_runs set resolved_at = now(), success = true, rewards = '{"gold": 5}'::jsonb
+      where id = tel_run;
+
+    select id into tel_ooutbox_id from public.notification_outbox
+      where dedupe_key = 'run_finished:' || tel_run::text and sent_at is null;
+    if tel_ooutbox_id is null then
+      raise exception 'a resolved run queued no notification';
+    end if;
+
+    -- resolve_runs() runs on every login and hub focus, so a re-resolved run must not
+    -- queue a second message for the same run id
+    update public.dungeon_runs set resolved_at = null where id = tel_run;
+    update public.dungeon_runs set resolved_at = now() where id = tel_run;
+    if (select count(*) from public.notification_outbox
+        where dedupe_key = 'run_finished:' || tel_run::text) <> 1 then
+      raise exception 'a second resolve queued a duplicate notification';
+    end if;
+
+    -- the sender API is service_role only, and carries the endpoints with the message
+    if has_function_privilege('authenticated', 'public.pending_notifications(integer)', 'execute') then
+      raise exception 'authenticated can call the notification sender API';
+    end if;
+    if not has_function_privilege('service_role', 'public.pending_notifications(integer)', 'execute') then
+      raise exception 'service_role cannot call the notification sender API';
+    end if;
+    if has_table_privilege('authenticated', 'public.notification_outbox', 'select') then
+      raise exception 'authenticated can read the notification outbox';
+    end if;
+
+    if coalesce((select jsonb_array_length(p.endpoints) from public.pending_notifications(50) p
+                 where p.id = tel_ooutbox_id), 0) <> 1 then
+      raise exception 'pending_notifications did not attach the device endpoint';
+    end if;
+
+    perform public.mark_notification_sent(tel_ooutbox_id);
+    if exists (select 1 from public.notification_outbox where id = tel_ooutbox_id and sent_at is null) then
+      raise exception 'mark_notification_sent left the row pending';
+    end if;
+
+    -- a push service that answers 410 Gone disables the endpoint permanently
+    if public.disable_notification_tokens(array['https://push.example/verify-1']) <> 1 then
+      raise exception 'disable_notification_tokens did not disable the dead endpoint';
+    end if;
+
+    perform public.register_notification_token('https://push.example/verify-2', 'p', 'a', null);
+    if not public.unregister_notification_token('https://push.example/verify-2') then
+      raise exception 'unregister_notification_token did not disable the token';
+    end if;
+
+    -- leave the throwaway database as the assertions found it
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select null::uuid $fn$;
+    delete from public.notification_outbox
+      where profile_id = '00000000-0000-0000-0000-000000000001';
+    delete from public.notification_tokens
+      where profile_id = '00000000-0000-0000-0000-000000000001';
+    delete from public.dungeon_runs where dungeon_id = tel_dungeon;
+    delete from public.dungeons where id = tel_dungeon;
+    delete from public.party_slots where party_id = tel_party;
+    delete from public.parties where id = tel_party;
+    delete from public.player_cards where card_id = 'verify_tel_card';
+    delete from public.cards where id = 'verify_tel_card';
+    delete from public.telemetry_events
+      where name = 'app_open'
+         or props ->> 'card_id' = 'verify_tel_card'
+         or props ->> 'dungeon_id' = tel_dungeon
+         or props ->> 'player_card_id' = tel_card::text;
+  end;
 end $$;
 
 select 'cards'                 as check, count(*)::text as value from public.cards
@@ -504,6 +688,9 @@ union all select 'dungeons',   count(*)::text from public.dungeons
 union all select 'materials',  count(*)::text from public.materials
 union all select 'rank costs', count(*)::text from public.card_rank_costs
 union all select 'chest odds', count(*)::text from public.chest_odds
+union all select 'telemetry events', count(*)::text from public.telemetry_events
+union all select 'notif tokens', count(*)::text from public.notification_tokens
+union all select 'notif outbox', count(*)::text from public.notification_outbox
 union all select '1star card_atk',   public.card_atk(1::smallint, 1)::text
 union all select '1star card_def',   public.card_def(1::smallint, 1)::text
 union all select '1star card_power', public.card_power(1::smallint, 1)::text

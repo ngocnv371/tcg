@@ -34,6 +34,11 @@ export default defineConfig({
       },
       // Service worker stays off in dev so HMR is never stale.
       devOptions: { enabled: false },
+      workbox: {
+        // The generated worker owns precaching of the shell; it has no concept of a push
+        // event, so the handler lives in a plain script it imports (public/push-sw.js).
+        importScripts: ['push-sw.js'],
+      },
     }),
   ],
   resolve: {

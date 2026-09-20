@@ -80,14 +80,42 @@ odds sum to 100, that `rank_up_card` spends and rejects a short balance without 
 ## Build order (from the plan)
 
 Week 1 schema + seed · 2 auth/RLS · 3 card library · 4 chest opening · 5 party builder ·
-6 dungeon timers + resolve/claim · 7 offline notifications · 8 level/rank-up + inventory ·
+6 dungeon timers + resolve/claim · 7 offline notifications · 8 rank-up + inventory ·
 9 hub + first-session script · 10–11 art + telemetry · 12 balance tuning · 13 tester week.
+
+Card level-up is cancelled and player progression is out of scope for v1: rank-up is the
+only way a card gets stronger, and nothing grants XP. `level_up_card` is not a to-do.
 
 Built: daily chest claiming and server-authoritative chest opening. The vault stacks duplicates by
 type and opens 1/2/5/10 at once through `open_chests`, which spends the rows server-side and returns
 one reveal per chest. `rank_up_card` spends the gold and materials from `card_rank_costs` and moves
-one owned copy up a rank, then plays a 5s Remotion reveal. `start_run`, `resolve_runs`,
-`claim_run`, and `level_up_card` remain on the roadmap.
+one owned copy up a rank, then plays a 5s Remotion reveal. `start_run`, `resolve_runs` and
+`claim_run` drive the dungeon loop.
+
+Also built: telemetry and run-finished notifications.
+
+- **Telemetry** (`20260928000000_telemetry.sql`) is append-only in `telemetry_events`. Progression
+events are written by database triggers on `pull_history`, `dungeon_runs` and `player_cards`, so the
+client cannot skip or forge one; `track_event` is allow-listed to `app_open` / `screen_view` for the
+lifecycle metrics no table can observe. Rows carry `source = 'server' | 'client'` so a tuning query
+can tell them apart. Read it with, e.g.
+`select name, count(*) from public.telemetry_events where created_at > now() - interval '1 day' group by 1;`
+- **Run-finished push** (`20260929000000_notifications.sql`) queues a message the moment a run
+resolves, keyed by run id so `resolve_runs()` cannot queue it twice, and only when the player has a
+registered device. The queue is server-only; `supabase/functions/notify-runs` drains it and talks to
+the push service.
+
+### Enabling push notifications
+
+1. `npx web-push generate-vapid-keys`
+2. Put the public key in `.env.local` as `VITE_VAPID_PUBLIC_KEY=…`.
+3. `supabase secrets set VAPID_PUBLIC_KEY=… VAPID_PRIVATE_KEY=… VAPID_SUBJECT=mailto:you@example.com NOTIFY_CRON_SECRET=…`
+4. `supabase functions deploy notify-runs --no-verify-jwt`
+5. Schedule it every minute (Supabase scheduled functions, or pg_cron + pg_net) with the
+   `x-cron-secret` header set to `NOTIFY_CRON_SECRET`.
+
+Web push needs HTTPS, so this is a deployed-build feature; `localhost` works in Chrome but not on a
+tester's phone. Without `VITE_VAPID_PUBLIC_KEY` the toggle reports the browser as unsupported.
 
 ## Known follow-ups
 

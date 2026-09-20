@@ -1,5 +1,6 @@
 import { Planned, Panel, Screen } from '@/components/Screen'
 import { useProfile } from '@/features/profile/api'
+import { RunNotifications } from '@/features/profile/RunNotifications'
 
 export function ProfileScreen() {
   const { data: profile, error } = useProfile()
@@ -9,8 +10,6 @@ export function ProfileScreen() {
       <div className="space-y-3">
         <Panel title="Account">
           <dl className="grid grid-cols-2 gap-y-1.5 text-sm">
-            <dt className="text-ink-400">Player level</dt>
-            <dd className="tabular-nums">{profile?.player_level ?? '—'}</dd>
             <dt className="text-ink-400">Gold</dt>
             <dd className="tabular-nums">{profile?.gold?.toLocaleString('en-US') ?? '—'}</dd>
             <dt className="text-ink-400">Run slots</dt>
@@ -22,6 +21,8 @@ export function ProfileScreen() {
             </p>
           ) : null}
         </Panel>
+
+        <RunNotifications />
 
         <Panel title="Not in v1">
           <Planned

@@ -24,6 +24,13 @@ proposing scope.
    `src/game/formulas.test.ts`.
 5. **Never add a system from the plan's OUT list** (payments, battle pass, PvP, guilds, trading,
    events, daily quests, skins). Ideas go to §11 of the plan note.
+6. **Never let the client decide what counts as progression telemetry.** Rows with
+   `telemetry_events.source = 'server'` are written by triggers on `pull_history`,
+   `dungeon_runs` and `player_cards`. `track_event` accepts only `app_open` and
+   `screen_view`; adding a progression name to that allow-list makes the metric forgeable.
+7. **Never send a notification from the client.** `notification_outbox` has no policies and
+   no grants — the queue is filled by a trigger on the run and drained by
+   `supabase/functions/notify-runs` with the service role.
 
 ## Conventions
 
@@ -83,4 +90,42 @@ button only when the gold and every material are covered; on success it plays `R
 (`RANK_UP_DURATION` = 140 frames at 30fps ≈ 4.7s) in `RankUpOverlay`, which closes itself. Both the
 chest reveals and the rank-up share `REVEAL_PLAYER_STAGE` (`unlockVisuals.ts`).
 
-Next up (weeks 4–8): `level_up_card` — a `SECURITY DEFINER` function plus its screen wiring.
+Next up: the week-9 first-session script (free Rare chest → guaranteed 3★ starter → guided
+5-min run → guided rank-up) and the week-12 balance pass.
+
+Scope decisions, 2026-09-20 — do not re-add these without asking:
+
+- **Card level-up is cancelled.** Rank-up is the only way a card gets stronger. There is no
+  `level_up_card` and there never will be; `CardDetailScreen` still *shows* `levelUpGold` and
+  `cardAtk(rank, level)` stays level-aware because `player_cards.level` exists, but nothing
+  raises it. Treat the level half of the stat formula as dormant, not as a to-do.
+- **Player progression is out of scope for v1.** No XP is granted and `profiles.player_level`
+  stays 1, so `run_slot_unlocks` never fires and `run_slots` stays at its default 2. The
+  columns and the table are left in place because removing them touches the importer, the
+  seed and the balance mirror for no gameplay gain.
+
+Notifications and telemetry (weeks 7 and 10–11, brought forward because the week-12 balance
+pass has nothing to read without them):
+
+- `telemetry_events` (`20260928000000_telemetry.sql`) is append-only and split by trust.
+  `source = 'server'` rows come from triggers on `pull_history` (a pull), `dungeon_runs`
+  (started / resolved / claimed, on the null → not-null transition so the idempotent
+  `resolve_runs()` cannot double-log) and `player_cards` (`card_acquired` on insert — this is
+  how starter grants are seen — and `card_ranked_up` on a rank *increase*). `source =
+  'client'` rows come from `track_event`, which is allow-listed to `app_open` / `screen_view`
+  and caps props at 2 KB. `src/lib/telemetry.ts` fires and forgets: a telemetry failure must
+  never break a tap.
+- Run-finished push (`20260929000000_notifications.sql` + `supabase/functions/notify-runs`).
+  The client only registers an endpoint (`register_notification_token`, re-homed on every
+  profile-screen mount because a subscription outlives a sign-out). A trigger on
+  `dungeon_runs` queues the message on the same `resolved_at` transition that pays the run,
+  keyed `run_finished:<run id>` so `resolve_runs()` looking again cannot queue twice, and
+  skips entirely when the player has no live token. The Edge Function drains the queue with
+  the service role; `pending_notifications` / `mark_notification_sent` /
+  `disable_notification_tokens` are the only door in and are `service_role`-only. Endpoints
+  answering 404/410 are disabled, not deleted. **The function is written but never
+  deployed or executed** — it needs `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
+  and `NOTIFY_CRON_SECRET` as function secrets plus a per-minute schedule.
+- `public/push-sw.js` is imported into the Workbox-generated service worker via
+  `workbox.importScripts` (`vite.config.ts`). It is a classic script, not a module. Do not
+  switch the PWA to `injectManifest` just to host it; the generated worker owns precaching.
