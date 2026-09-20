@@ -118,3 +118,4 @@ select public.provision_starter_loadout('00000000-0000-0000-0000-000000000002'::
 -- summary: 0 cards (), 0 dungeons, 5 chests, 41 materials
 -- dungeons: none seeded — shipped via scripts/import-concept-dungeons.mjs
 -- rank-up cost rows: 0, chest odds rows: 19
+-- skipped 7 un-promoted idea rows from data/cards.csv (scripts/idea-cards.mjs)

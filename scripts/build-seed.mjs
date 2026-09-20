@@ -126,8 +126,18 @@ const sql = (value) => `'${String(value).replace(/'/g, "''")}'`
 const sqlNullable = (value) => (value === '' || value === undefined ? 'null' : sql(value))
 const json = (value) => `${sql(JSON.stringify(value))}::jsonb`
 
-const cards = parseCsv(readFileSync(join(root, 'data/cards.csv'), 'utf8'))
+const cardRows = parseCsv(readFileSync(join(root, 'data/cards.csv'), 'utf8'))
 const dungeons = parseCsv(readFileSync(join(root, 'data/dungeons.csv'), 'utf8'))
+
+/**
+ * scripts/idea-cards.mjs appends sketches to the CSV flagged `status=idea`. An idea has no
+ * role or passive yet and could not be inserted, so it is skipped instead of failing the
+ * build. The flag is an explicit column on purpose: parking this marker on a content field
+ * (faction, then rank) meant the marker had to move every time a column got filled in.
+ */
+const IDEA_STATUS = 'idea'
+const ideaRows = cardRows.filter((card) => card.status === IDEA_STATUS)
+const cards = cardRows.filter((card) => card.status !== IDEA_STATUS)
 
 // --- integrity checks: fail the build instead of seeding a broken economy -----
 const errors = []
@@ -332,9 +342,14 @@ push(
     ? `-- dungeons: ${dungeonsIds.join(', ')}`
     : '-- dungeons: none seeded — shipped via scripts/import-concept-dungeons.mjs',
   `-- rank-up cost rows: ${costRows.length}, chest odds rows: ${oddRows.length}`,
+  ideaRows.length
+    ? `-- skipped ${ideaRows.length} un-promoted idea rows from data/cards.csv (scripts/idea-cards.mjs)`
+    : '',
 )
 
 writeFileSync(join(root, 'supabase/seed.sql'), `${lines.join('\n')}\n`)
 console.log(
   `seed.sql written — ${cards.length} cards, ${dungeons.length} dungeons, ${MATERIALS.length} materials, ${oddRows.length} odds rows, ${costRows.length} rank-up rows`,
 )
+if (ideaRows.length)
+  console.log(`skipped ${ideaRows.length} un-promoted idea rows — promote them before they can ship`)
