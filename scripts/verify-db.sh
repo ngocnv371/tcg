@@ -72,27 +72,19 @@ create role authenticated nologin;
 create role service_role nologin;
 SQL
 
-# Only the migrations the stubbed Postgres can run: 000002 needs pg_cron and 000004 the
-# storage schema, neither of which exists outside the real Supabase stack.
-MIGRATIONS=(
-  "20260918000000_init.sql"
-  "20260919000000_multi_party.sql"
-  "20260920000000_one_party_per_card.sql"
-  "20260922000000_busy_party_guard.sql"
-  "20260923000000_claim_before_start.sql"
-  "20260924000000_failed_run_pity.sql"
-  "20260925000000_open_chests.sql"
-  "20260926000000_own_multiple_copies.sql"
-  "20260927000000_rank_up_card.sql"
-  "20260928000000_telemetry.sql"
-  "20260929000000_notifications.sql"
-  "20260930000000_core_dungeons.sql"
-)
-
+# Every migration, in filename order — no hand-maintained list to drift out of sync with
+# the folder. The files that need the real Supabase stack (storage buckets, pg_cron,
+# the realtime publication) guard themselves and skip with a notice, which is what lets a
+# bare Postgres apply the same set.
 docker cp "$ROOT_HOST/supabase/seed.sql" "$NAME:/tmp/seed.sql" >/dev/null
 
+# Read the list up front rather than looping over a pipe: `docker exec -i` claims stdin,
+# which would eat the remaining filenames.
+mapfile -t MIGRATIONS < <(find "$ROOT/supabase/migrations" -maxdepth 1 -name '*.sql' | sort)
+
 echo "→ applying migrations"
-for migration in "${MIGRATIONS[@]}"; do
+for migration_path in "${MIGRATIONS[@]}"; do
+  migration="$(basename "$migration_path")"
   docker cp "$ROOT_HOST/supabase/migrations/$migration" "$NAME:/tmp/$migration" >/dev/null
   psql_run -f "/tmp/$migration"
 done

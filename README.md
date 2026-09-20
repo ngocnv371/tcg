@@ -43,7 +43,7 @@ src/features/<domain>/   api.ts (queries) + screens per domain
 src/game/formulas.ts     the balance numbers, as code — tests pin them
 src/lib/supabase.ts      browser client (reads + RPC only)
 src/types/db.ts          row types mirroring the migration
-supabase/migrations/     schema v1: tables, RLS, derived functions
+supabase/migrations/     schema v1, squashed to six topical files (init → jobs)
 supabase/seed.sql        GENERATED — never hand-edit
 ```
 
@@ -61,6 +61,9 @@ Sign up with any email/password (local Supabase auto-confirms); the `handle_new_
 creates your profile with 2 run slots, grants five rank-1 cards, and fills your first party.
 For local development, reset the database and sign in with `dev@tcg2.local` / `tcg2devpass`.
 
+A local database from before the 2026-09-20 squash lists migration versions that no longer exist,
+so bring it forward with `npm run db:reset` (never `supabase migration up`).
+
 ## Checks
 
 ```bash
@@ -72,7 +75,8 @@ npm run db:types  # regenerate src/types/database.gen.ts from the local DB
 ```
 
 `scripts/verify-db.sh` is the fast gate: ~10 seconds, no Supabase stack needed. It stubs the
-`auth` schema and the `anon`/`authenticated` roles, applies the migration and the seed, then
+`auth` schema and the `anon`/`authenticated` roles, applies every migration in the folder (the
+storage and job files skip themselves when `storage`/`pg_cron` are absent) and the seed, then
 asserts card/dungeon/material counts, that every rank-up row references real materials, that chest
 odds sum to 100, that `rank_up_card` spends and rejects a short balance without charging, that
 **no non-SELECT policies exist** (the anti-cheat invariant), and that signing up provisions a profile.
@@ -94,13 +98,13 @@ one owned copy up a rank, then plays a 5s Remotion reveal. `start_run`, `resolve
 
 Also built: telemetry and run-finished notifications.
 
-- **Telemetry** (`20260928000000_telemetry.sql`) is append-only in `telemetry_events`. Progression
+- **Telemetry** (`20260915000002_telemetry.sql`) is append-only in `telemetry_events`. Progression
 events are written by database triggers on `pull_history`, `dungeon_runs` and `player_cards`, so the
 client cannot skip or forge one; `track_event` is allow-listed to `app_open` / `screen_view` for the
 lifecycle metrics no table can observe. Rows carry `source = 'server' | 'client'` so a tuning query
 can tell them apart. Read it with, e.g.
 `select name, count(*) from public.telemetry_events where created_at > now() - interval '1 day' group by 1;`
-- **Run-finished push** (`20260929000000_notifications.sql`) queues a message the moment a run
+- **Run-finished push** (`20260915000003_notifications.sql`) queues a message the moment a run
 resolves, keyed by run id so `resolve_runs()` cannot queue it twice, and only when the player has a
 registered device. The queue is server-only; `supabase/functions/notify-runs` drains it and talks to
 the push service.

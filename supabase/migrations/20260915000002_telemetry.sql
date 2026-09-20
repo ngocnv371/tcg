@@ -30,9 +30,6 @@ create index telemetry_events_name_idx on public.telemetry_events (name, created
 -- Server-side writer
 -- ---------------------------------------------------------------------------
 
-create schema if not exists private;
-revoke all on schema private from public, anon, authenticated;
-
 create or replace function private.log_telemetry_event(p_profile_id uuid, p_name text, p_props jsonb)
 returns void
 language sql

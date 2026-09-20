@@ -50,6 +50,8 @@ create index notification_outbox_pending_idx on public.notification_outbox (crea
 -- Queueing
 -- ---------------------------------------------------------------------------
 
+-- A run always clears (see 20260915000001_progression.sql), so there is no failure copy
+-- to write any more — the message is decided here and cannot be chosen by the client.
 create or replace function private.queue_run_finished_notification()
 returns trigger
 language plpgsql
@@ -78,12 +80,8 @@ begin
   values (
     new.profile_id,
     'run_finished',
-    case when new.success then 'Run complete' else 'Run ended' end,
-    coalesce(dungeon_name, new.dungeon_id) ||
-      case
-        when new.success then ' was cleared — rewards are waiting.'
-        else ' came back empty-handed — the pity gold is waiting.'
-      end,
+    'Run complete',
+    coalesce(dungeon_name, new.dungeon_id) || ' was cleared — rewards are waiting.',
     '/',
     'run_finished:' || new.id::text
   )

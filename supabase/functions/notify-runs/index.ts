@@ -2,7 +2,7 @@
 //
 // The browser can register an endpoint, but only a server can hold the VAPID private key
 // and reach the push service. The database has already decided *whether* to notify: the
-// moment a run resolves, 20260929000000_notifications.sql queues an outbox row, keyed by
+// moment a run resolves, 20260915000003_notifications.sql queues an outbox row, keyed by
 // run id so `resolve_runs()` looking at the run again cannot queue a second one. This
 // function only drains that queue.
 //

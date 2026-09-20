@@ -42,6 +42,26 @@ proposing scope.
 - Comments explain *why* (a constraint, a trade-off), never *what* the next line does.
 - Keep `npm run build`, `npm test` and `bash scripts/verify-db.sh` green before finishing a task.
 
+## Migrations
+
+Squashed on 2026-09-20 into six topical files. Apply order is the file order, and the folder is
+the whole schema:
+
+| File | Owns |
+| --- | --- |
+| `20260915000000_init.sql` | tables, indexes, derived numbers, RLS policies, grants |
+| `20260915000001_progression.sql` | provisioning + every progression mutation RPC |
+| `20260915000002_telemetry.sql` | append-only event log, server + client writers |
+| `20260915000003_notifications.sql` | push endpoints, outbox, service-role sender API |
+| `20260915000004_storage.sql` | the `card-art` and `dungeon-art` buckets |
+| `20260915000005_jobs.sql` | realtime publication + the run-resolution cron job |
+
+The block is dated *before* the first real migration on purpose: it replaces all of them, so a
+database that still lists the old versions must be `db reset`, never migrated. The storage and
+jobs files skip themselves with a notice when `storage` / `pg_cron` / `supabase_realtime` are
+missing, which is what lets `scripts/verify-db.sh` apply the whole folder to a bare Postgres — it
+globs the folder rather than keeping a list that can drift.
+
 ## Where things stand
 
 Done: schema + RLS + derived SQL functions, generated seed (0 catalog cards, 0 catalog
@@ -51,38 +71,39 @@ with tests, DB verification script. The dungeon importer takes the same json+ima
 and rolls kind/tier/rank/tags/power/timer/gold/drops seeded by name, uploads to the `dungeon-art` bucket,
 and reads art back from the DB rather than the source json. Dungeon art renders in
 `DungeonMapScreen`; `resolveArtSrc` lives in `src/lib/art.ts`. Teams are unlimited:
-`create_party` / `rename_party` / `delete_party` (migration `20260919000000_multi_party.sql`)
-own creation, and `parties.slot_index` is only append order — never a cap. One player card can be
-equipped in one party at a time: `party_slots` is unique on `player_card_id`
-(`20260920000000_one_party_per_card.sql`), and `save_party` mirrors that rule with a readable error.
+`create_party` / `rename_party` / `delete_party`
+own creation (all three in `20260915000001_progression.sql`), and `parties.slot_index` is only
+append order — never a cap. One player card can be equipped in one party at a time: `party_slots`
+is unique on `player_card_id` alone, and `save_party` mirrors that rule with a readable error.
 Dungeons: `start_run` / `claim_run` are wired through `StartRunModal` (party picker showing each
 lineup's members and power, parties with a live run disabled), and a run's status renders on the
 dungeon card itself. One action per card: a live or unclaimed run replaces the "Start run" button
 with the status plus a full-width `Claim`, so a dungeon is one run at a time from the UI. A finished
-run also gates the next one server-side: `20260923000000_claim_before_start.sql` makes `start_run`
-raise `'claim your finished runs first'`. The progress bar is pure CSS — the `run-progress` keyframe
+run also gates the next one server-side: `start_run`
+raises `'claim your finished runs first'`. The progress bar is pure CSS — the `run-progress` keyframe
 scaled by the run
 length plus a negative `animation-delay` for the time already spent — so nothing ticks it. The vault
 stacks unopened chests by type and offers Open 1/2/5/10: `open_chests`
-(`20260925000000_open_chests.sql`) spends the oldest rows of that type, calls `open_chest` per chest
+spends the oldest rows of that type, calls `open_chest` per chest
 and returns the reveals as an array. The reveal then plays once for the whole open: one card uses
 `CardUnlockAnimation`, more use `CardBatchUnlockAnimation` — the same single-card intro, then the
 extras fan in behind it (1s) and everything spreads into a grid (1s), so opening ten chests runs 7s,
 not 50s. Fan/grid geometry is pure maths in `src/features/chests/unlockLayout.ts`, unit tested. A player
-owns multiple copies of one card: `20260926000000_own_multiple_copies.sql` makes `open_chest` insert a
+owns multiple copies of one card: `open_chest` inserts a
 `player_cards` row on *every* pull (a duplicate used to pay shards only) and return that row's
 `player_card_id`. The dupe shard payout is deliberately kept so `rank_up_card` stays fed. Because copies
 level and rank independently, the library renders one tile per owned copy (keyed by `cardBrowserKey` in
 `src/features/cards/CardBrowser.tsx`), the chest reveal links to the copy it granted, and the detail route
 `cards/:cardRefId` resolves a copy id first and falls back to a catalog card id. A party
-with an unresolved run can no longer be sent again: `20260922000000_busy_party_guard.sql` redefines
-`start_run` with that check (the client badge is display only). **A run never fails**
-(`20260930000000_core_dungeons.sql`): `resolve_runs` always clears and party power only scales the
+with an unresolved run can no longer be sent again: `start_run` checks that server-side too (the
+client badge is display only). **A run never fails**: `private.resolve_due_runs` always clears and
+party power only scales the
 payout between ×1.00 and ×1.50 — that multiplier is recorded on `rewards.multiplier`, and it scales
 both the gold and *every* stack in the drop table, which is paid in full rather than as one weighted
 pick. So the party picker shows `Yield ×N` where it used to show success odds, and the failure
-messaging and pity gold are gone. Rank-up is live: `rank_up_card`
-(`20260927000000_rank_up_card.sql`) locks the copy, re-reads the `card_rank_costs` step for its
+messaging and pity gold are gone. The online resolve and the cron sweep share that one body, so a
+run cannot expire two different ways. Rank-up is live: `rank_up_card`
+locks the copy, re-reads the `card_rank_costs` step for its
 *current* rank, takes the gold and the materials behind `not found` guards (a short balance raises
 and rolls the whole spend back), then returns the bumped row. The ladder lives once, in
 `RANK_UP_LADDER` / `rankUpCost` (`src/game/formulas.ts`) — `scripts/build-seed.mjs` *and*
@@ -133,7 +154,7 @@ Scope decisions, 2026-09-20 — do not re-add these without asking:
 Notifications and telemetry (weeks 7 and 10–11, brought forward because the week-12 balance
 pass has nothing to read without them):
 
-- `telemetry_events` (`20260928000000_telemetry.sql`) is append-only and split by trust.
+- `telemetry_events` (`20260915000002_telemetry.sql`) is append-only and split by trust.
   `source = 'server'` rows come from triggers on `pull_history` (a pull), `dungeon_runs`
   (started / resolved / claimed, on the null → not-null transition so the idempotent
   `resolve_runs()` cannot double-log) and `player_cards` (`card_acquired` on insert — this is
@@ -141,7 +162,7 @@ pass has nothing to read without them):
   'client'` rows come from `track_event`, which is allow-listed to `app_open` / `screen_view`
   and caps props at 2 KB. `src/lib/telemetry.ts` fires and forgets: a telemetry failure must
   never break a tap.
-- Run-finished push (`20260929000000_notifications.sql` + `supabase/functions/notify-runs`).
+- Run-finished push (`20260915000003_notifications.sql` + `supabase/functions/notify-runs`).
   The client only registers an endpoint (`register_notification_token`, re-homed on every
   profile-screen mount because a subscription outlives a sign-out). A trigger on
   `dungeon_runs` queues the message on the same `resolved_at` transition that pays the run,

@@ -171,7 +171,6 @@ export type PullHistoryRow = {
   card_id: string
   rank: CardRank
   was_new: boolean
-  pity_counter: number
   pulled_at: string
 }
 

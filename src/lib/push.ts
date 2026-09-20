@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
  *
  * The browser can only ever register or drop an endpoint here. Whether a run is worth
  * notifying about is decided in the database, on the same transition that resolves the run
- * (`20260929000000_notifications.sql`), so a client cannot announce a run that never
+ * (`20260915000003_notifications.sql`), so a client cannot announce a run that never
  * happened. Sending needs the VAPID private key, which is why it lives in
  * `supabase/functions/notify-runs` and never in this bundle.
  */
