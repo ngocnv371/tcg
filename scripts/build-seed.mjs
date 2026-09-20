@@ -21,6 +21,7 @@ import {
   RUN_SLOT_UNLOCKS,
   rankUpCost,
   tagCoreId,
+  tagLabel,
 } from '../src/game/formulas.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -55,7 +56,7 @@ const SHARD_MATERIALS = [
 const CORE_MATERIALS = CORE_TAGS.flatMap((tag) =>
   CORE_VARIANTS.map((variant, index) => ({
     id: tagCoreId(tag, variant),
-    name: `${CORE_VARIANT_LABELS[variant]} ${tag} Core`,
+    name: `${CORE_VARIANT_LABELS[variant]} ${tagLabel(tag)} Core`,
     kind: 'core',
     rarity: index + 1,
     tier: index + 1,

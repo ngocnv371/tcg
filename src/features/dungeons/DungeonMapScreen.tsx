@@ -8,6 +8,7 @@ import { useDungeons, useRuns } from '@/features/dungeons/api'
 import { formatDuration } from '@/features/dungeons/format'
 import { useClaimRun } from '@/features/progression/api'
 import type { RunClaim } from '@/features/progression/api'
+import { tagLabel } from '@/game/formulas'
 import { resolveArtSrc } from '@/lib/art'
 import type { Dungeon, DungeonRun } from '@/types/db'
 
@@ -148,7 +149,7 @@ export function DungeonMapScreen() {
                         key={tag}
                         className="rounded-card bg-ink-850 px-2 py-0.5 text-[11px] text-ink-300"
                       >
-                        {tag}
+                        {tagLabel(tag)}
                       </span>
                     ))}
                   </div>

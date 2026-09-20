@@ -21,6 +21,7 @@ import {
   rewardMultiplier,
   runSlotsForLevel,
   tagCoreId,
+  tagLabel,
   type CardRank,
 } from './formulas'
 
@@ -101,17 +102,17 @@ describe('chest odds', () => {
 
 describe('rank-up costs', () => {
   it('charges one Core per card tag, graded by the step', () => {
-    expect(rankUpCost(1, ['Fire', 'Beast'])).toEqual({
+    expect(rankUpCost(1, ['fire', 'dragon'])).toEqual({
       gold: 1000,
       materials: {
         common_shard: 10,
         lesser_fire_core: 3,
-        lesser_beast_core: 3,
+        lesser_dragon_core: 3,
       },
     })
-    expect(rankUpCost(4, ['Tide', 'Beast'])?.materials).toEqual({
+    expect(rankUpCost(4, ['physical'])?.materials).toEqual({
       epic_shard: 100,
-      legendary_beast_core: 25,
+      legendary_physical_core: 25,
     })
   })
 
@@ -123,31 +124,37 @@ describe('rank-up costs', () => {
   })
 
   it('never charges two tags for a card that carries one', () => {
-    expect(rankUpCost(2, ['Beast'])?.materials).toEqual({
+    expect(rankUpCost(2, ['physical'])?.materials).toEqual({
       uncommon_shard: 25,
-      greater_beast_core: 8,
+      greater_physical_core: 8,
     })
   })
 
   it('has no step past 5★', () => {
-    expect(rankUpCost(5, ['Fire', 'Beast'])).toBeNull()
+    expect(rankUpCost(5, ['fire', 'dragon'])).toBeNull()
   })
 })
 
 describe('core catalog', () => {
-  it('ignores tags with no Core family and keeps the card\'s own', () => {
-    expect(coreTagsForCard(['Fire', 'Beast', 'Robot'])).toEqual(['Fire', 'Beast'])
-    expect(coreTagsForCard(['beast'])).toEqual(['Beast'])
+  it('keeps the card\'s own tags, in catalog order, and drops unknown ones', () => {
+    expect(coreTagsForCard(['fire', 'physical', 'robot'])).toEqual(['physical', 'fire'])
+    expect(coreTagsForCard(['Dragon', 'Dark'])).toEqual(['dragon', 'dark'])
     expect(coreTagsForCard([])).toEqual([])
   })
 
   it('names Core ids the way the seeded materials rows do', () => {
-    expect(tagCoreId('Fire', 'lesser')).toBe('lesser_fire_core')
-    expect(tagCoreId('Beast', 'legendary')).toBe('legendary_beast_core')
+    expect(tagCoreId('fire', 'lesser')).toBe('lesser_fire_core')
+    expect(tagCoreId('physical', 'legendary')).toBe('legendary_physical_core')
+  })
+
+  it('labels tags for display without changing the stored id', () => {
+    expect(tagLabel('physical')).toBe('Physical')
+    expect(tagLabel('electric')).toBe('Electric')
   })
 
   it('ships one Core material per tag per grade', () => {
     expect(allCoreIds()).toHaveLength(CORE_TAGS.length * CORE_VARIANTS.length)
+    expect(allCoreIds()).toHaveLength(36)
     expect(new Set(allCoreIds()).size).toBe(allCoreIds().length)
   })
 

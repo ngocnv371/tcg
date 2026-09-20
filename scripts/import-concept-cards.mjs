@@ -39,18 +39,41 @@ import { RANK_META, cardAtk, cardDef, rankUpCost } from '../src/game/formulas.ts
 
 // --- content tables (edit here, not per-card, to keep cards consistent) -----
 
-/** Element words that can appear after " of " in a concept-art title. */
-const ELEMENT_TO_FACTION = {
-  Fire: 'ember',
-  Dragon: 'ember',
-  Water: 'tide',
-  Ice: 'tide',
-  Earth: 'verdant',
-  Nature: 'verdant',
-  Dark: 'umbral',
-  Light: 'radiant',
-  Air: 'radiant',
-  Thunder: 'radiant',
+/**
+ * Element words that can appear after " of " in a concept-art title, mapped onto the
+ * card tags in `CORE_TAGS`. Anything not listed here contributes no tag.
+ */
+const ELEMENT_TO_TAG = {
+  Fire: 'fire',
+  Dragon: 'dragon',
+  Water: 'water',
+  Ice: 'ice',
+  Earth: 'earth',
+  Nature: 'grass',
+  Thunder: 'electric',
+  Dark: 'dark',
+  // Neither has a counterpart in the tag list, so both collapse into the neutral type.
+  Light: 'physical',
+  Air: 'physical',
+}
+
+/** The tag a card gets when its title names no known element — it never ships untaggable. */
+const NEUTRAL_TAG = 'physical'
+
+/**
+ * Which faction's passive a tag carries. The five factions are unchanged; `physical` is
+ * deliberately absent because it is the neutral type, so it falls back like an
+ * unknown element always has.
+ */
+const TAG_TO_FACTION = {
+  fire: 'ember',
+  dragon: 'ember',
+  water: 'tide',
+  ice: 'tide',
+  grass: 'verdant',
+  earth: 'verdant',
+  dark: 'umbral',
+  electric: 'radiant',
 }
 
 const ROLES = ['tank', 'dps', 'support']
@@ -140,7 +163,12 @@ function pickByHash(id, list) {
  */
 export function buildCardRecord({ title, summary, raw }, existingIds = new Set()) {
   const elements = elementsFromTitle(title)
-  const faction = elements.map((e) => ELEMENT_TO_FACTION[e]).find(Boolean) ?? 'verdant'
+  // A tag per known element, deduped in title order; the neutral tag is the fallback rather
+  // than something every card carries, so a single-type card is genuinely single-type.
+  const tags = [...new Set(elements.map((element) => ELEMENT_TO_TAG[element]).filter(Boolean))]
+  if (!tags.length) tags.push(NEUTRAL_TAG)
+  // First tag that actually has an affinity — a Light+Dark card is umbral, not neutral.
+  const faction = tags.map((tag) => TAG_TO_FACTION[tag]).find(Boolean) ?? 'verdant'
   const rank = elements.length >= 2 ? 2 : 1
   const meta = RANK_META[rank]
 
@@ -168,7 +196,7 @@ export function buildCardRecord({ title, summary, raw }, existingIds = new Set()
     passive_name: passive.name,
     passive_text: passive.text,
     lore: summary,
-    tags: [...elements, 'Beast'],
+    tags,
     art_path: uploadedArtPath ?? `art/cards/${id}.webp`,
     sort_order: 0,
     _meta: { levelCap: meta.levelCap }, // not persisted; handy for a sanity check
@@ -251,7 +279,7 @@ export async function uploadArtToSupabase(admin, imagePath, id) {
  * "this card cannot rank up further" and the detail screen shows no path.
  *
  * The cost is charged by TAG, not faction: `rankUpCost` turns the card's tags into one
- * Core requirement per tag (Beast + Fire needs Beast *and* Fire Cores), so re-run the
+ * Core requirement per tag (fire + dragon needs Fire *and* Dragon Cores), so re-run the
  * card import after any change to the ladder or to a card's tags.
  */
 export function buildRankCostRows(cards) {
@@ -350,7 +378,10 @@ async function main() {
   const cards = []
   for (const pair of pairs) {
     const card = buildCardRecord(pair, existingIds)
-    console.log(`${pair.title} -> ${card.name} (${card.id}) [${card.faction}/${card.role}, ${card.rank}★]`)
+    console.log(
+      `${pair.title} -> ${card.name} (${card.id}) [${card.faction}/${card.role}, ${card.rank}★, ` +
+        `tags: ${card.tags.join('+')}]`,
+    )
 
     if (!values['dry-run']) {
       if (values['upload-art']) {

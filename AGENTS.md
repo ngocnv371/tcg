@@ -94,17 +94,21 @@ button only when the gold and every material are covered; on success it plays `R
 chest reveals and the rank-up share `REVEAL_PLAYER_STAGE` (`unlockVisuals.ts`).
 
 Cores are the material economy (`src/game/formulas.ts`): every **card tag** owns a Core family
-(`CORE_TAGS`), and a rank-up spends gold + the step's shard + **one Core per tag the card carries** —
-a Beast + Fire card needs both Beast and Fire Cores. `rankUpCost(fromRank, tags)` takes tags, not
-faction, so a card's farm route follows its tags. Cores come in four grades (`CORE_VARIANTS`: lesser
+(`CORE_TAGS` = physical, fire, water, electric, grass, earth, ice, dragon, dark — lowercase ids,
+`tagLabel()` for display), and a rank-up spends gold + the step's shard + **one Core per tag the
+card carries** — a fire + dragon card needs both Fire and Dragon Cores. `rankUpCost(fromRank, tags)`
+takes tags, not faction, so a card's farm route follows its tags. `physical` is the NEUTRAL type: it
+is the fallback tag for a card whose title names no known element, **not** a tag every card carries
+(that was the old `Beast`). Cores come in four grades (`CORE_VARIANTS`: lesser
 → greater → mythic → legendary) and there is **one grade per rank step**: 1→2 lesser, 2→3 greater,
-3→4 mythic, 4→5 legendary. The seeded catalog is `CORE_TAGS.length × CORE_VARIANTS.length` = 44 core
-materials, derived from `tagCoreId()` by `scripts/build-seed.mjs`; `verify-db.sh` asserts 44. Rank-up
+3→4 mythic, 4→5 legendary. The seeded catalog is `CORE_TAGS.length × CORE_VARIANTS.length` = 36 core
+materials, derived from `tagCoreId()` by `scripts/build-seed.mjs`; `verify-db.sh` asserts 36. Rank-up
 no longer uses ore/crystal/essence/boss_core — those rows are no longer seeded (they are not deleted
 from an existing DB, since `player_materials` references them).
 
 Dungeons are farm spots: `dungeons.rank` (1..5, `coreVariantForRank` maps 4 and 5 both to legendary)
-picks the Core grade, and `dungeons.tags` names the Core families. `scripts/import-concept-dungeons.mjs`
+picks the Core grade, and `dungeons.tags` names the Core families (same lowercase tag ids).
+`scripts/import-concept-dungeons.mjs`
 rolls both seeded by name — *after* the stats, deliberately, so re-importing refreshes a dungeon's
 drops without moving its power/timer/gold — and generates `dungeons.materials` from them (the rank's
 shard + one Core per tag). `materials` stays the table the server pays; its `weight` field is legacy

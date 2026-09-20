@@ -3,7 +3,7 @@ import { X } from 'lucide-react'
 
 import { useMaterialCatalog } from '@/features/inventory/api'
 import { formatDuration } from '@/features/dungeons/format'
-import { REWARD_MULT_MAX, REWARD_MULT_MIN, coreVariantForRank } from '@/game/formulas'
+import { REWARD_MULT_MAX, REWARD_MULT_MIN, coreVariantForRank, tagLabel } from '@/game/formulas'
 import type { Dungeon } from '@/types/db'
 
 /** `lesser_fire_core` → `Lesser Fire Core`, for drops missing from the catalog query. */
@@ -84,7 +84,7 @@ export function DungeonResourcesModal({
                   key={tag}
                   className="rounded-card bg-ink-850 px-2 py-1 text-xs text-ink-200"
                 >
-                  {tag}
+                  {tagLabel(tag)}
                 </span>
               ))}
             </div>

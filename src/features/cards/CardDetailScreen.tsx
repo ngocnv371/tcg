@@ -6,7 +6,7 @@ import { useCardCatalog, useCollection, useRankCosts, useRankUpCard } from '@/fe
 import { RankUpOverlay, type RankUpReveal } from '@/features/cards/RankUpOverlay'
 import { useInventory, useMaterialCatalog } from '@/features/inventory/api'
 import { useProfile } from '@/features/profile/api'
-import { RANK_META, cardAtk, cardDef, cardPower, levelUpGold } from '@/game/formulas'
+import { RANK_META, cardAtk, cardDef, cardPower, levelUpGold, tagLabel } from '@/game/formulas'
 import { resolveArtSrc } from '@/lib/art'
 import { cn } from '@/lib/utils'
 
@@ -118,7 +118,7 @@ export function CardDetailScreen() {
           <div className="flex flex-wrap gap-1.5">
             {tags.map((tag) => (
               <span key={tag} className="rounded-card bg-ink-850 px-2 py-1 text-xs text-ink-200">
-                {tag}
+                {tagLabel(tag)}
               </span>
             ))}
           </div>

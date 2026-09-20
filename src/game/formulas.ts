@@ -39,25 +39,30 @@ export const LEVELUP_GOLD_EXP = 1.4
 
 /**
  * Card tags are a card's farming identity: every tag owns a Core family, and a rank-up
- * spends one Core per tag the card carries (a Beast + Fire card needs Beast *and* Fire
- * Cores). This list mirrors the element words the card importer reads out of a concept
- * title (`scripts/import-concept-cards.mjs`) plus the universal `Beast` tag.
+ * spends one Core per tag the card carries (a fire + dragon card needs fire *and* dragon
+ * Cores). Ids are lowercase; `tagLabel` is the display form.
+ *
+ * `physical` is the neutral type, not a type every card carries: a card whose title names
+ * no known element gets it as its ONLY tag, so it still has a Core to farm.
  */
 export const CORE_TAGS = [
-  'Fire',
-  'Water',
-  'Ice',
-  'Earth',
-  'Nature',
-  'Dark',
-  'Light',
-  'Air',
-  'Thunder',
-  'Dragon',
-  'Beast',
+  'physical',
+  'fire',
+  'water',
+  'electric',
+  'grass',
+  'earth',
+  'ice',
+  'dragon',
+  'dark',
 ] as const
 
 export type CoreTag = (typeof CORE_TAGS)[number]
+
+/** `physical` → `Physical`, for chips and the generated material names. */
+export function tagLabel(tag: string): string {
+  return tag.charAt(0).toUpperCase() + tag.slice(1)
+}
 
 /** One grade per rank-up step, weakest first: 1→2 lesser … 4→5 legendary. */
 export const CORE_VARIANTS = ['lesser', 'greater', 'mythic', 'legendary'] as const
@@ -78,7 +83,7 @@ export function tagCoreId(tag: string, variant: CoreVariant): string {
 
 /**
  * The card's tags that own a Core family, in catalog order and deduped. A card whose
- * titles matched no known element still carries `Beast`, so the list is never empty.
+ * title matched no known element carries `physical`, so the list is never empty.
  */
 export function coreTagsForCard(tags: readonly string[]): CoreTag[] {
   const lowered = new Set(tags.map((tag) => tag.toLowerCase()))

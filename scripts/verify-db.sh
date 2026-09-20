@@ -154,9 +154,9 @@ begin
   where not exists (select 1 from public.materials m where m.id = item ->> 'material_id');
   if missing_drops > 0 then raise exception '% dungeon drops reference unknown materials', missing_drops; end if;
 
-  -- one Core material per tag per grade: 11 tags x 4 grades
+  -- one Core material per tag per grade: 9 tags x 4 grades
   select count(*) into core_count from public.materials where kind = 'core';
-  if core_count <> 44 then raise exception 'expected 44 core materials, found %', core_count; end if;
+  if core_count <> 36 then raise exception 'expected 36 core materials, found %', core_count; end if;
 
   -- chest odds must sum to 100 per chest
   perform 1 from (
@@ -281,10 +281,10 @@ begin
     -- scaling the yield (gold and every stack) between 1.0x and 1.5x
     update public.dungeons
       set rank = 1,
-          tags = array['Fire', 'Beast'],
+          tags = array['fire', 'earth'],
           materials = jsonb_build_array(
             jsonb_build_object('material_id', 'lesser_fire_core', 'weight', 50, 'min', 2, 'max', 4),
-            jsonb_build_object('material_id', 'lesser_beast_core', 'weight', 50, 'min', 2, 'max', 4)
+            jsonb_build_object('material_id', 'lesser_earth_core', 'weight', 50, 'min', 2, 'max', 4)
           )
       where id = busy_dungeon;
 
@@ -317,7 +317,7 @@ begin
     if not exists (
       select 1 from public.player_materials
       where profile_id = '00000000-0000-0000-0000-000000000001'
-        and material_id in ('lesser_fire_core', 'lesser_beast_core')
+        and material_id in ('lesser_fire_core', 'lesser_earth_core')
         and qty >= 1
     ) then
       raise exception 'a cleared run paid no materials into the vault';
