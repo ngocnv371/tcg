@@ -9,7 +9,7 @@ import { STAGE_FPS, STAGE_SIZE } from '@/features/chests/unlockLayout'
  * so those only export components (which is what Fast Refresh wants).
  */
 
-/** Frames the single-card reveal runs for. The batch reveal replays it as its first phase. */
+/** Frames the single-card reveal runs for; `CardUnlockAnimation` is composed at this length. */
 export const UNLOCK_DURATION = 150
 /**
  * Frame the fan beat opens on. It sits inside the single-card intro rather than after it, so the
@@ -21,17 +21,23 @@ export const FAN_START = 34
 export const CAPTION_DURATION = 18
 /** The window the extras are staggered across as they take their places in the fan. */
 export const FAN_DURATION = 30
-/** The grid beat opens as the intro caption hands off, so the fan beat no longer delays it. */
-export const SPREAD_START = UNLOCK_DURATION
 /** The grid beat: one second for every card to spread into its slot. */
 export const SPREAD_DURATION = 30
+/**
+ * Frames between the intro caption rising and the cards having finished aligning in the grid. Half
+ * of what the batch spent here before: the extras already land during the intro, so the rest of
+ * that stretch was a still frame under a motionless caption.
+ */
+export const GRID_LEAD_IN = 73
+/** Opens the grid beat so its last frame lands exactly on `FAN_START + GRID_LEAD_IN`. */
+export const SPREAD_START = FAN_START + GRID_LEAD_IN - SPREAD_DURATION
 /** How long the finished grid holds while the total caption rises. */
 export const SETTLE_DURATION = 30
 /**
- * Intro (with the fan inside it), grid beat, settle — so opening ten chests replays that same 5s
+ * Intro (with the fan inside it), grid beat, settle — so opening ten chests replays that same
  * intro once instead of running 5s per card.
  */
-export const BATCH_DURATION = SPREAD_START + SPREAD_DURATION + SETTLE_DURATION
+export const BATCH_DURATION = FAN_START + GRID_LEAD_IN + SETTLE_DURATION
 
 /** Backdrop both reveals render in, so a multi open never jumps to a different stage. */
 export const UNLOCK_STAGE_STYLE: CSSProperties = {

@@ -10,7 +10,6 @@ import {
   SETTLE_DURATION,
   SPREAD_DURATION,
   SPREAD_START,
-  UNLOCK_DURATION,
   UNLOCK_STAGE_STYLE,
   cardReveal,
   rankColor,
@@ -69,7 +68,7 @@ export function CardBatchUnlockAnimation({ cards }: CardBatchUnlockAnimationProp
   // The intro burst would die out mid-reveal; ease a softer glow in so the grid keeps a backdrop.
   const ambience = Math.max(
     burst,
-    interpolate(frame, [UNLOCK_DURATION, BATCH_DURATION], [0, 0.5], {
+    interpolate(frame, [SPREAD_START, BATCH_DURATION], [0, 0.5], {
       extrapolateLeft: 'clamp',
       extrapolateRight: 'clamp',
     }),
@@ -93,7 +92,7 @@ export function CardBatchUnlockAnimation({ cards }: CardBatchUnlockAnimationProp
   // The fan opens on this same frame, so the caption rises onto cards that are already landing.
   const introOpacity =
     interpolate(frame, [FAN_START, FAN_START + CAPTION_DURATION], [0, 1], { extrapolateRight: 'clamp' }) *
-    interpolate(frame, [UNLOCK_DURATION - 10, UNLOCK_DURATION], [1, 0], {
+    interpolate(frame, [SPREAD_START - 10, SPREAD_START], [1, 0], {
       extrapolateLeft: 'clamp',
       extrapolateRight: 'clamp',
     })
