@@ -13,6 +13,8 @@
     "seed:build": "node scripts/build-seed.mjs",
     "idea:cards": "node scripts/idea-cards.mjs",
     "design:cards": "node scripts/design-cards.mjs",
+    "generate:cards": "node scripts/generate-cards.mjs",
+    "adopt:cards": "node scripts/adopt-concept-art.mjs",
     "import:cards": "node scripts/import-concept-cards.mjs --upload-art --import ./data/cards",
     "import:dungeons": "node scripts/import-concept-dungeons.mjs --upload-art --import ./data/dungeons",
     "preview": "vite preview",
