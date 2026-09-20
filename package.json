@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "seed:build": "node scripts/build-seed.mjs",
     "idea:cards": "node scripts/idea-cards.mjs",
+    "design:cards": "node scripts/design-cards.mjs",
     "import:cards": "node scripts/import-concept-cards.mjs --upload-art --import ./data/cards",
     "import:dungeons": "node scripts/import-concept-dungeons.mjs --upload-art --import ./data/dungeons",
     "preview": "vite preview",
