@@ -110,10 +110,16 @@ length plus a negative `animation-delay` for the time already spent — so nothi
 stacks unopened chests by type and offers Open 1/2/5/10: `open_chests`
 spends the oldest rows of that type, calls `open_chest` per chest
 and returns the reveals as an array. The reveal then plays once for the whole open: one card uses
-`CardUnlockAnimation`, more use `CardBatchUnlockAnimation` — the same single-card intro with the
+`CardUnlockAnimation`, more use the *active batch variant* — the same single-card intro with the
 extras fanning in behind it as its caption rises, then everything spreads into a grid (1s), so
 opening ten chests runs 4.6s, not 50s, and the batch's caption counts the whole open
-(`UNLOCK N CARDS`) rather than narrating the first card. Fan/grid geometry is pure maths in `src/features/chests/unlockLayout.ts`, unit tested. A player
+(`UNLOCK N CARDS`) rather than narrating the first card. Fan/grid geometry is pure maths in `src/features/chests/unlockLayout.ts`, unit tested. The multi-chest reveal is swappable:
+`batchVariants.ts` is the registry (`id`, `label`, `note`, `component`, `durationInFrames(count)`),
+`ACTIVE_BATCH_VARIANT` picks the shipped one, and `useBatchVariant()` lets the dev-only picker on
+the Chests screen override it without a rebuild. `fan` (above) is joined by `cascade` (cards dealt
+straight into the grid, one beat each) and `burst` (a pile blown apart into the grid); the two grid
+variants derive their length from the card count, so never hardcode `BATCH_DURATION` for them.
+Adding a variant is one file plus one array entry. A player
 owns multiple copies of one card: `open_chest` inserts a
 `player_cards` row on *every* pull (a duplicate used to pay shards only) and return that row's
 `player_card_id`. The dupe shard payout is deliberately kept so `rank_up_card` stays fed. Because copies

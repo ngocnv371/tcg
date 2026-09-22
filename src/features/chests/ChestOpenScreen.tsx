@@ -6,13 +6,10 @@ import { Panel, Screen } from '@/components/Screen'
 import { useCardCatalog } from '@/features/cards/api'
 import { CardGrid } from '@/features/cards/CardBrowser'
 import { CardTile } from '@/features/cards/CardTile'
-import { CardBatchUnlockAnimation } from '@/features/chests/CardBatchUnlockAnimation'
 import { CardUnlockAnimation } from '@/features/chests/CardUnlockAnimation'
-import {
-  BATCH_DURATION,
-  REVEAL_PLAYER_STAGE,
-  UNLOCK_DURATION,
-} from '@/features/chests/unlockVisuals'
+import { BATCH_VARIANTS, batchVariant, type BatchVariantId } from '@/features/chests/batchVariants'
+import { REVEAL_PLAYER_STAGE, UNLOCK_DURATION } from '@/features/chests/unlockVisuals'
+import { useBatchVariant } from '@/features/chests/useBatchVariant'
 import {
   useChestInventory,
   useClaimDailyChest,
@@ -41,10 +38,20 @@ type RevealState = {
   openings: ChestOpening[]
 }
 
-function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () => void }) {
+function RevealOverlay({
+  reveal,
+  variantId,
+  onClose,
+}: {
+  reveal: RevealState
+  /** Which batch variant plays; a single-card reveal ignores it. */
+  variantId: BatchVariantId
+  onClose: () => void
+}) {
   const playerRef = useRef<PlayerRef>(null)
   const [first] = reveal.openings
   const isBatch = reveal.openings.length > 1
+  const variant = batchVariant(variantId)
 
   useEffect(() => {
     logUnlock('overlay-mounted', {
@@ -105,8 +112,8 @@ function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () =
         <Player
           key={reveal.key}
           ref={playerRef}
-          component={CardBatchUnlockAnimation}
-          durationInFrames={BATCH_DURATION}
+          component={variant.component}
+          durationInFrames={variant.durationInFrames(reveal.openings.length)}
           inputProps={{
             cards: reveal.openings.map((opening) => ({
               artPath: opening.art_path,
@@ -149,6 +156,7 @@ export function ChestOpenScreen() {
   const claimDailyChest = useClaimDailyChest()
   const grantTestChests = useGrantTestChests()
   const openChests = useOpenChests()
+  const { id: batchVariantId, select: selectBatchVariant } = useBatchVariant()
   const [batch, setBatch] = useState<ChestOpening[]>([])
   const [reveal, setReveal] = useState<RevealState | null>(null)
   const unopened = inventory?.filter((chest) => !chest.opened_at) ?? []
@@ -174,7 +182,7 @@ export function ChestOpenScreen() {
         logUnlock('open-result', { chestId, qty, cardIds: openings.map((opening) => opening.card_id) })
         if (!openings.length) return
         setBatch(openings)
-        // One reveal for the whole open: a bulk open fans its extra cards itself instead of
+        // One reveal for the whole open: the batch reveal plays the extra cards itself instead of
         // replaying the single-card animation once per chest.
         setReveal({ key: `${chestId}-${Date.now()}`, openings })
       })
@@ -192,6 +200,29 @@ export function ChestOpenScreen() {
     <>
       <Screen title="Chests" week="Built in week 4" hint="Claim the daily chest, then open it to grow your collection.">
       <div className="space-y-3">
+        {/* Dev-only: pick which multi-chest reveal plays, then open 2+ chests to watch it. The
+            pick survives a reload so the variants can be compared back to back; production always
+            uses `ACTIVE_BATCH_VARIANT`. */}
+        {import.meta.env.DEV ? (
+          <div className="flex flex-wrap items-center gap-1.5 rounded-card border border-dashed border-ink-700 px-2.5 py-1.5">
+            <span className="text-[10px] uppercase tracking-wide text-ink-500">Batch reveal</span>
+            {BATCH_VARIANTS.map((variant) => (
+              <button
+                key={variant.id}
+                type="button"
+                title={variant.note}
+                onClick={() => selectBatchVariant(variant.id)}
+                className={
+                  variant.id === batchVariantId
+                    ? 'rounded-card bg-ink-700 px-2 py-1 text-[11px] text-ink-100'
+                    : 'rounded-card px-2 py-1 text-[11px] text-ink-400'
+                }
+              >
+                {variant.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <Panel title="Vault">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-ink-200">
@@ -310,7 +341,7 @@ export function ChestOpenScreen() {
 
       </div>
       </Screen>
-      {reveal ? <RevealOverlay onClose={closeReveal} reveal={reveal} /> : null}
+      {reveal ? <RevealOverlay onClose={closeReveal} reveal={reveal} variantId={batchVariantId} /> : null}
     </>
   )
 }

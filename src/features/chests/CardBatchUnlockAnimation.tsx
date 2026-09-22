@@ -1,7 +1,9 @@
-import type { CSSProperties } from 'react'
 import { AbsoluteFill, Easing, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion'
 
+import { BatchGridCaption, BatchIntroCaption } from '@/features/chests/BatchCaptions'
 import { UnlockCardFace, UnlockStage } from '@/features/chests/CardUnlockAnimation'
+import type { BatchUnlockProps } from '@/features/chests/batchTypes'
+import { fanPlacements, gridPlacement, type Placement } from '@/features/chests/unlockLayout'
 import {
   BATCH_DURATION,
   CAPTION_DURATION,
@@ -12,44 +14,14 @@ import {
   SPREAD_START,
   UNLOCK_STAGE_STYLE,
   cardReveal,
+  positionedBox,
   rankColor,
 } from '@/features/chests/unlockVisuals'
-import {
-  STAGE_SIZE,
-  fanPlacements,
-  gridMetrics,
-  gridPlacement,
-  type Placement,
-} from '@/features/chests/unlockLayout'
-
-export type BatchUnlockCard = {
-  cardName: string
-  artPath: string | null
-  rank: number
-}
-
-export type CardBatchUnlockAnimationProps = {
-  /** Two or more reveals; the first one keeps the single-card intro. */
-  cards: BatchUnlockCard[]
-}
 
 /** Cost of the extra cards: quick pop as they land, staggered across the fan beat. */
 const EXTRA_SPRING = { damping: 14, mass: 0.7, stiffness: 170 }
 const EXTRA_STAGGER_MAX = 6
 const EXTRA_START_SCALE = 0.55
-/** Gap between the grid block and the caption hung underneath it. */
-const CAPTION_GAP = 26
-
-function positionedBox(placement: Placement, zIndex: number, opacity: number): CSSProperties {
-  return {
-    left: '50%',
-    opacity,
-    position: 'absolute',
-    top: '50%',
-    transform: `translate(-50%, -50%) translate(${placement.x}px, ${placement.y}px) rotate(${placement.rotate}deg) scale(${placement.scale})`,
-    zIndex,
-  }
-}
 
 /**
  * The multi-chest reveal: the first card plays the single-card intro while the rest pop into a fan
@@ -57,7 +29,7 @@ function positionedBox(placement: Placement, zIndex: number, opacity: number): C
  * run together rather than one after the other — then every card spreads into a grid. Positions come
  * from `unlockLayout` so the whole path is deterministic from the frame number alone.
  */
-export function CardBatchUnlockAnimation({ cards }: CardBatchUnlockAnimationProps) {
+export function CardBatchUnlockAnimation({ cards }: BatchUnlockProps) {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
   const [first, ...extras] = cards
@@ -78,7 +50,6 @@ export function CardBatchUnlockAnimation({ cards }: CardBatchUnlockAnimationProp
     extrapolateRight: 'clamp',
   })
   const fan = fanPlacements(extras.length)
-  const metrics = gridMetrics(cards.length)
   const firstSlot = gridPlacement(0, cards.length)
   // The first card holds the stage centre until the spread beat, so the intro is untouched.
   const firstPlacement: Placement = {
@@ -151,37 +122,8 @@ export function CardBatchUnlockAnimation({ cards }: CardBatchUnlockAnimationProp
         />
       </div>
 
-      <div
-        style={{
-          bottom: 28,
-          left: 0,
-          opacity: introOpacity,
-          position: 'absolute',
-          right: 0,
-          textAlign: 'center',
-          transform: `translateY(${introY}px)`,
-        }}
-      >
-        <div style={{ color: '#ffe08a', fontSize: 13, letterSpacing: 2 }}>
-          UNLOCK {cards.length} CARDS
-        </div>
-      </div>
-
-      <div
-        style={{
-          left: 0,
-          opacity: totalOpacity,
-          position: 'absolute',
-          right: 0,
-          textAlign: 'center',
-          // Hung under the grid block, which is centred on the stage.
-          top: STAGE_SIZE.height / 2 + metrics.height / 2 + CAPTION_GAP,
-        }}
-      >
-        <div style={{ color: '#ffe08a', fontSize: 13, letterSpacing: 2 }}>
-          {cards.length} CARDS REVEALED
-        </div>
-      </div>
+      <BatchIntroCaption count={cards.length} opacity={introOpacity} y={introY} />
+      <BatchGridCaption count={cards.length} opacity={totalOpacity} />
     </AbsoluteFill>
   )
 }
