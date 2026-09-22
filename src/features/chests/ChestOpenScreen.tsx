@@ -25,7 +25,7 @@ import { CHEST_ODDS } from '@/game/formulas'
 const CHESTS = ['common', 'rare', 'epic', 'legendary', 'mythic'] as const
 
 /** Bulk-open steps offered per stacked chest type. 1 is the default action. */
-const OPEN_QUANTITIES = [1, 2, 5, 10] as const
+const OPEN_QUANTITIES = [1, 3, 6, 9] as const
 
 /** Best tiers first — the vault is read top-down. */
 const VAULT_ORDER: readonly string[] = [...CHESTS].reverse()
