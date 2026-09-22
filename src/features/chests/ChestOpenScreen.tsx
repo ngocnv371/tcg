@@ -7,9 +7,8 @@ import { useCardCatalog } from '@/features/cards/api'
 import { CardGrid } from '@/features/cards/CardBrowser'
 import { CardTile } from '@/features/cards/CardTile'
 import { CardUnlockAnimation } from '@/features/chests/CardUnlockAnimation'
-import { BATCH_VARIANTS, batchVariant, type BatchVariantId } from '@/features/chests/batchVariants'
+import { batchVariant, pickBatchVariant, type BatchVariantId } from '@/features/chests/batchVariants'
 import { REVEAL_PLAYER_STAGE, UNLOCK_DURATION } from '@/features/chests/unlockVisuals'
-import { useBatchVariant } from '@/features/chests/useBatchVariant'
 import {
   useChestInventory,
   useClaimDailyChest,
@@ -17,7 +16,6 @@ import {
   useOpenChests,
   type ChestOpening,
 } from '@/features/progression/api'
-import { CHEST_ODDS } from '@/game/formulas'
 
 const CHESTS = ['common', 'rare', 'epic', 'legendary', 'mythic'] as const
 
@@ -31,27 +29,30 @@ function logUnlock(event: string, details?: Record<string, unknown>) {
   if (import.meta.env.DEV) console.debug(`[chest-unlock] ${event}`, details ?? {})
 }
 
-type RevealState = {
-  /** Unique per reveal, so the Player remounts between openings. */
-  key: string
-  /** A single chest reveals one card; a bulk open reveals every card in one animation. */
-  openings: ChestOpening[]
-}
+type RevealState =
+  | {
+      /** Unique per reveal, so the Player remounts between openings. */
+      key: string
+      kind: 'single'
+      openings: ChestOpening[]
+    }
+  | {
+      key: string
+      kind: 'batch'
+      /**
+       * Drawn once, here, and never again: the Player's `component` cannot change between renders
+       * of the same animation, so the pick has to be part of the reveal rather than a habit of
+       * the overlay.
+       */
+      variantId: BatchVariantId
+      /** A single chest reveals one card; a bulk open reveals every card in one animation. */
+      openings: ChestOpening[]
+    }
 
-function RevealOverlay({
-  reveal,
-  variantId,
-  onClose,
-}: {
-  reveal: RevealState
-  /** Which batch variant plays; a single-card reveal ignores it. */
-  variantId: BatchVariantId
-  onClose: () => void
-}) {
+function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () => void }) {
   const playerRef = useRef<PlayerRef>(null)
   const [first] = reveal.openings
-  const isBatch = reveal.openings.length > 1
-  const variant = batchVariant(variantId)
+  const batch = reveal.kind === 'batch' ? batchVariant(reveal.variantId) : null
 
   useEffect(() => {
     logUnlock('overlay-mounted', {
@@ -99,7 +100,7 @@ function RevealOverlay({
 
   return (
     <div
-      aria-label={isBatch ? 'New cards unlocked' : 'New card unlocked'}
+      aria-label={batch ? 'New cards unlocked' : 'New card unlocked'}
       aria-modal="true"
       // Any click ends the reveal: the animation is decoration and the cards are already granted,
       // so waiting it out is never load-bearing. The Skip button stays as the hint that it can be cut
@@ -108,12 +109,12 @@ function RevealOverlay({
       onClick={onClose}
       role="dialog"
     >
-      {isBatch ? (
+      {batch ? (
         <Player
           key={reveal.key}
           ref={playerRef}
-          component={variant.component}
-          durationInFrames={variant.durationInFrames(reveal.openings.length)}
+          component={batch.component}
+          durationInFrames={batch.durationInFrames(reveal.openings.length)}
           inputProps={{
             cards: reveal.openings.map((opening) => ({
               artPath: opening.art_path,
@@ -156,7 +157,6 @@ export function ChestOpenScreen() {
   const claimDailyChest = useClaimDailyChest()
   const grantTestChests = useGrantTestChests()
   const openChests = useOpenChests()
-  const { id: batchVariantId, select: selectBatchVariant } = useBatchVariant()
   const [batch, setBatch] = useState<ChestOpening[]>([])
   const [reveal, setReveal] = useState<RevealState | null>(null)
   const unopened = inventory?.filter((chest) => !chest.opened_at) ?? []
@@ -179,12 +179,24 @@ export function ChestOpenScreen() {
     openChests
       .mutateAsync({ chestId, qty })
       .then((openings) => {
-        logUnlock('open-result', { chestId, qty, cardIds: openings.map((opening) => opening.card_id) })
         if (!openings.length) return
-        setBatch(openings)
         // One reveal for the whole open: the batch reveal plays the extra cards itself instead of
-        // replaying the single-card animation once per chest.
-        setReveal({ key: `${chestId}-${Date.now()}`, openings })
+        // replaying the single-card animation once per chest. The variant is drawn here so a bulk
+        // open, and only a bulk open, gets one.
+        const variant = openings.length > 1 ? pickBatchVariant() : null
+        logUnlock('open-result', {
+          chestId,
+          qty,
+          variant: variant?.id,
+          cardIds: openings.map((opening) => opening.card_id),
+        })
+        setBatch(openings)
+        const key = `${chestId}-${Date.now()}`
+        setReveal(
+          variant
+            ? { key, kind: 'batch', openings, variantId: variant.id }
+            : { key, kind: 'single', openings },
+        )
       })
       .catch((error: unknown) => {
         logUnlock('open-error', { chestId, qty, error })
@@ -198,31 +210,8 @@ export function ChestOpenScreen() {
 
   return (
     <>
-      <Screen title="Chests" week="Built in week 4" hint="Claim the daily chest, then open it to grow your collection.">
+      <Screen title="Chests">
       <div className="space-y-3">
-        {/* Dev-only: pick which multi-chest reveal plays, then open 2+ chests to watch it. The
-            pick survives a reload so the variants can be compared back to back; production always
-            uses `ACTIVE_BATCH_VARIANT`. */}
-        {import.meta.env.DEV ? (
-          <div className="flex flex-wrap items-center gap-1.5 rounded-card border border-dashed border-ink-700 px-2.5 py-1.5">
-            <span className="text-[10px] uppercase tracking-wide text-ink-500">Batch reveal</span>
-            {BATCH_VARIANTS.map((variant) => (
-              <button
-                key={variant.id}
-                type="button"
-                title={variant.note}
-                onClick={() => selectBatchVariant(variant.id)}
-                className={
-                  variant.id === batchVariantId
-                    ? 'rounded-card bg-ink-700 px-2 py-1 text-[11px] text-ink-100'
-                    : 'rounded-card px-2 py-1 text-[11px] text-ink-400'
-                }
-              >
-                {variant.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
         <Panel title="Vault">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-ink-200">
@@ -319,29 +308,9 @@ export function ChestOpenScreen() {
           ) : null}
           {actionError ? <p className="mt-3 text-xs text-faction-ember">{actionError.message}</p> : null}
         </Panel>
-
-        <Panel title="Published odds">
-          <ul className="space-y-1.5 text-xs">
-            {CHESTS.map((chest) => (
-              <li key={chest} className="flex items-baseline justify-between gap-2">
-                <span className="capitalize text-ink-100">{chest}</span>
-                <span className="tabular-nums text-ink-400">
-                  {Object.entries(CHEST_ODDS[chest])
-                    .map(([rank, weight]) => `${rank}★ ${weight}%`)
-                    .join(' · ')}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-xs text-ink-600">
-            The client never rolls. Opening calls the <code>open_chest</code> function and writes the
-            result to <code>pull_history</code>.
-          </p>
-        </Panel>
-
       </div>
       </Screen>
-      {reveal ? <RevealOverlay onClose={closeReveal} reveal={reveal} variantId={batchVariantId} /> : null}
+      {reveal ? <RevealOverlay onClose={closeReveal} reveal={reveal} /> : null}
     </>
   )
 }

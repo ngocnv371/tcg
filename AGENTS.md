@@ -114,12 +114,13 @@ and returns the reveals as an array. The reveal then plays once for the whole op
 extras fanning in behind it as its caption rises, then everything spreads into a grid (1s), so
 opening ten chests runs 4.6s, not 50s, and the batch's caption counts the whole open
 (`UNLOCK N CARDS`) rather than narrating the first card. Fan/grid geometry is pure maths in `src/features/chests/unlockLayout.ts`, unit tested. The multi-chest reveal is swappable:
-`batchVariants.ts` is the registry (`id`, `label`, `note`, `component`, `durationInFrames(count)`),
-`ACTIVE_BATCH_VARIANT` picks the shipped one, and `useBatchVariant()` lets the dev-only picker on
-the Chests screen override it without a rebuild. `fan` (above) is joined by `cascade` (cards dealt
-straight into the grid, one beat each) and `burst` (a pile blown apart into the grid); the two grid
-variants derive their length from the card count, so never hardcode `BATCH_DURATION` for them.
-Adding a variant is one file plus one array entry. A player
+`batchVariants.ts` is the registry (`id`, `label`, `component`, `durationInFrames(count)`) and
+`pickBatchVariant()` draws one per bulk open — the draw belongs in `handleOpen`, where the reveal is
+created, and never in the render, because the Player's `component` must not change mid-animation.
+`fan` (above) is joined by `cascade` (cards dealt straight into the grid, one beat each) and `burst`
+(a pile blown apart into the grid); the two grid variants derive their length from the card count,
+so never hardcode `BATCH_DURATION` for them. Adding a variant is one file plus one array entry. The
+draw is client-side on purpose: it picks presentation only, unlike a drop roll. A player
 owns multiple copies of one card: `open_chest` inserts a
 `player_cards` row on *every* pull (a duplicate used to pay shards only) and return that row's
 `player_card_id`. The dupe shard payout is deliberately kept so `rank_up_card` stays fed. Because copies
