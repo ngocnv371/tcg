@@ -4,9 +4,11 @@
  * scripts/cards-3-render.mjs renders. Rows are turned into `Card` records (src/types/db.ts)
  * and, optionally, upserted straight into Supabase with a service-role token.
  *
- * The CSV is the source of truth for id / name / lore / tags / rank / role / passives; whatever
- * a row leaves blank is derived here (tags from the title, rank from the tag count, role and
- * passives by hash on the id) so a half-filled idea row can still import. Only rows whose
+ * The CSV is the source of truth for id / name / lore / tags / role / passives; whatever a row
+ * leaves blank is derived here (tags from the title, role and passives by hash on the id) so a
+ * half-filled idea row can still import. A card's rank is deliberately NOT read from the CSV:
+ * every catalog card is a rank-1 base, and the rank a chest rolls belongs to the *copy* that
+ * reveal grants, not to the template. Only rows whose
  * `<id>.png` actually exists in the art folder are imported — a row with no art is still an
  * idea, not content, and shipping it would put a placeholder in the catalog. The legacy
  * `<Title>.json` sidecars are NOT read: they are kept as provenance of how the first cards were
@@ -214,8 +216,9 @@ export function buildCardRecord(row, { index = 0, existingIds = new Set() } = {}
   // First tag that actually has an affinity — a Light+Dark card is umbral, not neutral.
   const faction = tags.map((tag) => TAG_TO_FACTION[tag]).find(Boolean) ?? 'verdant'
 
-  const rowRank = Number(row.rank)
-  const rank = RANK_META[rowRank] ? rowRank : elements.length >= 2 ? 2 : 1
+  // Rank 1 for every card. The catalog row is a template: a copy's rank is decided by the chest
+  // that grants it (or by rank_up_card), so neither the CSV's rank cell nor the tag count sets it.
+  const rank = 1
   const meta = RANK_META[rank]
 
   // The id names the art file, so the CSV owns it; only a hand-written row needs one minted.
@@ -337,7 +340,9 @@ export async function uploadArtToSupabase(admin, imagePath, id) {
 export function buildRankCostRows(cards) {
   const rows = []
   for (const card of cards) {
-    for (let from = Number(card.rank); from < 5; from += 1) {
+    // The ladder always starts at the base rank, never at the catalog row's rank: a copy can be
+    // granted at any rank, and one granted at 1★ still needs a 1★ -> 2★ step to spend.
+    for (let from = 1; from < 5; from += 1) {
       const cost = rankUpCost(from, card.tags ?? [])
       rows.push({
         card_id: card.id,

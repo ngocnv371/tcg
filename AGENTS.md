@@ -58,9 +58,12 @@ export folder straight into rows.
 | 4 import | `scripts/cards-4-import.mjs` | `npm run cards:4:import` | `data/cards.csv` + `data/cards/<id>.png` | `cards` + `card_rank_costs`, `card-art` bucket |
 
 `npm run seed:build` reads none of it. Step 4 fills whatever a row leaves blank (tags from the
-title, rank from the tag count, role and passives hashed from the id) and always re-derives
-`base_atk`/`base_def` from `RANK_META`, so the CSV's stats stay a sketch instead of a second
-balance table. Art is looked up by card id, never by a json sidecar, and **only rows whose
+title, role and passives hashed from the id) and always re-derives `base_atk`/`base_def` from
+`RANK_META`, so the CSV's stats stay a sketch instead of a second balance table. **Every catalog
+card is a rank-1 base**: the importer writes `rank = 1` and ignores the CSV's `rank` cell, because
+a card's rank belongs to the *copy* a chest grants (or to whatever `rank_up_card` last left it),
+never to the template — so the drop pool is the whole catalog, and `card_rank_costs` is built from
+1 for every card. Art is looked up by card id, never by a json sidecar, and **only rows whose
 `<id>.png` exists are imported** — a row with no art is still an idea, so it is skipped with a
 warning rather than shipped with a placeholder. The `<Title>.json` files in `data/cards/` are
 provenance from before this pipeline existed (the first 39 cards were moved into the CSV by

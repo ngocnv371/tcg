@@ -7,7 +7,9 @@ import { useCardCatalog } from '@/features/cards/api'
 import { CardGrid } from '@/features/cards/CardBrowser'
 import { CardTile } from '@/features/cards/CardTile'
 import { CardUnlockAnimation } from '@/features/chests/CardUnlockAnimation'
+import { ChestOpenErrorModal } from '@/features/chests/ChestOpenErrorModal'
 import { batchVariant, pickBatchVariant, type BatchVariantId } from '@/features/chests/batchVariants'
+import { describeChestOpenFailure, type ChestOpenFailure } from '@/features/chests/openError'
 import { REVEAL_PLAYER_STAGE, UNLOCK_DURATION } from '@/features/chests/unlockVisuals'
 import {
   useChestInventory,
@@ -159,6 +161,9 @@ export function ChestOpenScreen() {
   const openChests = useOpenChests()
   const [batch, setBatch] = useState<ChestOpening[]>([])
   const [reveal, setReveal] = useState<RevealState | null>(null)
+  // Described once, at the moment of the failure: the modal has to outlive `openChests.error`,
+  // which TanStack clears as soon as the next open starts.
+  const [openFailure, setOpenFailure] = useState<ChestOpenFailure | null>(null)
   const unopened = inventory?.filter((chest) => !chest.opened_at) ?? []
 
   // Stacked chests collapse to one row per type; anything not in the catalog
@@ -200,10 +205,12 @@ export function ChestOpenScreen() {
       })
       .catch((error: unknown) => {
         logUnlock('open-error', { chestId, qty, error })
+        setOpenFailure(describeChestOpenFailure(error))
       })
   }
 
-  const actionError = error ?? claimDailyChest.error ?? grantTestChests.error ?? openChests.error
+  // An open fails as a whole action, so it gets a modal rather than this line.
+  const actionError = error ?? claimDailyChest.error ?? grantTestChests.error
 
   // Reveals render as library tiles, so they need the catalog rows (already cached by `['cards']`).
   const cardById = new Map((catalog ?? []).map((card) => [card.id, card]))
@@ -311,6 +318,9 @@ export function ChestOpenScreen() {
       </div>
       </Screen>
       {reveal ? <RevealOverlay onClose={closeReveal} reveal={reveal} /> : null}
+      {openFailure ? (
+        <ChestOpenErrorModal failure={openFailure} onClose={() => setOpenFailure(null)} />
+      ) : null}
     </>
   )
 }
