@@ -1,4 +1,4 @@
--- Run-finished notifications (plan §1 IN list, §5 week 7).
+-- Run-finished notifications.
 --
 -- The client only ever *registers* an endpoint. Whether a message is worth sending is
 -- decided by the database, on the same `resolved_at` transition that pays the run, so the

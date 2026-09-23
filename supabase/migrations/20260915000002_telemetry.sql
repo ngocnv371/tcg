@@ -1,4 +1,4 @@
--- Telemetry — the numbers the week-11 balance pass reads (plan §5, §9).
+-- Telemetry — the numbers the balance pass reads.
 --
 -- Two sources, deliberately split by how much they can be trusted:
 --

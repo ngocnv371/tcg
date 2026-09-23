@@ -2,8 +2,8 @@ import { useSession } from './useSession'
 import { SignInScreen } from './SignInScreen'
 
 /**
- * Week 2 deliverable: everything behind the shell requires a session, and the
- * profile row is created by the `handle_new_user` trigger in the init migration.
+ * Everything behind the shell requires a session, and the profile row is created
+ * by the `handle_new_user` trigger in the init migration.
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, loading } = useSession()

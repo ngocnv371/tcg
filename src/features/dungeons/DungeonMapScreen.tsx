@@ -94,7 +94,6 @@ export function DungeonMapScreen() {
   return (
     <Screen
       title="Dungeons"
-      week="Built in weeks 6–7"
       hint="Start a run, close the app, get paid on return."
     >
       {error ? (

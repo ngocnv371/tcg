@@ -1,5 +1,5 @@
 /**
- * Balance v1 — the numbers from the execution plan (§6), as code.
+ * Balance v1 — the tuned economy numbers, as code.
  *
  * These values are the source of truth for the CLIENT-side preview only
  * (what a player sees before committing). The authoritative copies live in

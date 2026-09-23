@@ -5,8 +5,6 @@ Context for AI coding agents (Claude Code, Codex, others) working in this repo.
 ## What this is
 
 An idle collection RPG (cards → chests → timed dungeon runs → rank-ups) at vertical-slice stage.
-The full plan is in the Obsidian vault: `Projects/TCG 2/1 Execution Plan.md`. Read it before
-proposing scope.
 
 ## Hard rules — do not violate these
 
@@ -23,8 +21,8 @@ proposing scope.
 4. **Never edit the balance numbers in two places.** `src/game/formulas.ts` is the source for the
    constants; the migration's SQL functions mirror them. If you change one, change both and update
    `src/game/formulas.test.ts`.
-5. **Never add a system from the plan's OUT list** (payments, battle pass, PvP, guilds, trading,
-   events, daily quests, skins). Ideas go to §11 of the plan note.
+5. **Never add an out-of-scope system** (payments, battle pass, PvP, guilds, trading,
+   events, daily quests, skins). Park the idea; do not build it.
 6. **Never let the client decide what counts as progression telemetry.** Rows with
    `telemetry_events.source = 'server'` are written by triggers on `pull_history`,
    `dungeon_runs` and `player_cards`. `track_event` accepts only `app_open` and
@@ -172,8 +170,8 @@ and unread. `DungeonMapScreen` shows the tags on each card and a **Resources** b
 `DungeonResourcesModal`, which lists what the dungeon yields (gold and stack ranges at ×1.00–×1.50,
 Core grade, chest, timer) so a player can target-farm a specific card's Cores.
 
-Next up: the week-9 first-session script (free Rare chest → guaranteed 3★ starter → guided
-5-min run → guided rank-up) and the week-12 balance pass.
+Next up: the first-session script (free Rare chest → guaranteed 3★ starter → guided
+5-min run → guided rank-up) and the balance pass.
 
 Scope decisions, 2026-09-20 — do not re-add these without asking:
 
@@ -186,8 +184,8 @@ Scope decisions, 2026-09-20 — do not re-add these without asking:
   columns and the table are left in place because removing them touches the importer, the
   seed and the balance mirror for no gameplay gain.
 
-Notifications and telemetry (weeks 7 and 10–11, brought forward because the week-12 balance
-pass has nothing to read without them):
+Notifications and telemetry (brought forward because the balance pass has nothing to
+read without them):
 
 - `telemetry_events` (`20260915000002_telemetry.sql`) is append-only and split by trust.
   `source = 'server'` rows come from triggers on `pull_history` (a pull), `dungeon_runs`
