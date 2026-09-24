@@ -6,13 +6,11 @@ import { Panel, Screen } from '@/components/Screen'
 import { useCardCatalog } from '@/features/cards/api'
 import { CardGrid } from '@/features/cards/CardBrowser'
 import { CardTile } from '@/features/cards/CardTile'
-import { CardBatchUnlockAnimation } from '@/features/chests/CardBatchUnlockAnimation'
 import { CardUnlockAnimation } from '@/features/chests/CardUnlockAnimation'
-import {
-  BATCH_DURATION,
-  REVEAL_PLAYER_STAGE,
-  UNLOCK_DURATION,
-} from '@/features/chests/unlockVisuals'
+import { ChestOpenErrorModal } from '@/features/chests/ChestOpenErrorModal'
+import { batchVariant, pickBatchVariant, type BatchVariantId } from '@/features/chests/batchVariants'
+import { describeChestOpenFailure, type ChestOpenFailure } from '@/features/chests/openError'
+import { REVEAL_PLAYER_STAGE, UNLOCK_DURATION } from '@/features/chests/unlockVisuals'
 import {
   useChestInventory,
   useClaimDailyChest,
@@ -20,12 +18,11 @@ import {
   useOpenChests,
   type ChestOpening,
 } from '@/features/progression/api'
-import { CHEST_ODDS } from '@/game/formulas'
 
 const CHESTS = ['common', 'rare', 'epic', 'legendary', 'mythic'] as const
 
 /** Bulk-open steps offered per stacked chest type. 1 is the default action. */
-const OPEN_QUANTITIES = [1, 2, 5, 10] as const
+const OPEN_QUANTITIES = [1, 3, 6, 9] as const
 
 /** Best tiers first — the vault is read top-down. */
 const VAULT_ORDER: readonly string[] = [...CHESTS].reverse()
@@ -34,17 +31,30 @@ function logUnlock(event: string, details?: Record<string, unknown>) {
   if (import.meta.env.DEV) console.debug(`[chest-unlock] ${event}`, details ?? {})
 }
 
-type RevealState = {
-  /** Unique per reveal, so the Player remounts between openings. */
-  key: string
-  /** A single chest reveals one card; a bulk open reveals every card in one animation. */
-  openings: ChestOpening[]
-}
+type RevealState =
+  | {
+      /** Unique per reveal, so the Player remounts between openings. */
+      key: string
+      kind: 'single'
+      openings: ChestOpening[]
+    }
+  | {
+      key: string
+      kind: 'batch'
+      /**
+       * Drawn once, here, and never again: the Player's `component` cannot change between renders
+       * of the same animation, so the pick has to be part of the reveal rather than a habit of
+       * the overlay.
+       */
+      variantId: BatchVariantId
+      /** A single chest reveals one card; a bulk open reveals every card in one animation. */
+      openings: ChestOpening[]
+    }
 
 function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () => void }) {
   const playerRef = useRef<PlayerRef>(null)
   const [first] = reveal.openings
-  const isBatch = reveal.openings.length > 1
+  const batch = reveal.kind === 'batch' ? batchVariant(reveal.variantId) : null
 
   useEffect(() => {
     logUnlock('overlay-mounted', {
@@ -92,23 +102,26 @@ function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () =
 
   return (
     <div
-      aria-label={isBatch ? 'New cards unlocked' : 'New card unlocked'}
+      aria-label={batch ? 'New cards unlocked' : 'New card unlocked'}
       aria-modal="true"
+      // Any click ends the reveal: the animation is decoration and the cards are already granted,
+      // so waiting it out is never load-bearing. The Skip button stays as the hint that it can be cut
+      // short (and as the focusable/keyboard path to the same thing).
       className="fixed inset-0 z-50 grid place-items-center bg-ink-950"
+      onClick={onClose}
       role="dialog"
     >
-      {isBatch ? (
+      {batch ? (
         <Player
           key={reveal.key}
           ref={playerRef}
-          component={CardBatchUnlockAnimation}
-          durationInFrames={BATCH_DURATION}
+          component={batch.component}
+          durationInFrames={batch.durationInFrames(reveal.openings.length)}
           inputProps={{
             cards: reveal.openings.map((opening) => ({
               artPath: opening.art_path,
               cardName: opening.card_name,
               rank: opening.rank,
-              wasNew: opening.was_new,
             })),
           }}
           {...REVEAL_PLAYER_STAGE}
@@ -148,6 +161,9 @@ export function ChestOpenScreen() {
   const openChests = useOpenChests()
   const [batch, setBatch] = useState<ChestOpening[]>([])
   const [reveal, setReveal] = useState<RevealState | null>(null)
+  // Described once, at the moment of the failure: the modal has to outlive `openChests.error`,
+  // which TanStack clears as soon as the next open starts.
+  const [openFailure, setOpenFailure] = useState<ChestOpenFailure | null>(null)
   const unopened = inventory?.filter((chest) => !chest.opened_at) ?? []
 
   // Stacked chests collapse to one row per type; anything not in the catalog
@@ -168,26 +184,40 @@ export function ChestOpenScreen() {
     openChests
       .mutateAsync({ chestId, qty })
       .then((openings) => {
-        logUnlock('open-result', { chestId, qty, cardIds: openings.map((opening) => opening.card_id) })
         if (!openings.length) return
+        // One reveal for the whole open: the batch reveal plays the extra cards itself instead of
+        // replaying the single-card animation once per chest. The variant is drawn here so a bulk
+        // open, and only a bulk open, gets one.
+        const variant = openings.length > 1 ? pickBatchVariant() : null
+        logUnlock('open-result', {
+          chestId,
+          qty,
+          variant: variant?.id,
+          cardIds: openings.map((opening) => opening.card_id),
+        })
         setBatch(openings)
-        // One reveal for the whole open: a bulk open fans its extra cards itself instead of
-        // replaying the single-card animation once per chest.
-        setReveal({ key: `${chestId}-${Date.now()}`, openings })
+        const key = `${chestId}-${Date.now()}`
+        setReveal(
+          variant
+            ? { key, kind: 'batch', openings, variantId: variant.id }
+            : { key, kind: 'single', openings },
+        )
       })
       .catch((error: unknown) => {
         logUnlock('open-error', { chestId, qty, error })
+        setOpenFailure(describeChestOpenFailure(error))
       })
   }
 
-  const actionError = error ?? claimDailyChest.error ?? grantTestChests.error ?? openChests.error
+  // An open fails as a whole action, so it gets a modal rather than this line.
+  const actionError = error ?? claimDailyChest.error ?? grantTestChests.error
 
   // Reveals render as library tiles, so they need the catalog rows (already cached by `['cards']`).
   const cardById = new Map((catalog ?? []).map((card) => [card.id, card]))
 
   return (
     <>
-      <Screen title="Chests" week="Built in week 4" hint="Claim the daily chest, then open it to grow your collection.">
+      <Screen title="Chests">
       <div className="space-y-3">
         <Panel title="Vault">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -285,29 +315,12 @@ export function ChestOpenScreen() {
           ) : null}
           {actionError ? <p className="mt-3 text-xs text-faction-ember">{actionError.message}</p> : null}
         </Panel>
-
-        <Panel title="Published odds">
-          <ul className="space-y-1.5 text-xs">
-            {CHESTS.map((chest) => (
-              <li key={chest} className="flex items-baseline justify-between gap-2">
-                <span className="capitalize text-ink-100">{chest}</span>
-                <span className="tabular-nums text-ink-400">
-                  {Object.entries(CHEST_ODDS[chest])
-                    .map(([rank, weight]) => `${rank}★ ${weight}%`)
-                    .join(' · ')}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-xs text-ink-600">
-            The client never rolls. Opening calls the <code>open_chest</code> function and writes the
-            result to <code>pull_history</code>.
-          </p>
-        </Panel>
-
       </div>
       </Screen>
       {reveal ? <RevealOverlay onClose={closeReveal} reveal={reveal} /> : null}
+      {openFailure ? (
+        <ChestOpenErrorModal failure={openFailure} onClose={() => setOpenFailure(null)} />
+      ) : null}
     </>
   )
 }

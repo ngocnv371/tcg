@@ -5,8 +5,6 @@ Context for AI coding agents (Claude Code, Codex, others) working in this repo.
 ## What this is
 
 An idle collection RPG (cards → chests → timed dungeon runs → rank-ups) at vertical-slice stage.
-The full plan is in the Obsidian vault: `Projects/TCG 2/1 Execution Plan.md`. Read it before
-proposing scope.
 
 ## Hard rules — do not violate these
 
@@ -23,8 +21,8 @@ proposing scope.
 4. **Never edit the balance numbers in two places.** `src/game/formulas.ts` is the source for the
    constants; the migration's SQL functions mirror them. If you change one, change both and update
    `src/game/formulas.test.ts`.
-5. **Never add a system from the plan's OUT list** (payments, battle pass, PvP, guilds, trading,
-   events, daily quests, skins). Ideas go to §11 of the plan note.
+5. **Never add an out-of-scope system** (payments, battle pass, PvP, guilds, trading,
+   events, daily quests, skins). Park the idea; do not build it.
 6. **Never let the client decide what counts as progression telemetry.** Rows with
    `telemetry_events.source = 'server'` are written by triggers on `pull_history`,
    `dungeon_runs` and `player_cards`. `track_event` accepts only `app_open` and
@@ -58,9 +56,12 @@ export folder straight into rows.
 | 4 import | `scripts/cards-4-import.mjs` | `npm run cards:4:import` | `data/cards.csv` + `data/cards/<id>.png` | `cards` + `card_rank_costs`, `card-art` bucket |
 
 `npm run seed:build` reads none of it. Step 4 fills whatever a row leaves blank (tags from the
-title, rank from the tag count, role and passives hashed from the id) and always re-derives
-`base_atk`/`base_def` from `RANK_META`, so the CSV's stats stay a sketch instead of a second
-balance table. Art is looked up by card id, never by a json sidecar, and **only rows whose
+title, role and passives hashed from the id) and always re-derives `base_atk`/`base_def` from
+`RANK_META`, so the CSV's stats stay a sketch instead of a second balance table. **Every catalog
+card is a rank-1 base**: the importer writes `rank = 1` and ignores the CSV's `rank` cell, because
+a card's rank belongs to the *copy* a chest grants (or to whatever `rank_up_card` last left it),
+never to the template — so the drop pool is the whole catalog, and `card_rank_costs` is built from
+1 for every card. Art is looked up by card id, never by a json sidecar, and **only rows whose
 `<id>.png` exists are imported** — a row with no art is still an idea, so it is skipped with a
 warning rather than shipped with a placeholder. The `<Title>.json` files in `data/cards/` are
 provenance from before this pipeline existed (the first 39 cards were moved into the CSV by
@@ -110,9 +111,17 @@ length plus a negative `animation-delay` for the time already spent — so nothi
 stacks unopened chests by type and offers Open 1/2/5/10: `open_chests`
 spends the oldest rows of that type, calls `open_chest` per chest
 and returns the reveals as an array. The reveal then plays once for the whole open: one card uses
-`CardUnlockAnimation`, more use `CardBatchUnlockAnimation` — the same single-card intro, then the
-extras fan in behind it (1s) and everything spreads into a grid (1s), so opening ten chests runs 7s,
-not 50s. Fan/grid geometry is pure maths in `src/features/chests/unlockLayout.ts`, unit tested. A player
+`CardUnlockAnimation`, more use the *active batch variant* — the same single-card intro with the
+extras fanning in behind it as its caption rises, then everything spreads into a grid (1s), so
+opening ten chests runs 4.6s, not 50s, and the batch's caption counts the whole open
+(`UNLOCK N CARDS`) rather than narrating the first card. Fan/grid geometry is pure maths in `src/features/chests/unlockLayout.ts`, unit tested. The multi-chest reveal is swappable:
+`batchVariants.ts` is the registry (`id`, `label`, `component`, `durationInFrames(count)`) and
+`pickBatchVariant()` draws one per bulk open — the draw belongs in `handleOpen`, where the reveal is
+created, and never in the render, because the Player's `component` must not change mid-animation.
+`fan` (above) is joined by `cascade` (cards dealt straight into the grid, one beat each) and `burst`
+(a pile blown apart into the grid); the two grid variants derive their length from the card count,
+so never hardcode `BATCH_DURATION` for them. Adding a variant is one file plus one array entry. The
+draw is client-side on purpose: it picks presentation only, unlike a drop roll. A player
 owns multiple copies of one card: `open_chest` inserts a
 `player_cards` row on *every* pull (a duplicate used to pay shards only) and return that row's
 `player_card_id`. The dupe shard payout is deliberately kept so `rank_up_card` stays fed. Because copies
@@ -161,8 +170,8 @@ and unread. `DungeonMapScreen` shows the tags on each card and a **Resources** b
 `DungeonResourcesModal`, which lists what the dungeon yields (gold and stack ranges at ×1.00–×1.50,
 Core grade, chest, timer) so a player can target-farm a specific card's Cores.
 
-Next up: the week-9 first-session script (free Rare chest → guaranteed 3★ starter → guided
-5-min run → guided rank-up) and the week-12 balance pass.
+Next up: the first-session script (free Rare chest → guaranteed 3★ starter → guided
+5-min run → guided rank-up) and the balance pass.
 
 Scope decisions, 2026-09-20 — do not re-add these without asking:
 
@@ -175,8 +184,8 @@ Scope decisions, 2026-09-20 — do not re-add these without asking:
   columns and the table are left in place because removing them touches the importer, the
   seed and the balance mirror for no gameplay gain.
 
-Notifications and telemetry (weeks 7 and 10–11, brought forward because the week-12 balance
-pass has nothing to read without them):
+Notifications and telemetry (brought forward because the balance pass has nothing to
+read without them):
 
 - `telemetry_events` (`20260915000002_telemetry.sql`) is append-only and split by trust.
   `source = 'server'` rows come from triggers on `pull_history` (a pull), `dungeon_runs`

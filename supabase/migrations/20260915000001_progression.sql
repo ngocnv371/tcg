@@ -22,10 +22,11 @@ declare
   starter_party_id uuid;
 begin
   if not exists (select 1 from public.player_cards where profile_id = p_profile_id) then
+    -- The starter copies are rank 1 like every other copy: a catalog row carries no rank of its
+    -- own, so the first cards in catalog order are as good as any.
     insert into public.player_cards (profile_id, card_id, level, rank)
-    select p_profile_id, c.id, 1, c.rank
+    select p_profile_id, c.id, 1, 1
     from public.cards c
-    where c.rank = 1
     order by c.sort_order, c.id
     limit 5;
   end if;
@@ -185,8 +186,11 @@ begin
   end loop;
   if selected_rank is null then raise exception 'chest has no odds'; end if;
 
-  select * into selected_card from public.cards where rank = selected_rank order by random() limit 1;
-  if not found then raise exception 'chest rank has no cards'; end if;
+  -- Every catalog card is a rank-1 base and the rolled rank is the *copy's* rank, so the pool is
+  -- the whole catalog. Filtering it by the rolled rank would make a 3★ roll depend on the catalog
+  -- happening to hold a 3★ row — a content accident, not a rule.
+  select * into selected_card from public.cards order by random() limit 1;
+  if not found then raise exception 'card catalog is empty'; end if;
 
   -- Ownership is per (profile_id, card_id) and never per rank: a 3★ roll of a card you
   -- already own at 1★ is still a duplicate, not a new card.

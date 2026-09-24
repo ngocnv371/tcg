@@ -107,7 +107,7 @@ export function CardDetailScreen() {
   }
 
   return (
-    <Screen title={card.name} week="Built in weeks 3 + 8" hint={`${rank}★ · ${card.faction} · ${card.role}`}>
+    <Screen title={card.name} hint={`${rank}★ · ${card.faction} · ${card.role}`}>
       <div className="space-y-3">
         {artSrc ? (
           <div className="aspect-3/4 w-full overflow-hidden rounded-card bg-ink-850">
@@ -139,7 +139,7 @@ export function CardDetailScreen() {
             <dd className="tabular-nums">{levelUpGold(level)} gold</dd>
           </dl>
           {owned ? null : (
-            <p className="mt-3 text-xs text-ink-400">Not in your collection yet — open a chest (week 4).</p>
+            <p className="mt-3 text-xs text-ink-400">Not in your collection yet — open a chest to find one.</p>
           )}
         </Panel>
 

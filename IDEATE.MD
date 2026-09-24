@@ -1,4 +1,5 @@
-Take an animal, add 1-2 elements and give them a habitat. for example: fire cat of the plains
+Take an animal, add 1-2 elements and name it "{animal} of {element} and {element}" — the animal
+leads so the catalog sorts by species. for example: cat of fire
 
 Then we can roll the stats:
 
@@ -9,15 +10,14 @@ All cards start out at rank 1 and can only rank up via in game mechanics.
 
 # elements
 
-- Physical
-- Fire
-- Water
+- Fire
+- Water
 - Ice
 - Grass
-- Electric
-- Dark
-- Dragon
-- Earth
+- Electric
+- Dark
+- Dragon
+- Earth
 
 # base animals
 
@@ -46,17 +46,3 @@ All cards start out at rank 1 and can only rank up via in game mechanics.
 - Otter
 - Owl
 - Eagle
-
-# habitats
-
-- Desert
-- River
-- Tundra
-- Forest
-- Mountain
-- Ruins
-- Swamp
-- Volcano
-- Plains
-- Crypts
-- Caves

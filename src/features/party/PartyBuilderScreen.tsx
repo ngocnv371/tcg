@@ -36,7 +36,6 @@ export function PartyBuilderScreen() {
   return (
     <Screen
       title="Party Builder"
-      week="Built in week 5"
       hint={`${slots} concurrent runs unlocked at level ${profile?.player_level ?? 1}`}
     >
       <div className="space-y-3">

@@ -3,6 +3,7 @@ import { useState, type CSSProperties } from 'react'
 import { Panel, Screen } from '@/components/Screen'
 import { DungeonResourcesModal } from '@/features/dungeons/DungeonResourcesModal'
 import { RunRewardsModal } from '@/features/dungeons/RunRewardsModal'
+import { RunVictoryOverlay, type RunVictory } from '@/features/dungeons/RunVictoryOverlay'
 import { StartRunModal } from '@/features/dungeons/StartRunModal'
 import { useDungeons, useRuns } from '@/features/dungeons/api'
 import { formatDuration } from '@/features/dungeons/format'
@@ -79,6 +80,8 @@ export function DungeonMapScreen() {
   const { data: runs } = useRuns()
   const claimRun = useClaimRun()
   const [claim, setClaim] = useState<RunClaim | null>(null)
+  /** The claim celebration, played once before the settlement panel. */
+  const [victory, setVictory] = useState<RunVictory | null>(null)
   /** The dungeon whose party picker is open — at most one at a time. */
   const [picking, setPicking] = useState<Dungeon | null>(null)
   /** The dungeon whose resource yield is on screen — also one at a time. */
@@ -91,7 +94,6 @@ export function DungeonMapScreen() {
   return (
     <Screen
       title="Dungeons"
-      week="Built in weeks 6–7"
       hint="Start a run, close the app, get paid on return."
     >
       {error ? (
@@ -167,7 +169,16 @@ export function DungeonMapScreen() {
                           type="button"
                           className="mt-2 w-full rounded-card bg-gold-500 px-3 py-2 text-xs font-medium text-ink-950 disabled:opacity-50"
                           disabled={claimRun.isPending}
-                          onClick={() => claimRun.mutate(run.id, { onSuccess: setClaim })}
+                          onClick={() =>
+                            claimRun.mutate(run.id, {
+                              // Celebrate first, settle second: the panel opens once the
+                              // victory animation has been dismissed.
+                              onSuccess: (result) => {
+                                setClaim(result)
+                                setVictory({ claim: result, dungeon, key: run.id, run })
+                              },
+                            })
+                          }
                         >
                           Claim
                         </button>
@@ -211,7 +222,11 @@ export function DungeonMapScreen() {
       {resources ? (
         <DungeonResourcesModal dungeon={resources} onClose={() => setResources(null)} />
       ) : null}
-      {claim ? <RunRewardsModal claim={claim} onClose={() => setClaim(null)} /> : null}
+      {victory ? (
+        <RunVictoryOverlay victory={victory} onClose={() => setVictory(null)} />
+      ) : null}
+      {/* Held back until the celebration is over, so the two never stack. */}
+      {claim && !victory ? <RunRewardsModal claim={claim} onClose={() => setClaim(null)} /> : null}
     </Screen>
   )
 }

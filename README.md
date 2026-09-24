@@ -4,9 +4,7 @@ Idle collection RPG: collect cards → open chests → build parties → send on
 gather materials → level and rank up cards → run harder dungeons.
 
 This is the **vertical-slice** stage of the build: full loop, 30 cards, no payments, a handful of
-testers. The plan lives in the Obsidian vault at
-`Projects/TCG 2/1 Execution Plan.md` (design detail in `Projects/TCG 2/0 Outline.md`); this repo is
-its week-by-week output.
+testers.
 
 ## Stack
 
@@ -41,7 +39,7 @@ scripts/cards-3-render.mjs          `design` -> data/cards/<id>.png via a local 
 scripts/cards-4-import.mjs          data/cards.csv + data/cards/<id>.png -> cards + `card-art` bucket
 scripts/dungeons-1-import.mjs       concept-art folder (json + png) -> dungeons + `dungeon-art` bucket
 scripts/verify-db.sh                migration + seed against a throwaway Postgres, with assertions
-scripts/make-icons.py               placeholder PWA icons (pure stdlib, replace in week 10)
+scripts/make-icons.py               placeholder PWA icons (pure stdlib, swap for real art)
 src/app/                 router + shell (resource bar, bottom tabs)
 src/components/          shared UI atoms
 src/features/<domain>/   api.ts (queries) + screens per domain
@@ -86,11 +84,11 @@ asserts card/dungeon/material counts, that every rank-up row references real mat
 odds sum to 100, that `rank_up_card` spends and rejects a short balance without charging, that
 **no non-SELECT policies exist** (the anti-cheat invariant), and that signing up provisions a profile.
 
-## Build order (from the plan)
+## Build order
 
-Week 1 schema + seed · 2 auth/RLS · 3 card library · 4 chest opening · 5 party builder ·
-6 dungeon timers + resolve/claim · 7 offline notifications · 8 rank-up + inventory ·
-9 hub + first-session script · 10–11 art + telemetry · 12 balance tuning · 13 tester week.
+Schema + seed → auth/RLS → card library → chest opening → party builder → dungeon timers +
+resolve/claim → offline notifications → rank-up + inventory → hub + first-session script →
+art + telemetry → balance tuning → tester pass.
 
 Card level-up is cancelled and player progression is out of scope for v1: rank-up is the
 only way a card gets stronger, and nothing grants XP. `level_up_card` is not a to-do.
@@ -129,7 +127,6 @@ tester's phone. Without `VITE_VAPID_PUBLIC_KEY` the toggle reports the browser a
 ## Known follow-ups
 
 - Route-level code splitting: the single JS chunk is ~612 kB (mostly supabase-js + react-query).
-  Trim in week 9.
 - No browser-render smoke test yet — needs a Chromium install.
 - `src/types/database.gen.ts` should replace the hand-written `src/types/db.ts` once the local
   stack is running (`npm run db:types`).

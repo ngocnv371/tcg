@@ -1,18 +1,10 @@
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
 
+import { formatDuration, materialLabel } from '@/features/dungeons/format'
 import { useMaterialCatalog } from '@/features/inventory/api'
-import { formatDuration } from '@/features/dungeons/format'
 import { REWARD_MULT_MAX, REWARD_MULT_MIN, coreVariantForRank, tagLabel } from '@/game/formulas'
 import type { Dungeon } from '@/types/db'
-
-/** `lesser_fire_core` → `Lesser Fire Core`, for drops missing from the catalog query. */
-function materialLabel(id: string) {
-  return id
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
 
 /**
  * What a dungeon actually pays, so a player can pick one to farm for a specific card's

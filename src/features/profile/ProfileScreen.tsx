@@ -6,7 +6,7 @@ export function ProfileScreen() {
   const { data: profile, error } = useProfile()
 
   return (
-    <Screen title="Profile" week="Built in week 2 · achievements in v1.1">
+    <Screen title="Profile">
       <div className="space-y-3">
         <Panel title="Account">
           <dl className="grid grid-cols-2 gap-y-1.5 text-sm">

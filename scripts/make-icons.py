@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Emits placeholder app icons (pure stdlib PNG writer — no Pillow needed).
 
-These exist so the PWA is installable and the manifest validates. Real card and
-app art lands in week 10; replace these then (same paths, same sizes).
+These exist so the PWA is installable and the manifest validates. Swap them for
+real card and app art once it lands (same paths, same sizes).
 
 Usage: python scripts/make-icons.py
 """

@@ -118,7 +118,7 @@ begin
   select count(*) into starter_card_count
   from public.player_cards
   where profile_id = '00000000-0000-0000-0000-000000000001';
-  -- no rank-1 cards are seeded, so the starter loadout has nothing to grant.
+  -- no cards are seeded at all, so the starter loadout has nothing to grant.
   if starter_card_count <> 0 then raise exception 'expected 0 starter cards, found %', starter_card_count; end if;
 
   select count(*) into starter_party_count
@@ -340,13 +340,16 @@ begin
     shard_qty integer;
     shards_before integer;
     shards_after integer;
+    rolled_rank smallint;
+    catalog_rank smallint;
     original_odds jsonb;
   begin
-    -- one card per rank, so any common-chest roll has something to return
+    -- One rank-1 card is the whole drop pool, because every catalog card is a rank-1 base and the
+    -- rolled rank lands on the copy. A card per rank would hide the bug this pins: the old pool
+    -- filtered `where rank = <rolled>`, which is what let a 3★ roll come up empty.
     insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
                               passive_name, passive_text, lore)
-    select 'verify_open_card_' || rank, 'Verify Open Card ' || rank, rank, 'ember', 'dps', 1, 0, 'p', 'p', 'p'
-    from public.rank_meta;
+    values ('verify_open_card_1', 'Verify Open Card', 1, 'ember', 'dps', 1, 0, 'p', 'p', 'p');
 
     create or replace function auth.uid() returns uuid language sql stable
       as $fn$ select '00000000-0000-0000-0000-000000000001'::uuid $fn$;
@@ -435,6 +438,29 @@ begin
       where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = shard_id;
     if coalesce(shards_after, 0) <> shards_before + shard_qty then
       raise exception 'a duplicate pull stopped paying its % dupe shards', shard_qty;
+    end if;
+
+    -- A rolled rank belongs to the copy, not to the catalog row: pin common odds to 3★ and the
+    -- reveal has to hand back a 3★ copy of the rank-1 card, leaving the catalog row untouched.
+    update public.chest_odds set weight = case when rank = 3 then 100 else 0 end
+      where chest_id = 'common';
+
+    perform public.grant_test_chests(1);
+    reveals := public.open_chests('common', 1);
+
+    if (reveals->0->>'rank')::smallint <> 3 then
+      raise exception 'a 3-star roll revealed a %-star card', reveals->0->>'rank';
+    end if;
+
+    select pc.rank, c.rank into rolled_rank, catalog_rank
+    from public.player_cards pc
+    join public.cards c on c.id = pc.card_id
+    where pc.id = (reveals->0->>'player_card_id')::uuid;
+    if rolled_rank <> 3 then
+      raise exception 'a 3-star roll granted a %-star copy', rolled_rank;
+    end if;
+    if catalog_rank <> 1 then
+      raise exception 'a pull rewrote the catalog row to % stars', catalog_rank;
     end if;
 
     -- leave the throwaway database as the assertions found it

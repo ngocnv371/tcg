@@ -17,7 +17,7 @@ import type { CardBrowserItem } from '@/features/cards/CardBrowser'
 export function CardLibraryScreen() {
   const { data: cards, isPending, error } = useCardCatalog()
   const { data: collection } = useCollection()
-  const [ownedOnly, setOwnedOnly] = useState(false)
+  const [ownedOnly, setOwnedOnly] = useState(true)
 
   const cardById = new Map((cards ?? []).map((card) => [card.id, card]))
 
@@ -39,20 +39,8 @@ export function CardLibraryScreen() {
   const items = ownedOnly ? ownedItems : [...ownedItems, ...unownedItems]
   const browser = useCardBrowser(items, { sorts: CATALOG_SORTS })
 
-  // Catalog star spread — a content readout, unaffected by how many copies are owned.
-  const byRank = (cards ?? []).reduce<Record<number, number>>((acc, card) => {
-    acc[card.rank] = (acc[card.rank] ?? 0) + 1
-    return acc
-  }, {})
-
   return (
-    <Screen
-      title="Card Library"
-      week="Built in week 3"
-      hint={`${cards?.length ?? 0} in catalog · ${ownedItems.length} owned ${
-        ownedItems.length === 1 ? 'copy' : 'copies'
-      }`}
-    >
+    <Screen title="Card Library">
       {error ? (
         <Panel>
           <p className="text-sm text-faction-ember">
@@ -60,14 +48,6 @@ export function CardLibraryScreen() {
           </p>
         </Panel>
       ) : null}
-
-      <div className="mb-3 flex flex-wrap gap-1.5 text-[11px] text-ink-400">
-        {[1, 2, 3, 4, 5].map((rank) => (
-          <span key={rank} className="rounded-full bg-ink-850 px-2 py-0.5">
-            {rank}★ {byRank[rank] ?? 0}
-          </span>
-        ))}
-      </div>
 
       <CardBrowserControls
         browser={browser}
