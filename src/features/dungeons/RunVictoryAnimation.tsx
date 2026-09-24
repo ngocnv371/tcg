@@ -204,8 +204,10 @@ function PartyCardFace({
   )
 }
 
-/** One payoff tile: placeholder glyph, label and quantity. */
+/** One payoff tile: the material's uploaded icon (or a placeholder glyph), label and quantity. */
 function RewardTile({ reward, appear }: { reward: VictoryReward; appear: number }) {
+  const [iconFailed, setIconFailed] = useState(false)
+  const iconSrc = reward.icon && !iconFailed ? reward.icon : null
   const icon = rewardIcon(reward.id)
 
   return (
@@ -227,9 +229,18 @@ function RewardTile({ reward, appear }: { reward: VictoryReward; appear: number 
         width: REWARD_TILE_SIZE.width,
       }}
     >
-      <div style={{ color: '#ffd76a' }}>
-        <RewardGlyph icon={icon} size={34} />
-      </div>
+      {iconSrc ? (
+        <img
+          src={iconSrc}
+          alt={reward.label}
+          onError={() => setIconFailed(true)}
+          style={{ height: 40, objectFit: 'contain', width: 40 }}
+        />
+      ) : (
+        <div style={{ color: '#ffd76a' }}>
+          <RewardGlyph icon={icon} size={34} />
+        </div>
+      )}
       <div
         style={{
           color: '#cfc9e4',

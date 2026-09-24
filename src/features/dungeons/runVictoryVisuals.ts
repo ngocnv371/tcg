@@ -143,27 +143,38 @@ export const VICTORY_LAYOUT = {
   captionBottom: 44,
 } as const
 
-/** One row of the payoff grid: the id it was built from, its label and how many were paid. */
-export type VictoryReward = { id: string; label: string; qty: number }
+/**
+ * One row of the payoff grid: the id it was built from, its label and how many were paid.
+ * `icon` is the material's uploaded icon URL when the catalog has one; a row without it makes
+ * the tile fall back to the placeholder glyph.
+ */
+export type VictoryReward = { id: string; label: string; qty: number; icon?: string | null }
 
 /**
  * The claim's payout as grid rows — gold, then every material, then the chest. Gold is
  * dropped at 0 the same way the settlement panel drops it, since runs resolved before the
  * yield multiplier existed carry `gold: 0`.
+ *
+ * `iconOf` is optional so the row shape stays testable without a material catalog; a row is
+ * only given an `icon` when one actually resolves, never a null placeholder.
  */
 export function victoryRewards(
   rewards: RunRewards | null,
   materialLabel: (materialId: string) => string,
+  iconOf?: (materialId: string) => string | null,
 ): VictoryReward[] {
   if (!rewards) return []
   const rows: VictoryReward[] = []
   if (rewards.gold > 0) rows.push({ id: 'gold', label: 'Gold', qty: rewards.gold })
   for (const material of rewards.materials) {
-    rows.push({
+    const row: VictoryReward = {
       id: material.material_id,
       label: materialLabel(material.material_id),
       qty: material.qty,
-    })
+    }
+    const icon = iconOf?.(material.material_id)
+    if (icon) row.icon = icon
+    rows.push(row)
   }
   if (rewards.chest_id) {
     rows.push({

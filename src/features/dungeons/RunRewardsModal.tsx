@@ -2,14 +2,15 @@ import { X } from 'lucide-react'
 
 import { materialLabel } from '@/features/dungeons/format'
 import { useMaterialCatalog } from '@/features/inventory/api'
+import { MaterialIcon } from '@/features/inventory/MaterialIcon'
 import type { RunClaim } from '@/features/progression/api'
 
 export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: () => void }) {
   const rewards = claim.rewards
   const { data: materials } = useMaterialCatalog()
 
-  const nameOf = (id: string) =>
-    materials?.find((material) => material.id === id)?.name ?? materialLabel(id)
+  const materialById = new Map((materials ?? []).map((material) => [material.id, material]))
+  const nameOf = (id: string) => materialById.get(id)?.name ?? materialLabel(id)
 
   return (
     <div
@@ -55,7 +56,10 @@ export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: 
             ) : null}
             {rewards.materials.map((material) => (
               <li key={material.material_id} className="flex items-center justify-between py-3">
-                <span className="text-ink-200">{nameOf(material.material_id)}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <MaterialIcon material={materialById.get(material.material_id)} size={24} />
+                  <span className="truncate text-ink-200">{nameOf(material.material_id)}</span>
+                </span>
                 <span className="tabular-nums text-ink-50">+{material.qty}</span>
               </li>
             ))}

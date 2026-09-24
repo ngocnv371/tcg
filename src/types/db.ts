@@ -16,6 +16,8 @@ export type Material = {
   kind: MaterialKind
   rarity: CardRank | null
   tier: number
+  /** Public Storage URL of the icon once materials-4-import has run; null until then. */
+  icon: string | null
 }
 
 export type Card = {

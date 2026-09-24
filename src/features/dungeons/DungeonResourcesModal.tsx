@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 
 import { formatDuration, materialLabel } from '@/features/dungeons/format'
 import { useMaterialCatalog } from '@/features/inventory/api'
+import { MaterialIcon } from '@/features/inventory/MaterialIcon'
 import { REWARD_MULT_MAX, REWARD_MULT_MIN, coreVariantForRank, tagLabel } from '@/game/formulas'
 import type { Dungeon } from '@/types/db'
 
@@ -34,8 +35,8 @@ export function DungeonResourcesModal({
     }
   }, [onClose])
 
-  const nameOf = (id: string) =>
-    materials?.find((material) => material.id === id)?.name ?? materialLabel(id)
+  const materialById = new Map((materials ?? []).map((material) => [material.id, material]))
+  const nameOf = (id: string) => materialById.get(id)?.name ?? materialLabel(id)
 
   // The listed numbers are the 1.0x floor; a stronger party scales them up to the cap.
   const goldMin = Math.round(dungeon.gold_base * REWARD_MULT_MIN)
@@ -92,9 +93,12 @@ export function DungeonResourcesModal({
             {dungeon.materials.map((drop) => (
               <li
                 key={drop.material_id}
-                className="flex items-baseline justify-between gap-3 py-2.5"
+                className="flex items-center justify-between gap-3 py-2.5"
               >
-                <span className="text-ink-200">{nameOf(drop.material_id)}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <MaterialIcon material={materialById.get(drop.material_id)} size={24} />
+                  <span className="truncate text-ink-200">{nameOf(drop.material_id)}</span>
+                </span>
                 <span className="tabular-nums text-ink-50">
                   {Math.round(drop.min * REWARD_MULT_MIN)} – {Math.round(drop.max * REWARD_MULT_MAX)}
                 </span>

@@ -1,5 +1,6 @@
 import { Panel, Screen } from '@/components/Screen'
 import { useInventory, type InventoryRow } from '@/features/inventory/api'
+import { MaterialIcon } from '@/features/inventory/MaterialIcon'
 import { CORE_VARIANT_LABELS, CORE_VARIANTS } from '@/game/formulas'
 import type { MaterialKind } from '@/types/db'
 
@@ -67,6 +68,7 @@ export function InventoryScreen() {
                       className="flex items-center justify-between gap-3 rounded-card border border-ink-800 bg-ink-900/70 px-3 py-2 text-sm"
                     >
                       <span className="flex min-w-0 items-center gap-2">
+                        <MaterialIcon material={row.material} size={28} />
                         <span className="truncate text-ink-100">
                           {row.material?.name ?? row.material_id}
                         </span>

@@ -16,13 +16,14 @@
     "cards:3:render": "node scripts/cards-3-render.mjs",
     "cards:4:import": "node scripts/cards-4-import.mjs --upload-art --import ./data/cards",
     "materials:3:render": "node scripts/materials-3-render.mjs",
+    "materials:4:import": "node scripts/materials-4-import.mjs --upload-art --import",
     "dungeons:1:import": "node scripts/dungeons-1-import.mjs --upload-art --import ./data/dungeons",
     "preview": "vite preview",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:migrate": "supabase migration up",
-    "db:fullreset": "npm run db:reset && npm run seed:build && npm run cards:4:import && npm run dungeons:1:import",
+    "db:fullreset": "npm run db:reset && npm run seed:build && npm run cards:4:import && npm run dungeons:1:import && npm run materials:4:import",
     "db:types": "supabase gen types typescript --local > src/types/database.gen.ts"
   },
   "dependencies": {

@@ -5,6 +5,7 @@ import { Panel, Screen } from '@/components/Screen'
 import { useCardCatalog, useCollection, useRankCosts, useRankUpCard } from '@/features/cards/api'
 import { RankUpOverlay, type RankUpReveal } from '@/features/cards/RankUpOverlay'
 import { useInventory, useMaterialCatalog } from '@/features/inventory/api'
+import { MaterialIcon } from '@/features/inventory/MaterialIcon'
 import { useProfile } from '@/features/profile/api'
 import { RANK_META, cardAtk, cardDef, cardPower, levelUpGold, tagLabel } from '@/game/formulas'
 import { resolveArtSrc } from '@/lib/art'
@@ -72,6 +73,7 @@ export function CardDetailScreen() {
   // the call if the balance moved, so the button can be optimistic without being authoritative.
   const step = (costs ?? []).find((cost) => cost.from_rank === rank)
   const ownedQty = new Map((inventory ?? []).map((row) => [row.material_id, row.qty]))
+  const materialById = new Map((materials ?? []).map((material) => [material.id, material]))
   const gold = profile?.gold ?? 0
   const requirements = step
     ? [
@@ -166,12 +168,17 @@ export function CardDetailScreen() {
                 {requirements.map((requirement) => {
                   const met = requirement.have >= requirement.need
                   return (
-                    <li key={requirement.id} className="flex items-baseline justify-between gap-3">
-                      <span className={met ? 'text-ink-300' : 'text-ink-400'}>
+                    <li key={requirement.id} className="flex items-center justify-between gap-3">
+                      <span className="flex min-w-0 items-center gap-2">
                         <span aria-hidden className={met ? 'text-rank-2' : 'text-ink-600'}>
-                          {met ? '✓' : '✗'}{' '}
+                          {met ? '✓' : '✗'}
                         </span>
-                        {requirement.label}
+                        {requirement.id === 'gold' ? null : (
+                          <MaterialIcon material={materialById.get(requirement.id)} size={20} />
+                        )}
+                        <span className={met ? 'truncate text-ink-300' : 'truncate text-ink-400'}>
+                          {requirement.label}
+                        </span>
                       </span>
                       <span
                         className={cn('tabular-nums', met ? 'text-ink-200' : 'text-faction-ember')}

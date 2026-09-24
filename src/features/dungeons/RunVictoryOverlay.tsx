@@ -9,6 +9,7 @@ import { RUN_VICTORY_DURATION, victoryRewards } from '@/features/dungeons/runVic
 import { useMaterialCatalog } from '@/features/inventory/api'
 import { useParties } from '@/features/party/api'
 import type { RunClaim } from '@/features/progression/api'
+import { resolveArtSrc } from '@/lib/art'
 import type { Dungeon, DungeonRun } from '@/types/db'
 
 export type RunVictory = {
@@ -56,16 +57,17 @@ export function RunVictoryOverlay({ victory, onClose }: { victory: RunVictory; o
     })
   }, [catalog, collection, loadout])
 
-  // The reward labels need the material catalog, but a missing name only falls back to the
-  // humanised id — waiting for it before starting the video would be a stutter for nothing.
-  const rewards = useMemo(
-    () =>
-      victoryRewards(
-        victory.claim.rewards,
-        (id) => materials?.find((material) => material.id === id)?.name ?? materialLabel(id),
-      ),
-    [materials, victory.claim.rewards],
-  )
+  // The reward labels and icons need the material catalog, but a missing entry only falls back
+  // to the humanised id and the placeholder glyph — waiting for it before starting the video
+  // would be a stutter for nothing.
+  const rewards = useMemo(() => {
+    const materialById = new Map((materials ?? []).map((material) => [material.id, material]))
+    return victoryRewards(
+      victory.claim.rewards,
+      (id) => materialById.get(id)?.name ?? materialLabel(id),
+      (id) => resolveArtSrc(materialById.get(id)?.icon ?? null),
+    )
+  }, [materials, victory.claim.rewards])
 
   // Starting the Player before the party resolves would animate an empty stage: the animation
   // is driven by its own frame number, so late-arriving cards never get their entrance.
