@@ -15,6 +15,7 @@
     "cards:2:design": "node scripts/cards-2-design.mjs",
     "cards:3:render": "node scripts/cards-3-render.mjs",
     "cards:4:import": "node scripts/cards-4-import.mjs --upload-art --import ./data/cards",
+    "materials:3:render": "node scripts/materials-3-render.mjs",
     "dungeons:1:import": "node scripts/dungeons-1-import.mjs --upload-art --import ./data/dungeons",
     "preview": "vite preview",
     "db:start": "supabase start",
