@@ -17,7 +17,7 @@ import type { CardBrowserItem } from '@/features/cards/CardBrowser'
 export function CardLibraryScreen() {
   const { data: cards, isPending, error } = useCardCatalog()
   const { data: collection } = useCollection()
-  const [ownedOnly, setOwnedOnly] = useState(false)
+  const [ownedOnly, setOwnedOnly] = useState(true)
 
   const cardById = new Map((cards ?? []).map((card) => [card.id, card]))
 
