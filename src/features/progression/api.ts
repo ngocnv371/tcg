@@ -83,6 +83,37 @@ export function useGrantTestGems() {
   })
 }
 
+/** Dev-only gold faucet, mirroring the gem one, so rank-up can be exercised without farming. */
+export function useGrantTestGold() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (quantity: number = 10000) => {
+      const { data, error } = await supabase.rpc('grant_test_gold', { p_qty: quantity })
+      if (error) throw error
+      return data as number
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['profile'] }),
+  })
+}
+
+/** Dev-only material faucet: seeds any catalog row (Cores, shards) into the vault. */
+export function useGrantTestMaterial() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ materialId, quantity }: { materialId: string; quantity: number }) => {
+      const { data, error } = await supabase.rpc('grant_test_material', {
+        p_material_id: materialId,
+        p_qty: quantity,
+      })
+      if (error) throw error
+      return data as number
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['inventory'] }),
+  })
+}
+
 export function useOpenChests() {
   const queryClient = useQueryClient()
 

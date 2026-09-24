@@ -164,6 +164,47 @@ begin
 end;
 $$;
 
+-- Dev-only gold faucet, mirroring grant_test_gems. Gold has an earn path (runs), but seeding
+-- it lets the rank-up ladder be exercised without farming first.
+create or replace function public.grant_test_gold(p_qty integer default 10000)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  if p_qty < 1 or p_qty > 1000000 then raise exception 'test gold quantity must be between 1 and 1000000'; end if;
+
+  update public.profiles set gold = gold + p_qty where id = auth.uid();
+  return p_qty;
+end;
+$$;
+
+-- Dev-only material faucet: seeds any row of the catalog (Cores, shards, …) so the rank-up
+-- ladder can be exercised without farming. Upserts so repeated grants accumulate.
+create or replace function public.grant_test_material(p_material_id text, p_qty integer default 10)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  if p_qty < 1 or p_qty > 1000000 then raise exception 'test material quantity must be between 1 and 1000000'; end if;
+  if not exists (select 1 from public.materials where id = p_material_id) then
+    raise exception 'unknown material %', p_material_id;
+  end if;
+
+  insert into public.player_materials (profile_id, material_id, qty)
+  values (auth.uid(), p_material_id, p_qty)
+  on conflict (profile_id, material_id) do update
+    set qty = public.player_materials.qty + excluded.qty;
+
+  return p_qty;
+end;
+$$;
+
 -- The roll lives here and nowhere else. A duplicate pull still inserts a real copy (the
 -- copy is the unit of progression — it levels and ranks on its own) *and* still pays the
 -- dupe shards, because card_rank_costs is what rank_up_card spends.
@@ -292,6 +333,8 @@ $$;
 grant execute on function public.claim_daily_chest() to authenticated;
 grant execute on function public.grant_test_chests(integer) to authenticated;
 grant execute on function public.grant_test_gems(integer) to authenticated;
+grant execute on function public.grant_test_gold(integer) to authenticated;
+grant execute on function public.grant_test_material(text, integer) to authenticated;
 grant execute on function public.open_chest(uuid) to authenticated;
 grant execute on function public.open_chests(text, integer) to authenticated;
 
