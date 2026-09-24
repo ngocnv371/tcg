@@ -170,6 +170,17 @@ and unread. `DungeonMapScreen` shows the tags on each card and a **Resources** b
 `DungeonResourcesModal`, which lists what the dungeon yields (gold and stack ranges at ×1.00–×1.50,
 Core grade, chest, timer) so a player can target-farm a specific card's Cores.
 
+Gems (`profiles.gems`) are the premium currency and now have one use: `rush_run` buys a run's
+remaining wait time. It is a `SECURITY DEFINER` spend like `rank_up_card` — it prices the run from
+the stored `ends_at` (2 gems per started minute left, floored at 1; `rushCost` /
+`RUSH_GEMS_PER_MINUTE` in `src/game/formulas.ts` mirror the SQL), takes the gems behind a
+`not enough gems` guard, then sets `ends_at = now()` and lets the ordinary `resolve_due_runs` body
+finish the run. So a rushed run comes back *resolved*, not paid: it still goes through Claim, and
+the payout path is untouched. The `Running` card in `DungeonMapScreen` shows the preview price and
+disables the button when the balance is short. There is no earn path in v1: `grant_test_gems(n)` is
+a dev faucet, exactly like `grant_test_chests` — both buttons live on the `/dev` `DevToolsScreen`
+(the `Dev` tab), not on the feature screens they feed.
+
 Next up: the first-session script (free Rare chest → guaranteed 3★ starter → guided
 5-min run → guided rank-up) and the balance pass.
 

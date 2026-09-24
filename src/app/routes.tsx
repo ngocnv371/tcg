@@ -5,6 +5,7 @@ import { AuthGate } from '@/features/auth/AuthGate'
 import { CardLibraryScreen } from '@/features/cards/CardLibraryScreen'
 import { CardDetailScreen } from '@/features/cards/CardDetailScreen'
 import { ChestOpenScreen } from '@/features/chests/ChestOpenScreen'
+import { DevToolsScreen } from '@/features/dev/DevToolsScreen'
 import { DungeonMapScreen } from '@/features/dungeons/DungeonMapScreen'
 import { HomeScreen } from '@/features/home/HomeScreen'
 import { InventoryScreen } from '@/features/inventory/InventoryScreen'
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
       { path: 'dungeons', element: <DungeonMapScreen /> },
       { path: 'chests', element: <ChestOpenScreen /> },
       { path: 'inventory', element: <InventoryScreen /> },
+      { path: 'dev', element: <DevToolsScreen /> },
       { path: 'profile', element: <ProfileScreen /> },
     ],
   },

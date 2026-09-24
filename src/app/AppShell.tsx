@@ -14,6 +14,7 @@ const NAV = [
   { to: '/dungeons', label: 'Dungeons', icon: '◈' },
   { to: '/chests', label: 'Chests', icon: '▣' },
   { to: '/inventory', label: 'Vault', icon: '◇' },
+  { to: '/dev', label: 'Dev', icon: '⚙' },
 ]
 
 function Resource({ icon, value }: { icon: React.ReactNode; value: string }) {
@@ -78,7 +79,7 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <nav className="sticky bottom-0 z-20 grid grid-cols-6 border-t border-ink-800/70 bg-ink-900/95 pb-[var(--safe-bottom)] backdrop-blur">
+      <nav className="sticky bottom-0 z-20 grid grid-cols-7 border-t border-ink-800/70 bg-ink-900/95 pb-[var(--safe-bottom)] backdrop-blur">
         {NAV.map((item) => (
           <NavLink
             key={item.to}

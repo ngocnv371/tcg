@@ -155,6 +155,22 @@ export function rankUpCost(
 export const REWARD_MULT_MIN = 1.0
 export const REWARD_MULT_MAX = 1.5
 
+/**
+ * Premium currency spent to finish a run early ("rush"). Priced per *started* minute left,
+ * so a nearly-done run is cheap; v1 has no earn path, gems come from the `grant_test_gems`
+ * helper. The client uses this only for the button preview — `rush_run` recomputes the
+ * price from the stored `ends_at`, and the mirror lives in
+ * `20260915000001_progression.sql`.
+ */
+export const RUSH_GEMS_PER_MINUTE = 2
+export const RUSH_GEMS_MIN = 1
+
+/** Gems to skip the rest of a run. Mirrors the maths inside SQL `rush_run`. */
+export function rushCost(remainingSeconds: number): number {
+  const minutes = Math.ceil(Math.max(0, remainingSeconds) / 60)
+  return Math.max(RUSH_GEMS_MIN, minutes * RUSH_GEMS_PER_MINUTE)
+}
+
 /** Extra concurrent runs unlock from player level — the pacing lever. */
 export const RUN_SLOT_UNLOCKS: ReadonlyArray<{ playerLevel: number; slots: number }> = [
   { playerLevel: 1, slots: 2 },

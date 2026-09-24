@@ -325,6 +325,86 @@ begin
     delete from public.cards where id = 'verify_busy_card';
   end;
 
+  -- rush_run sells the remaining wait time: it prices the run from the stored ends_at, takes
+  -- the gems, moves ends_at to now() and lets the ordinary resolver finish it. A short balance
+  -- must charge nothing and leave the run live.
+  declare
+    rush_dungeon text := 'verify_rush_dungeon';
+    rush_party uuid;
+    rush_card uuid;
+    rush_run_id uuid;
+    gems_after integer;
+  begin
+    insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
+                              passive_name, passive_text, lore)
+      values ('verify_rush_card', 'Verify Rush Card', 1, 'ember', 'dps', 1, 0, 'p', 'p', 'p');
+    insert into public.player_cards (profile_id, card_id, rank)
+      values ('00000000-0000-0000-0000-000000000001', 'verify_rush_card', 1)
+      returning id into rush_card;
+
+    insert into public.parties (profile_id, name, slot_index)
+      values ('00000000-0000-0000-0000-000000000001', 'Rush team', 6)
+      returning id into rush_party;
+    insert into public.party_slots (party_id, slot, player_card_id)
+      values (rush_party, 1, rush_card);
+
+    insert into public.dungeons (id, name, kind, tier, req_power, duration_seconds, gold_base)
+      values (rush_dungeon, 'Verify Rush Dungeon', 'resource', 1, 10, 3600, 5);
+
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select '00000000-0000-0000-0000-000000000001'::uuid $fn$;
+
+    perform public.start_run(rush_dungeon, rush_party);
+    select id into rush_run_id from public.dungeon_runs where party_id = rush_party;
+
+    -- The whole DO block is one transaction, so now() is frozen: without rewinding started_at
+    -- the rush's ends_at = now() would equal it and trip the ends_at > started_at check. In
+    -- production start_run has already committed, so this is a harness artifact only.
+    update public.dungeon_runs set started_at = now() - interval '1 second' where id = rush_run_id;
+
+    -- no gems: the guarded spend raises and the run stays live
+    update public.profiles set gems = 0 where id = '00000000-0000-0000-0000-000000000001';
+    begin
+      perform public.rush_run(rush_run_id);
+      raise exception 'rush_run ended a run the player could not pay for';
+    exception when others then
+      if sqlerrm <> 'not enough gems' then raise; end if;
+    end;
+    if (select resolved_at from public.dungeon_runs where id = rush_run_id) is not null then
+      raise exception 'a rejected rush still ended the run';
+    end if;
+
+    -- 1000 gems covers the 120-gem price of a 60-minute run (2 per started minute)
+    perform public.grant_test_gems(1000);
+    perform public.rush_run(rush_run_id);
+
+    if (select resolved_at from public.dungeon_runs where id = rush_run_id) is null then
+      raise exception 'rush_run did not finish the run';
+    end if;
+
+    select gems into gems_after from public.profiles
+      where id = '00000000-0000-0000-0000-000000000001';
+    if gems_after <> 880 then
+      raise exception 'rush_run charged % gems, expected 120', 1000 - gems_after;
+    end if;
+
+    begin
+      perform public.rush_run(rush_run_id);
+      raise exception 'rush_run accepted an already-finished run';
+    exception when others then
+      if sqlerrm <> 'run already finished' then raise; end if;
+    end;
+
+    -- leave the throwaway database as the assertions found it
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select null::uuid $fn$;
+    update public.profiles set gems = 0 where id = '00000000-0000-0000-0000-000000000001';
+    delete from public.dungeon_runs where dungeon_id = rush_dungeon;
+    delete from public.dungeons where id = rush_dungeon;
+    delete from public.player_cards where card_id = 'verify_rush_card';
+    delete from public.cards where id = 'verify_rush_card';
+  end;
+
   -- stacked chests burn N rows of one type in a single call, and the guard
   -- refuses to open more than the player actually holds
   declare

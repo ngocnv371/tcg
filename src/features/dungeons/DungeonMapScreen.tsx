@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react'
+import { Gem } from 'lucide-react'
 
 import { Panel, Screen } from '@/components/Screen'
 import { DungeonResourcesModal } from '@/features/dungeons/DungeonResourcesModal'
@@ -7,9 +8,10 @@ import { RunVictoryOverlay, type RunVictory } from '@/features/dungeons/RunVicto
 import { StartRunModal } from '@/features/dungeons/StartRunModal'
 import { useDungeons, useRuns } from '@/features/dungeons/api'
 import { formatDuration } from '@/features/dungeons/format'
-import { useClaimRun } from '@/features/progression/api'
+import { useProfile } from '@/features/profile/api'
+import { useClaimRun, useRushRun } from '@/features/progression/api'
 import type { RunClaim } from '@/features/progression/api'
-import { tagLabel } from '@/game/formulas'
+import { rushCost, tagLabel } from '@/game/formulas'
 import { resolveArtSrc } from '@/lib/art'
 import type { Dungeon, DungeonRun } from '@/types/db'
 
@@ -34,8 +36,21 @@ function runTimeline(run: DungeonRun) {
  * over the run's full length and the negative delay skips it forward to where the run
  * already is. No interval, no per-second re-render — `ends_at` is the clock.
  */
-function RunProgress({ run }: { run: DungeonRun }) {
+function RunProgress({
+  run,
+  gems,
+  onRush,
+  rushPending,
+}: {
+  run: DungeonRun
+  gems: number | undefined
+  onRush: () => void
+  rushPending: boolean
+}) {
   const { totalSeconds, elapsedSeconds, remainingSeconds } = runTimeline(run)
+  // Preview only: `rush_run` recomputes the price from the stored `ends_at`.
+  const cost = rushCost(remainingSeconds)
+  const affordable = (gems ?? 0) >= cost
 
   return (
     <div>
@@ -71,6 +86,16 @@ function RunProgress({ run }: { run: DungeonRun }) {
       <p className="mt-1 text-[11px] text-ink-600">
         Ends {new Date(run.ends_at).toLocaleTimeString()}
       </p>
+      <button
+        type="button"
+        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-card border border-faction-tide/60 px-3 py-1.5 text-xs text-faction-tide disabled:cursor-not-allowed disabled:opacity-40"
+        disabled={rushPending || !affordable}
+        title={affordable ? undefined : 'Not enough gems'}
+        onClick={onRush}
+      >
+        <Gem className="size-3.5" />
+        {rushPending ? 'Finishing...' : `Finish now · ${cost} gems`}
+      </button>
     </div>
   )
 }
@@ -78,7 +103,9 @@ function RunProgress({ run }: { run: DungeonRun }) {
 export function DungeonMapScreen() {
   const { data: dungeons, error } = useDungeons()
   const { data: runs } = useRuns()
+  const { data: profile } = useProfile()
   const claimRun = useClaimRun()
+  const rushRun = useRushRun()
   const [claim, setClaim] = useState<RunClaim | null>(null)
   /** The claim celebration, played once before the settlement panel. */
   const [victory, setVictory] = useState<RunVictory | null>(null)
@@ -160,7 +187,13 @@ export function DungeonMapScreen() {
                 {running.length > 0 || claimable.length > 0 ? (
                   <div className="mt-3 space-y-2.5 border-t border-ink-800 pt-3">
                     {running.map((run) => (
-                      <RunProgress key={run.id} run={run} />
+                      <RunProgress
+                        key={run.id}
+                        run={run}
+                        gems={profile?.gems}
+                        rushPending={rushRun.isPending && rushRun.variables === run.id}
+                        onRush={() => rushRun.mutate(run.id)}
+                      />
                     ))}
                     {claimable.map((run) => (
                       <div key={run.id}>
@@ -211,6 +244,7 @@ export function DungeonMapScreen() {
       </ul>
 
       {claimRun.error ? <p className="mt-3 text-xs text-faction-ember">{claimRun.error.message}</p> : null}
+      {rushRun.error ? <p className="mt-3 text-xs text-faction-ember">{rushRun.error.message}</p> : null}
       {picking ? (
         <StartRunModal
           dungeon={picking}

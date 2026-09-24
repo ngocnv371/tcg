@@ -147,6 +147,23 @@ begin
 end;
 $$;
 
+-- Dev-only faucet for the premium currency `rush_run` spends, mirroring grant_test_chests.
+-- Gems have no earn path in v1, so without this the rush button could never be exercised.
+create or replace function public.grant_test_gems(p_qty integer default 100)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  if p_qty < 1 or p_qty > 10000 then raise exception 'test gem quantity must be between 1 and 10000'; end if;
+
+  update public.profiles set gems = gems + p_qty where id = auth.uid();
+  return p_qty;
+end;
+$$;
+
 -- The roll lives here and nowhere else. A duplicate pull still inserts a real copy (the
 -- copy is the unit of progression — it levels and ranks on its own) *and* still pays the
 -- dupe shards, because card_rank_costs is what rank_up_card spends.
@@ -274,6 +291,7 @@ $$;
 
 grant execute on function public.claim_daily_chest() to authenticated;
 grant execute on function public.grant_test_chests(integer) to authenticated;
+grant execute on function public.grant_test_gems(integer) to authenticated;
 grant execute on function public.open_chest(uuid) to authenticated;
 grant execute on function public.open_chests(text, integer) to authenticated;
 
@@ -643,9 +661,57 @@ begin
 end;
 $$;
 
+-- Rushing buys the wait back with gems: it moves `ends_at` to now() and lets the normal
+-- resolver finish the run, so payout stays on the single claim path and the client never
+-- decides when a run ends. The price is computed here from the stored `ends_at`, never from
+-- anything the client sends; `rushCost` in src/game/formulas.ts is only the button preview.
+create or replace function public.rush_run(p_run_id uuid)
+returns public.dungeon_runs
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  run public.dungeon_runs;
+  remaining_seconds numeric;
+  -- Mirrors RUSH_GEMS_PER_MINUTE / RUSH_GEMS_MIN in src/game/formulas.ts.
+  cost integer;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  perform public.resolve_runs();
+
+  select * into run
+  from public.dungeon_runs
+  where id = p_run_id and profile_id = auth.uid()
+  for update;
+  if not found then raise exception 'run not found'; end if;
+  if run.resolved_at is not null then raise exception 'run already finished'; end if;
+
+  remaining_seconds := greatest(0, extract(epoch from (run.ends_at - now())));
+  cost := greatest(1, (ceil(remaining_seconds / 60.0) * 2)::integer);
+
+  -- Guarded spend: `not found` means the balance never covered the rush, and the exception
+  -- rolls back the ends_at change below.
+  update public.profiles
+  set gems = gems - cost
+  where id = auth.uid() and gems >= cost;
+  if not found then raise exception 'not enough gems'; end if;
+
+  -- now() is the transaction timestamp, so the resolver below sees ends_at <= now() and
+  -- finishes the run through the same body the cron sweep uses. start_run committed in an
+  -- earlier transaction, so started_at < now() and the ends_at > started_at check holds.
+  update public.dungeon_runs set ends_at = now() where id = run.id;
+  perform public.resolve_runs();
+
+  select * into run from public.dungeon_runs where id = run.id;
+  return run;
+end;
+$$;
+
 grant execute on function public.resolve_runs() to authenticated;
 grant execute on function public.start_run(text, uuid) to authenticated;
 grant execute on function public.claim_run(uuid) to authenticated;
+grant execute on function public.rush_run(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Rank-up

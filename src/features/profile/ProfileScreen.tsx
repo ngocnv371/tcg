@@ -12,6 +12,8 @@ export function ProfileScreen() {
           <dl className="grid grid-cols-2 gap-y-1.5 text-sm">
             <dt className="text-ink-400">Gold</dt>
             <dd className="tabular-nums">{profile?.gold?.toLocaleString('en-US') ?? '—'}</dd>
+            <dt className="text-ink-400">Gems</dt>
+            <dd className="tabular-nums">{profile?.gems?.toLocaleString('en-US') ?? '—'}</dd>
             <dt className="text-ink-400">Run slots</dt>
             <dd className="tabular-nums">{profile?.run_slots ?? '—'}</dd>
           </dl>

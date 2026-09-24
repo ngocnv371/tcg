@@ -14,7 +14,6 @@ import { REVEAL_PLAYER_STAGE, UNLOCK_DURATION } from '@/features/chests/unlockVi
 import {
   useChestInventory,
   useClaimDailyChest,
-  useGrantTestChests,
   useOpenChests,
   type ChestOpening,
 } from '@/features/progression/api'
@@ -157,7 +156,6 @@ export function ChestOpenScreen() {
   const { data: inventory, isPending, error } = useChestInventory()
   const { data: catalog } = useCardCatalog()
   const claimDailyChest = useClaimDailyChest()
-  const grantTestChests = useGrantTestChests()
   const openChests = useOpenChests()
   const [batch, setBatch] = useState<ChestOpening[]>([])
   const [reveal, setReveal] = useState<RevealState | null>(null)
@@ -210,7 +208,7 @@ export function ChestOpenScreen() {
   }
 
   // An open fails as a whole action, so it gets a modal rather than this line.
-  const actionError = error ?? claimDailyChest.error ?? grantTestChests.error
+  const actionError = error ?? claimDailyChest.error
 
   // Reveals render as library tiles, so they need the catalog rows (already cached by `['cards']`).
   const cardById = new Map((catalog ?? []).map((card) => [card.id, card]))
@@ -232,14 +230,6 @@ export function ChestOpenScreen() {
                 onClick={() => claimDailyChest.mutate()}
               >
                 {claimDailyChest.isPending ? 'Claiming...' : 'Claim daily'}
-              </button>
-              <button
-                type="button"
-                className="rounded-card border border-gold-500/60 px-3 py-2 text-xs font-medium text-gold-300 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={grantTestChests.isPending}
-                onClick={() => grantTestChests.mutate(10)}
-              >
-                {grantTestChests.isPending ? 'Granting...' : 'Grant 10'}
               </button>
             </div>
           </div>

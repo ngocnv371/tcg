@@ -69,6 +69,20 @@ export function useGrantTestChests() {
   })
 }
 
+/** Dev-only gem faucet; v1 has no earn path for the premium currency. */
+export function useGrantTestGems() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (quantity: number = 100) => {
+      const { data, error } = await supabase.rpc('grant_test_gems', { p_qty: quantity })
+      if (error) throw error
+      return data as number
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['profile'] }),
+  })
+}
+
 export function useOpenChests() {
   const queryClient = useQueryClient()
 
@@ -134,6 +148,26 @@ export function useClaimRun() {
       void queryClient.invalidateQueries({ queryKey: ['profile'] })
       void queryClient.invalidateQueries({ queryKey: ['inventory'] })
       void queryClient.invalidateQueries({ queryKey: ['chest_inventory'] })
+    },
+  })
+}
+
+/**
+ * Spend gems to end a run now. The server recomputes the price from `ends_at`; the client
+ * only names the run. A rushed run comes back resolved, so it still goes through Claim.
+ */
+export function useRushRun() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (runId: string) => {
+      const { data, error } = await supabase.rpc('rush_run', { p_run_id: runId })
+      if (error) throw error
+      return data as DungeonRun
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['dungeon_runs'] })
+      void queryClient.invalidateQueries({ queryKey: ['profile'] })
     },
   })
 }

@@ -20,6 +20,7 @@ import {
   rankUpCost,
   rewardMultiplier,
   runSlotsForLevel,
+  rushCost,
   tagCoreId,
   tagLabel,
   type CardRank,
@@ -177,5 +178,16 @@ describe('run slots', () => {
     expect(runSlotsForLevel(24)).toBe(3)
     expect(runSlotsForLevel(25)).toBe(4)
     expect(runSlotsForLevel(99)).toBe(4)
+  })
+})
+
+describe('rush cost', () => {
+  it('charges per started minute remaining, floored at one gem', () => {
+    expect(rushCost(3600)).toBe(120)
+    expect(rushCost(61)).toBe(4)
+    expect(rushCost(60)).toBe(2)
+    expect(rushCost(1)).toBe(2)
+    expect(rushCost(0)).toBe(1)
+    expect(rushCost(-5)).toBe(1)
   })
 })
