@@ -187,6 +187,24 @@ export const CHEST_ODDS: Record<string, Partial<Record<CardRank, number>>> = {
   mythic: { 3: 20, 4: 50, 5: 30 },
 }
 
+/**
+ * What the marketplace charges for one chest, in gems. Seeded into `chests.gem_price` by
+ * `scripts/build-seed.mjs`; `buy_chest` re-reads that column, never a client-sent price,
+ * so this is only the button preview. Keep the two in sync.
+ */
+export const CHEST_GEM_PRICES: Record<string, number> = {
+  common: 20,
+  rare: 60,
+  epic: 150,
+  legendary: 400,
+  mythic: 900,
+}
+
+/** Gem price of a chest, or null when it is not sold. Mirrors `chests.gem_price`. */
+export function chestGemPrice(chestId: string): number | null {
+  return CHEST_GEM_PRICES[chestId] ?? null
+}
+
 export function cardAtk(rank: CardRank, level: number): number {
   const meta = RANK_META[rank]
   return Math.round(meta.atkBase * (1 + ATK_GROWTH_PER_LEVEL * (level - 1)))

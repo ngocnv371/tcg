@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  CHEST_GEM_PRICES,
   CHEST_ODDS,
   CORE_TAGS,
   CORE_VARIANTS,
@@ -10,6 +11,7 @@ import {
   cardAtk,
   cardDef,
   cardPower,
+  chestGemPrice,
   coreTagsForCard,
   coreVariantForRank,
   dupeShards,
@@ -98,6 +100,27 @@ describe('chest odds', () => {
 
   it('pays dupes by rank', () => {
     expect([1, 2, 3, 4, 5].map((r) => dupeShards(r as CardRank))).toEqual([5, 10, 25, 60, 150])
+  })
+})
+
+describe('marketplace prices', () => {
+  it('prices every chest tier that has odds', () => {
+    for (const chestId of Object.keys(CHEST_ODDS)) {
+      expect(chestGemPrice(chestId), `${chestId} price`).toBe(CHEST_GEM_PRICES[chestId])
+      expect(chestGemPrice(chestId)).toBeGreaterThan(0)
+    }
+  })
+
+  it('prices higher tiers strictly higher', () => {
+    const ladder = ['common', 'rare', 'epic', 'legendary', 'mythic']
+    const prices = ladder.map((chestId) => chestGemPrice(chestId)!)
+    for (let index = 1; index < prices.length; index += 1) {
+      expect(prices[index]).toBeGreaterThan(prices[index - 1])
+    }
+  })
+
+  it('returns null for a chest that is not sold', () => {
+    expect(chestGemPrice('unknown')).toBeNull()
   })
 })
 

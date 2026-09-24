@@ -832,6 +832,117 @@ begin
          or props ->> 'dungeon_id' = tel_dungeon
          or props ->> 'player_card_id' = tel_card::text;
   end;
+
+  -- buy_chest prices the order from the catalog, never from the caller: a short balance
+  -- buys nothing, a paid order writes the chests and one ledger row, and the client can
+  -- forge neither the ledger nor the purchase telemetry.
+  declare
+    buy_price integer;
+    buy_gems_after integer;
+    buy_chests_before integer;
+    buy_chests_after integer;
+    buy_tx public.market_transactions;
+  begin
+    select gem_price into buy_price from public.chests where id = 'common';
+    if buy_price is null or buy_price <= 0 then
+      raise exception 'common chest has no marketplace price';
+    end if;
+
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select '00000000-0000-0000-0000-000000000001'::uuid $fn$;
+
+    select count(*) into buy_chests_before
+    from public.chest_inventory
+    where profile_id = '00000000-0000-0000-0000-000000000001';
+
+    -- no gems: the guarded spend raises and writes nothing at all
+    update public.profiles set gems = buy_price - 1
+      where id = '00000000-0000-0000-0000-000000000001';
+    begin
+      perform public.buy_chest('common', 1);
+      raise exception 'buy_chest sold a chest the player could not pay for';
+    exception when others then
+      if sqlerrm <> 'not enough gems' then raise; end if;
+    end;
+    select count(*) into buy_chests_after
+    from public.chest_inventory
+    where profile_id = '00000000-0000-0000-0000-000000000001';
+    if buy_chests_after <> buy_chests_before then
+      raise exception 'a rejected purchase still granted a chest';
+    end if;
+    if exists (select 1 from public.market_transactions
+               where profile_id = '00000000-0000-0000-0000-000000000001') then
+      raise exception 'a rejected purchase wrote a ledger row';
+    end if;
+
+    -- a paid order: 3 chests at the catalog price
+    update public.profiles set gems = buy_price * 3
+      where id = '00000000-0000-0000-0000-000000000001';
+    buy_tx := public.buy_chest('common', 3);
+
+    if buy_tx.qty <> 3 or buy_tx.unit_price <> buy_price or buy_tx.total_gems <> buy_price * 3 then
+      raise exception 'buy_chest recorded the wrong order';
+    end if;
+
+    select gems into buy_gems_after from public.profiles
+      where id = '00000000-0000-0000-0000-000000000001';
+    if buy_gems_after <> 0 then
+      raise exception 'buy_chest left % gems, expected 0', buy_gems_after;
+    end if;
+
+    select count(*) into buy_chests_after
+    from public.chest_inventory
+    where profile_id = '00000000-0000-0000-0000-000000000001'
+      and chest_id = 'common' and source = 'marketplace';
+    if buy_chests_after <> 3 then
+      raise exception 'buy_chest granted % marketplace chests, expected 3', buy_chests_after;
+    end if;
+
+    if (select count(*) from public.market_transactions
+        where profile_id = '00000000-0000-0000-0000-000000000001') <> 1 then
+      raise exception 'buy_chest wrote the wrong number of ledger rows';
+    end if;
+
+    -- the server owns the purchase telemetry, exactly like a pull
+    if (select count(*) from public.telemetry_events
+        where name = 'chest_purchased' and source = 'server'
+          and props ->> 'chest_id' = 'common'
+          and (props ->> 'total_gems')::integer = buy_price * 3) <> 1 then
+      raise exception 'buy_chest wrote no chest_purchased telemetry';
+    end if;
+
+    -- the quantity bound and an unknown chest are refused
+    begin
+      perform public.buy_chest('common', 11);
+      raise exception 'buy_chest accepted a bulk order above the cap';
+    exception when others then
+      if sqlerrm <> 'purchase quantity must be between 1 and 10' then raise; end if;
+    end;
+    begin
+      perform public.buy_chest('not_a_chest', 1);
+      raise exception 'buy_chest accepted an unknown chest';
+    exception when others then
+      if sqlerrm <> 'unknown chest' then raise; end if;
+    end;
+
+    -- the ledger is read-only to the client
+    if not has_table_privilege('authenticated', 'public.market_transactions', 'select') then
+      raise exception 'authenticated cannot read its own purchases';
+    end if;
+    if has_table_privilege('authenticated', 'public.market_transactions', 'insert') then
+      raise exception 'authenticated can insert market ledger rows directly';
+    end if;
+
+    -- leave the throwaway database as the assertions found it
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select null::uuid $fn$;
+    update public.profiles set gems = 0 where id = '00000000-0000-0000-0000-000000000001';
+    delete from public.market_transactions
+      where profile_id = '00000000-0000-0000-0000-000000000001';
+    delete from public.chest_inventory
+      where profile_id = '00000000-0000-0000-0000-000000000001' and source = 'marketplace';
+    delete from public.telemetry_events where name = 'chest_purchased';
+  end;
 end $$;
 
 select 'cards'                 as check, count(*)::text as value from public.cards
@@ -839,6 +950,7 @@ union all select 'dungeons',   count(*)::text from public.dungeons
 union all select 'materials',  count(*)::text from public.materials
 union all select 'rank costs', count(*)::text from public.card_rank_costs
 union all select 'chest odds', count(*)::text from public.chest_odds
+union all select 'market tx', count(*)::text from public.market_transactions
 union all select 'telemetry events', count(*)::text from public.telemetry_events
 union all select 'notif tokens', count(*)::text from public.notification_tokens
 union all select 'notif outbox', count(*)::text from public.notification_outbox

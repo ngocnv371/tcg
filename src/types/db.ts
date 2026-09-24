@@ -86,6 +86,19 @@ export type Chest = {
   name: string
   tier: CardRank
   source: string
+  /** Gems the marketplace charges per chest; 0 means not for sale. */
+  gem_price: number
+}
+
+export type MarketTransaction = {
+  id: number
+  profile_id: string
+  chest_id: string
+  qty: number
+  /** Price captured at purchase time, so a later balance change cannot rewrite history. */
+  unit_price: number
+  total_gems: number
+  created_at: string
 }
 
 export type ChestOdd = {

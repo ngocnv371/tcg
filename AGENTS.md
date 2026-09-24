@@ -181,6 +181,17 @@ disables the button when the balance is short. There is no earn path in v1: `gra
 a dev faucet, exactly like `grant_test_chests` — both buttons live on the `/dev` `DevToolsScreen`
 (the `Dev` tab), not on the feature screens they feed.
 
+The marketplace is the second gem sink: `buy_chest` (`20260915000006_marketplace.sql`) sells
+chests for gems. Prices are catalog data — `CHEST_GEM_PRICES` in `src/game/formulas.ts` seeds
+`chests.gem_price` via `scripts/build-seed.mjs`, and the function re-reads that column rather
+than trusting the client. It follows `rush_run`'s guarded-spend shape (lock, `gems >= total`,
+`not enough gems` rolls everything back), inserts one `chest_inventory` row per chest with
+`source = 'marketplace'`, writes a `market_transactions` ledger row capturing the unit price at
+purchase time, and logs a server-source `chest_purchased` telemetry event. The ledger is
+SELECT-only to its owner and is the transaction record; the client surfaces it — plus the buy
+buttons — in the **Chests** screen (`ChestOpenScreen`), not a new tab. Re-run `npm run seed:build`
+after a price change.
+
 Next up: the first-session script (free Rare chest → guaranteed 3★ starter → guided
 5-min run → guided rank-up) and the balance pass.
 

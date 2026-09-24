@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url'
 
 import {
   ATK_GROWTH_PER_LEVEL,
+  CHEST_GEM_PRICES,
   CHEST_ODDS,
   CORE_TAGS,
   CORE_VARIANT_LABELS,
@@ -72,12 +73,14 @@ const CORE_MATERIALS = CORE_TAGS.flatMap((tag) =>
 
 const MATERIALS = [...SHARD_MATERIALS, ...CORE_MATERIALS]
 
+// `gemPrice` is the marketplace sink, sourced from CHEST_GEM_PRICES in formulas.ts —
+// never a second balance table.
 const CHESTS = [
-  { id: 'common', name: 'Common Chest', tier: 1, source: 'daily login, T1 clears' },
-  { id: 'rare', name: 'Rare Chest', tier: 2, source: 'T2 clears, login streak' },
-  { id: 'epic', name: 'Epic Chest', tier: 3, source: 'T3 clears, achievements' },
-  { id: 'legendary', name: 'Legendary Chest', tier: 4, source: 'boss clears, events (v1.1)' },
-  { id: 'mythic', name: 'Mythic Chest', tier: 5, source: 'boss clears' },
+  { id: 'common', name: 'Common Chest', tier: 1, source: 'daily login, T1 clears', gemPrice: CHEST_GEM_PRICES.common },
+  { id: 'rare', name: 'Rare Chest', tier: 2, source: 'T2 clears, login streak', gemPrice: CHEST_GEM_PRICES.rare },
+  { id: 'epic', name: 'Epic Chest', tier: 3, source: 'T3 clears, achievements', gemPrice: CHEST_GEM_PRICES.epic },
+  { id: 'legendary', name: 'Legendary Chest', tier: 4, source: 'boss clears, events (v1.1)', gemPrice: CHEST_GEM_PRICES.legendary },
+  { id: 'mythic', name: 'Mythic Chest', tier: 5, source: 'boss clears', gemPrice: CHEST_GEM_PRICES.mythic },
 ]
 
 const sql = (value) => `'${String(value).replace(/'/g, "''")}'`
@@ -88,6 +91,11 @@ for (const [chestId, odds] of Object.entries(CHEST_ODDS)) {
   if (!CHESTS.some((chest) => chest.id === chestId)) errors.push(`odds for unknown chest ${chestId}`)
   const total = Object.values(odds).reduce((sum, weight) => sum + weight, 0)
   if (total !== 100) errors.push(`chest ${chestId}: odds sum to ${total}, expected 100`)
+}
+for (const chest of CHESTS) {
+  if (!Number.isInteger(chest.gemPrice) || chest.gemPrice <= 0) {
+    errors.push(`chest ${chest.id}: gem price must be a positive integer`)
+  }
 }
 if (errors.length) {
   console.error(`seed build failed:\n - ${errors.join('\n - ')}`)
@@ -145,11 +153,12 @@ push(
 
 push(
   '-- chests',
-  'insert into public.chests (id, name, tier, source) values',
-  CHESTS.map((chest) => `  (${sql(chest.id)}, ${sql(chest.name)}, ${chest.tier}, ${sql(chest.source)})`).join(
-    ',\n',
-  ),
-  'on conflict (id) do update set name = excluded.name, tier = excluded.tier, source = excluded.source;',
+  'insert into public.chests (id, name, tier, source, gem_price) values',
+  CHESTS.map(
+    (chest) =>
+      `  (${sql(chest.id)}, ${sql(chest.name)}, ${chest.tier}, ${sql(chest.source)}, ${chest.gemPrice})`,
+  ).join(',\n'),
+  'on conflict (id) do update set name = excluded.name, tier = excluded.tier, source = excluded.source, gem_price = excluded.gem_price;',
   '',
 )
 

@@ -70,13 +70,13 @@ on conflict (id) do update set
   name = excluded.name, kind = excluded.kind, rarity = excluded.rarity, tier = excluded.tier;
 
 -- chests
-insert into public.chests (id, name, tier, source) values
-  ('common', 'Common Chest', 1, 'daily login, T1 clears'),
-  ('rare', 'Rare Chest', 2, 'T2 clears, login streak'),
-  ('epic', 'Epic Chest', 3, 'T3 clears, achievements'),
-  ('legendary', 'Legendary Chest', 4, 'boss clears, events (v1.1)'),
-  ('mythic', 'Mythic Chest', 5, 'boss clears')
-on conflict (id) do update set name = excluded.name, tier = excluded.tier, source = excluded.source;
+insert into public.chests (id, name, tier, source, gem_price) values
+  ('common', 'Common Chest', 1, 'daily login, T1 clears', 20),
+  ('rare', 'Rare Chest', 2, 'T2 clears, login streak', 60),
+  ('epic', 'Epic Chest', 3, 'T3 clears, achievements', 150),
+  ('legendary', 'Legendary Chest', 4, 'boss clears, events (v1.1)', 400),
+  ('mythic', 'Mythic Chest', 5, 'boss clears', 900)
+on conflict (id) do update set name = excluded.name, tier = excluded.tier, source = excluded.source, gem_price = excluded.gem_price;
 
 -- chest_odds (percent weights, summing to 100 per chest)
 insert into public.chest_odds (chest_id, rank, weight) values
