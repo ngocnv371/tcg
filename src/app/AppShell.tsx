@@ -1,4 +1,4 @@
-import { Coins, Gem, LogOut, Swords } from 'lucide-react'
+import { Coins, Gem, LogOut, Store, Swords, Wrench } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 
@@ -14,7 +14,12 @@ const NAV = [
   { to: '/dungeons', label: 'Dungeons', icon: '◈' },
   { to: '/chests', label: 'Chests', icon: '▣' },
   { to: '/inventory', label: 'Vault', icon: '◇' },
-  { to: '/dev', label: 'Dev', icon: '⚙' },
+]
+
+/** Secondary destinations that live in the header so they don't crowd the bottom tab bar. */
+const HEADER_NAV = [
+  { to: '/market', label: 'Market', icon: Store },
+  { to: '/dev', label: 'Dev', icon: Wrench },
 ]
 
 function Resource({ icon, value }: { icon: React.ReactNode; value: string }) {
@@ -59,6 +64,22 @@ export function AppShell() {
           TCG 2
         </NavLink>
         <div className="flex items-center gap-1.5">
+          {HEADER_NAV.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              aria-label={label}
+              title={label}
+              className={({ isActive }) =>
+                cn(
+                  'grid size-8 place-items-center rounded-card hover:bg-ink-800',
+                  isActive ? 'text-gold-300' : 'text-ink-400 hover:text-ink-100',
+                )
+              }
+            >
+              <Icon className="size-4" />
+            </NavLink>
+          ))}
           <Resource icon={<Coins className="size-3.5 text-gold-400" />} value={num(profile?.gold)} />
           <Resource icon={<Gem className="size-3.5 text-faction-tide" />} value={num(profile?.gems)} />
           <Resource icon={<Swords className="size-3.5 text-ink-200" />} value={num(profile?.run_slots)} />
@@ -79,7 +100,7 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <nav className="sticky bottom-0 z-20 grid grid-cols-7 border-t border-ink-800/70 bg-ink-900/95 pb-[var(--safe-bottom)] backdrop-blur">
+      <nav className="sticky bottom-0 z-20 grid grid-cols-6 border-t border-ink-800/70 bg-ink-900/95 pb-[var(--safe-bottom)] backdrop-blur">
         {NAV.map((item) => (
           <NavLink
             key={item.to}

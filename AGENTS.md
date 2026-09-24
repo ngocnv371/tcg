@@ -188,9 +188,10 @@ than trusting the client. It follows `rush_run`'s guarded-spend shape (lock, `ge
 `not enough gems` rolls everything back), inserts one `chest_inventory` row per chest with
 `source = 'marketplace'`, writes a `market_transactions` ledger row capturing the unit price at
 purchase time, and logs a server-source `chest_purchased` telemetry event. The ledger is
-SELECT-only to its owner and is the transaction record; the client surfaces it — plus the buy
-buttons — in the **Chests** screen (`ChestOpenScreen`), not a new tab. Re-run `npm run seed:build`
-after a price change.
+SELECT-only to its owner and is the transaction record; the **Market** screen (`MarketScreen`,
+`/market`) shows each chest's gem price and buy buttons, reached from a header icon rather than the
+bottom tab bar (the Chests screen keeps only the Vault; Dev moved to the header the same way).
+Re-run `npm run seed:build` after a price change.
 
 Next up: the first-session script (free Rare chest → guaranteed 3★ starter → guided
 5-min run → guided rank-up) and the balance pass.

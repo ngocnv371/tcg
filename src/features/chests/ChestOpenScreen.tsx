@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Player, type PlayerRef } from '@remotion/player'
-import { Gem } from 'lucide-react'
 
 import { Panel, Screen } from '@/components/Screen'
 import { useCardCatalog } from '@/features/cards/api'
@@ -12,23 +11,17 @@ import { ChestOpenErrorModal } from '@/features/chests/ChestOpenErrorModal'
 import { batchVariant, pickBatchVariant, type BatchVariantId } from '@/features/chests/batchVariants'
 import { describeChestOpenFailure, type ChestOpenFailure } from '@/features/chests/openError'
 import { REVEAL_PLAYER_STAGE, UNLOCK_DURATION } from '@/features/chests/unlockVisuals'
-import { useBuyChest, useChestCatalog, useMarketTransactions } from '@/features/marketplace/api'
-import { useProfile } from '@/features/profile/api'
 import {
   useChestInventory,
   useClaimDailyChest,
   useOpenChests,
   type ChestOpening,
 } from '@/features/progression/api'
-import { toast } from '@/lib/toast'
 
 const CHESTS = ['common', 'rare', 'epic', 'legendary', 'mythic'] as const
 
 /** Bulk-open steps offered per stacked chest type. 1 is the default action. */
 const OPEN_QUANTITIES = [1, 3, 6, 9] as const
-
-/** Marketplace purchase steps. 1 is the default action. */
-const BUY_QUANTITIES = [1, 10] as const
 
 /** Best tiers first — the vault is read top-down. */
 const VAULT_ORDER: readonly string[] = [...CHESTS].reverse()
@@ -162,13 +155,8 @@ function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () =
 export function ChestOpenScreen() {
   const { data: inventory, isPending, error } = useChestInventory()
   const { data: catalog } = useCardCatalog()
-  const { data: profile } = useProfile()
-  const { data: marketChests } = useChestCatalog()
-  const { data: transactions } = useMarketTransactions()
   const claimDailyChest = useClaimDailyChest()
   const openChests = useOpenChests()
-  const buyChest = useBuyChest()
-  const gems = profile?.gems ?? 0
   const [batch, setBatch] = useState<ChestOpening[]>([])
   const [reveal, setReveal] = useState<RevealState | null>(null)
   // Described once, at the moment of the failure: the modal has to outlive `openChests.error`,
@@ -217,13 +205,6 @@ export function ChestOpenScreen() {
         logUnlock('open-error', { chestId, qty, error })
         setOpenFailure(describeChestOpenFailure(error))
       })
-  }
-
-  const handleBuy = (chestId: string, qty: number) => {
-    buyChest.mutate(
-      { chestId, qty },
-      { onSuccess: (tx) => toast(`Bought ${tx.qty} × ${chestId} chest for ${tx.total_gems} gems`) },
-    )
   }
 
   // An open fails as a whole action, so it gets a modal rather than this line.
@@ -324,85 +305,6 @@ export function ChestOpenScreen() {
           ) : null}
           {actionError ? <p className="mt-3 text-xs text-faction-ember">{actionError.message}</p> : null}
         </Panel>
-
-        <Panel title="Market">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm text-ink-200">Buy chests with gems</p>
-            <span className="flex items-center gap-1 text-sm tabular-nums text-ink-100">
-              <Gem className="size-3.5 text-faction-tide" />
-              {gems.toLocaleString('en-US')}
-            </span>
-          </div>
-          <div className="mt-3 space-y-2">
-            {(marketChests ?? []).map((chest) => {
-              const isBuying = buyChest.isPending && buyChest.variables?.chestId === chest.id
-              const forSale = chest.gem_price > 0
-              return (
-                <div
-                  key={chest.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-ink-700 bg-ink-850 px-3 py-2"
-                >
-                  <span className="text-sm text-ink-100">
-                    <span className="capitalize">{chest.name}</span>
-                    <span className="ml-2 rounded-full bg-ink-700 px-2 py-0.5 text-xs tabular-nums text-ink-200">
-                      T{chest.tier}
-                    </span>
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {BUY_QUANTITIES.map((qty) => {
-                      const cost = chest.gem_price * qty
-                      const affordable = forSale && gems >= cost
-                      return (
-                        <button
-                          key={qty}
-                          type="button"
-                          aria-label={`Buy ${qty} ${chest.id} chest${qty === 1 ? '' : 's'} for ${cost} gems`}
-                          className="rounded-card border border-ink-600 px-2.5 py-1.5 text-xs font-medium text-ink-200 disabled:cursor-not-allowed disabled:opacity-40"
-                          disabled={buyChest.isPending || !affordable}
-                          title={affordable ? undefined : 'Not enough gems'}
-                          onClick={() => handleBuy(chest.id, qty)}
-                        >
-                          {isBuying ? '...' : `Buy ${qty} · ${cost}`}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-            {!marketChests?.length ? (
-              <p className="text-sm text-ink-400">No chests for sale.</p>
-            ) : null}
-          </div>
-          {buyChest.error ? (
-            <p className="mt-3 text-xs text-faction-ember">{buyChest.error.message}</p>
-          ) : null}
-        </Panel>
-
-        {transactions?.length ? (
-          <Panel title="Purchases">
-            <ul className="space-y-1.5">
-              {transactions.map((tx) => (
-                <li
-                  key={tx.id}
-                  className="flex items-center justify-between gap-2 text-xs text-ink-300"
-                >
-                  <span className="capitalize">
-                    {tx.chest_id} chest <span className="tabular-nums">×{tx.qty}</span>
-                  </span>
-                  <span className="flex items-center gap-1.5 tabular-nums">
-                    <span className="flex items-center gap-0.5 text-faction-tide">
-                      <Gem className="size-3" />-{tx.total_gems}
-                    </span>
-                    <span className="text-ink-600">
-                      {new Date(tx.created_at).toLocaleDateString()}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Panel>
-        ) : null}
       </div>
       </Screen>
       {reveal ? <RevealOverlay onClose={closeReveal} reveal={reveal} /> : null}
