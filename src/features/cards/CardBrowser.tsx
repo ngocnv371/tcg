@@ -27,12 +27,12 @@ export type CardSort =
   | 'name-asc'
 
 const CARD_SORTS: ReadonlyArray<{ value: CardSort; label: string }> = [
-  { value: 'power-desc', label: 'Power (high → low)' },
-  { value: 'power-asc', label: 'Power (low → high)' },
-  { value: 'level-desc', label: 'Level (high → low)' },
-  { value: 'rank-desc', label: 'Stars (high → low)' },
-  { value: 'recent', label: 'Recently obtained' },
-  { value: 'name-asc', label: 'Name (A → Z)' },
+  { value: 'power-desc', label: 'Power ↓' },
+  { value: 'power-asc', label: 'Power ↑' },
+  { value: 'level-desc', label: 'Level ↓' },
+  { value: 'rank-desc', label: 'Stars ↓' },
+  { value: 'recent', label: 'New ↓' },
+  { value: 'name-asc', label: 'Name A → Z' },
 ]
 
 /**
