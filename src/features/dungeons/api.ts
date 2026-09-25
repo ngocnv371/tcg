@@ -17,7 +17,32 @@ export function useDungeons() {
   })
 }
 
+/** Query only. The shell owns the one realtime channel and the on-load resolve (useRunSync). */
 export function useRuns() {
+  const { session } = useSession()
+  const userId = session?.user.id
+
+  return useQuery({
+    queryKey: ['dungeon_runs', userId],
+    enabled: Boolean(userId),
+    queryFn: async (): Promise<DungeonRun[]> => {
+      const { data, error } = await supabase
+        .from('dungeon_runs')
+        .select('*')
+        .order('ends_at', { ascending: true })
+      if (error) throw error
+      return (data ?? []) as DungeonRun[]
+    },
+  })
+}
+
+/**
+ * Mounted exactly once, by the shell. Supabase throws if a second `postgres_changes` listener
+ * is added to a channel that already subscribed, so the subscription cannot live in `useRuns`:
+ * the wizard, Home and the dungeon map all read runs at the same time. One channel per session
+ * also means one `resolve_runs()` on load, not one per screen.
+ */
+export function useRunSync() {
   const { session } = useSession()
   const userId = session?.user.id
   const queryClient = useQueryClient()
@@ -42,17 +67,4 @@ export function useRuns() {
       void supabase.removeChannel(channel)
     }
   }, [queryClient, userId])
-
-  return useQuery({
-    queryKey: ['dungeon_runs', userId],
-    enabled: Boolean(userId),
-    queryFn: async (): Promise<DungeonRun[]> => {
-      const { data, error } = await supabase
-        .from('dungeon_runs')
-        .select('*')
-        .order('ends_at', { ascending: true })
-      if (error) throw error
-      return (data ?? []) as DungeonRun[]
-    },
-  })
 }

@@ -111,8 +111,15 @@ begin
   if card_count <> 0 then raise exception 'expected 0 seed cards, found %', card_count; end if;
 
   select count(*) into dungeon_count from public.dungeons;
-  -- nor any dungeons: content ships via scripts/dungeons-1-import.mjs.
-  if dungeon_count <> 0 then raise exception 'expected 0 seed dungeons, found %', dungeon_count; end if;
+  -- no *catalog* dungeons: content ships via scripts/dungeons-1-import.mjs. The one seeded
+  -- dungeon is the onboarding tutorial.
+  if dungeon_count <> 1 then raise exception 'expected 1 seed dungeon, found %', dungeon_count; end if;
+
+  -- the seeded dungeon is the one-time tutorial: fixed 10s timer, no chest, tutorial flag
+  if not exists (
+    select 1 from public.dungeons
+    where is_tutorial and duration_seconds = 10 and chest_on_clear is null
+  ) then raise exception 'the tutorial dungeon is missing or malformed'; end if;
 
   insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000001', 'tester@example.com');
   select count(*) into starter_card_count
@@ -131,6 +138,12 @@ begin
   join public.parties p on p.id = ps.party_id
   where p.profile_id = '00000000-0000-0000-0000-000000000001';
   if starter_slot_count <> 0 then raise exception 'expected 0 starter party slots, found %', starter_slot_count; end if;
+
+  -- provisioning hands over the free starter Rare chest exactly once, even with no catalog
+  if (select count(*) from public.chest_inventory
+      where profile_id = '00000000-0000-0000-0000-000000000001' and source = 'starter') <> 1 then
+    raise exception 'provisioning did not grant exactly one starter chest';
+  end if;
 
   -- every rank-up row must reference real materials
   select count(*) into missing_power
@@ -942,6 +955,93 @@ begin
     delete from public.chest_inventory
       where profile_id = '00000000-0000-0000-0000-000000000001' and source = 'marketplace';
     delete from public.telemetry_events where name = 'chest_purchased';
+  end;
+
+  -- onboarding grants: with catalog content present, provisioning promotes the first card it
+  -- hands out to the guaranteed 3★ and still adds the free Rare chest
+  declare
+    starter_rank smallint;
+  begin
+    insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
+                              passive_name, passive_text, lore, sort_order)
+      values ('verify_starter_card', 'Verify Starter Card', 1, 'ember', 'dps', 1, 0, 'p', 'p', 'p', 1);
+    insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000003', 'starter@example.com');
+
+    select pc.rank into starter_rank
+    from public.player_cards pc
+    where pc.profile_id = '00000000-0000-0000-0000-000000000003'
+    order by pc.obtained_at, pc.id
+    limit 1;
+    if starter_rank <> 3 then
+      raise exception 'provisioning left the starter at % stars, expected 3', starter_rank;
+    end if;
+    if (select count(*) from public.chest_inventory
+        where profile_id = '00000000-0000-0000-0000-000000000003' and source = 'starter') <> 1 then
+      raise exception 'provisioning did not grant the new account its starter Rare chest';
+    end if;
+
+    -- deleting the auth user cascades the profile and everything hanging off it
+    delete from auth.users where id = '00000000-0000-0000-0000-000000000003';
+    delete from public.cards where id = 'verify_starter_card';
+  end;
+
+  -- the tutorial is one-time and its reward is fixed: party power does not scale it, so the
+  -- guided 1→2 rank-up is always affordable
+  declare
+    tut_party uuid;
+    tut_card uuid;
+  begin
+    insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
+                              passive_name, passive_text, lore)
+      values ('verify_tut_card', 'Verify Tutorial Card', 1, 'ember', 'dps', 1, 0, 'p', 'p', 'p');
+    insert into public.player_cards (profile_id, card_id, rank)
+      values ('00000000-0000-0000-0000-000000000001', 'verify_tut_card', 1)
+      returning id into tut_card;
+    insert into public.parties (profile_id, name, slot_index)
+      values ('00000000-0000-0000-0000-000000000001', 'Tutorial team', 7)
+      returning id into tut_party;
+    insert into public.party_slots (party_id, slot, player_card_id)
+      values (tut_party, 1, tut_card);
+
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select '00000000-0000-0000-0000-000000000001'::uuid $fn$;
+
+    perform public.start_run('training_grounds', tut_party);
+    begin
+      perform public.start_run('training_grounds', tut_party);
+      raise exception 'the tutorial was allowed to start twice';
+    exception when others then
+      if sqlerrm <> 'tutorial already completed' then raise; end if;
+    end;
+
+    -- rewind so the resolver picks it up, then check the fixed bundle
+    update public.dungeon_runs
+      set started_at = now() - interval '1 minute', ends_at = now() - interval '1 second'
+      where dungeon_id = 'training_grounds'
+        and profile_id = '00000000-0000-0000-0000-000000000001';
+    perform public.resolve_runs();
+
+    if (select (rewards ->> 'multiplier')::numeric from public.dungeon_runs
+        where dungeon_id = 'training_grounds'
+          and profile_id = '00000000-0000-0000-0000-000000000001') <> 1 then
+      raise exception 'the tutorial yield was scaled by party power';
+    end if;
+    -- 1000 mirrors RANK_UP_LADDER[1].gold in src/game/formulas.ts
+    if (select (rewards ->> 'gold')::integer from public.dungeon_runs
+        where dungeon_id = 'training_grounds'
+          and profile_id = '00000000-0000-0000-0000-000000000001') <> 1000 then
+      raise exception 'the tutorial did not pay its fixed gold';
+    end if;
+
+    -- leave the throwaway database as the assertions found it
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select null::uuid $fn$;
+    delete from public.dungeon_runs where dungeon_id = 'training_grounds'
+      and profile_id = '00000000-0000-0000-0000-000000000001';
+    delete from public.party_slots where party_id = tut_party;
+    delete from public.parties where id = tut_party;
+    delete from public.player_cards where card_id = 'verify_tut_card';
+    delete from public.cards where id = 'verify_tut_card';
   end;
 end $$;
 

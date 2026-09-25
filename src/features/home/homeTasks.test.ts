@@ -113,9 +113,11 @@ describe('rankUpReadyCopies', () => {
 })
 
 describe('buildOnboardingSteps', () => {
+  const filledParty = { slots: [{}] }
+
   it('starts every step open for a brand-new player', () => {
-    const steps = buildOnboardingSteps({ chests: [], runs: [], collection: [] })
-    expect(steps.map((step) => step.done)).toEqual([false, false, false, false])
+    const steps = buildOnboardingSteps({ chests: [], runs: [], collection: [], parties: [] })
+    expect(steps.map((step) => step.done)).toEqual([false, false, false, false, false])
   })
 
   it('clears every step from live state', () => {
@@ -123,12 +125,31 @@ describe('buildOnboardingSteps', () => {
       chests: [chest(true)],
       runs: [run(true)],
       collection: [playerCard('pc1', 2)],
+      parties: [filledParty],
     })
     expect(steps.every((step) => step.done)).toBe(true)
   })
 
+  it('wants a party before a run', () => {
+    const empty = buildOnboardingSteps({
+      chests: [chest(true)],
+      runs: [],
+      collection: [playerCard('pc1')],
+      parties: [{ slots: [] }],
+    })
+    const byId = new Map(empty.map((step) => [step.id, step.done]))
+    expect(byId.get('open-chest')).toBe(true)
+    expect(byId.get('build-party')).toBe(false)
+    expect(byId.get('first-run')).toBe(false)
+  })
+
   it('keeps a started-but-unclaimed run incomplete', () => {
-    const steps = buildOnboardingSteps({ chests: [], runs: [run(false)], collection: [] })
+    const steps = buildOnboardingSteps({
+      chests: [],
+      runs: [run(false)],
+      collection: [],
+      parties: [filledParty],
+    })
     const byId = new Map(steps.map((step) => [step.id, step.done]))
     expect(byId.get('first-run')).toBe(true)
     expect(byId.get('claim-run')).toBe(false)

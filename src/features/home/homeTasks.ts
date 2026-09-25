@@ -75,45 +75,67 @@ export type OnboardingStep = {
   id: string
   label: string
   hint: string
+  /** Label for the step's call to action; the wizard's one-tap button, not the checklist. */
+  cta: string
   done: boolean
   to: string
 }
 
+/** Just enough of a party to know it can field a lineup; keeps this module out of `party/api`. */
+export type PartyLike = { slots: readonly unknown[] }
+
 /**
  * The first-session arc, derived entirely from state the client already reads — no extra
  * table, no client-written progression flag. Steps clear themselves as the player acts.
+ *
+ * A party must come before a run: provisioning builds an empty "First Expedition" for an
+ * account created before any cards exist (the empty-catalog dev account), so the first card a
+ * chest grants still has to be added to a lineup by hand.
  */
 export function buildOnboardingSteps(input: {
   chests: readonly ChestInventoryRow[]
   runs: readonly DungeonRun[]
   collection: readonly PlayerCard[]
+  parties: readonly PartyLike[]
 }): OnboardingStep[] {
   return [
     {
       id: 'open-chest',
-      label: 'Open a chest',
-      hint: 'Claim the daily chest if the vault is empty.',
+      label: 'Open your Rare chest',
+      hint: 'The first one is on the house.',
+      cta: 'Open chests',
       done: input.chests.some((chest) => chest.opened_at),
       to: '/chests',
     },
     {
+      id: 'build-party',
+      label: 'Build a party',
+      hint: 'Add your new card to a lineup.',
+      cta: 'Go to party',
+      done: input.parties.some((party) => party.slots.length > 0),
+      to: '/party',
+    },
+    {
       id: 'first-run',
-      label: 'Send a party on a run',
-      hint: 'Pick a dungeon and a lineup.',
+      label: 'Run the Training Grounds',
+      hint: 'Send your party on the 10-second tutorial.',
+      cta: 'Go to dungeons',
       done: input.runs.length > 0,
       to: '/dungeons',
     },
     {
       id: 'claim-run',
-      label: 'Claim a run',
+      label: 'Claim your rewards',
       hint: 'Rewards return when the timer ends.',
+      cta: 'Claim',
       done: input.runs.some((run) => run.claimed_at),
       to: '/dungeons',
     },
     {
       id: 'rank-up',
       label: 'Rank up a card',
-      hint: 'Spend gold and Cores to push a copy higher.',
+      hint: 'Spend the tutorial gold and Cores on a 1★ copy.',
+      cta: 'Rank up',
       done: input.collection.some((copy) => copy.rank > 1),
       to: '/cards',
     },
@@ -122,3 +144,5 @@ export function buildOnboardingSteps(input: {
 
 /** The checklist is presentation only, so its dismissal is a browser concern, not a DB one. */
 export const ONBOARDING_DISMISS_KEY = 'tcg2:home:checklist-dismissed'
+/** The first-session wizard is dismissed separately, so the checklist can still take over. */
+export const ONBOARDING_WIZARD_DISMISS_KEY = 'tcg2:onboarding:wizard-dismissed'

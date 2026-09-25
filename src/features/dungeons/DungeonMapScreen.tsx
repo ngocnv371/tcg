@@ -32,6 +32,12 @@ export function DungeonMapScreen() {
   const claimableRuns = runs?.filter((run) => run.resolved_at && !run.claimed_at) ?? []
   /** `start_run` refuses account-wide while a finished run is uncollected, so the buttons do too. */
   const pendingClaims = claimableRuns.length > 0
+  // The tutorial is a one-time lesson: once its run is claimed it drops off the map rather than
+  // sitting there unstartable. It is still listed while live or unclaimed so it can be finished.
+  const visibleDungeons = (dungeons ?? []).filter((dungeon) => {
+    if (!dungeon.is_tutorial) return true
+    return !(runs ?? []).some((run) => run.dungeon_id === dungeon.id && run.claimed_at)
+  })
 
   return (
     <Screen
@@ -53,7 +59,7 @@ export function DungeonMapScreen() {
       ) : null}
 
       <ul className="space-y-2.5">
-        {(dungeons ?? []).map((dungeon) => {
+        {visibleDungeons.map((dungeon) => {
           const artSrc = resolveArtSrc(dungeon.art_path)
           const running = activeRuns.filter((run) => run.dungeon_id === dungeon.id)
           const claimable = claimableRuns.filter((run) => run.dungeon_id === dungeon.id)
@@ -69,7 +75,7 @@ export function DungeonMapScreen() {
                 <div className="flex items-baseline justify-between gap-2">
                   <h2 className="text-sm text-ink-100">{dungeon.name}</h2>
                   <span className="text-xs text-ink-400">
-                    {dungeon.kind} · tier {dungeon.tier}
+                    {dungeon.is_tutorial ? 'one-time tutorial' : `${dungeon.kind} · tier ${dungeon.tier}`}
                   </span>
                 </div>
                 <dl className="mt-2 grid grid-cols-3 gap-y-1 text-xs">

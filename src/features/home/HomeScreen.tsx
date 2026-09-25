@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
 import { Panel, Screen } from '@/components/Screen'
+import { CardTile } from '@/features/cards/CardTile'
 import { useCardCatalog, useCollection } from '@/features/cards/api'
 import { useDungeons, useRuns } from '@/features/dungeons/api'
 import { RunProgress } from '@/features/dungeons/RunProgress'
@@ -15,6 +16,8 @@ import {
 } from '@/features/home/homeTasks'
 import { OnboardingChecklist } from '@/features/home/OnboardingChecklist'
 import { useInventory } from '@/features/inventory/api'
+import { useWizardDismissed } from '@/features/onboarding/dismissal'
+import { useParties } from '@/features/party/api'
 import { useProfile } from '@/features/profile/api'
 import {
   useClaimDailyChest,
@@ -23,6 +26,7 @@ import {
   useRushRun,
   type RunClaim,
 } from '@/features/progression/api'
+import { partyPower } from '@/game/formulas'
 
 function readChecklistDismissed() {
   try {
@@ -45,6 +49,7 @@ export function HomeScreen() {
   const { data: collection } = useCollection()
   const { data: cards } = useCardCatalog()
   const { data: inventory } = useInventory()
+  const { data: parties } = useParties()
 
   const claimRun = useClaimRun()
   const rushRun = useRushRun()
@@ -53,6 +58,7 @@ export function HomeScreen() {
   /** The claim celebration, played once before the settlement panel — same as the dungeon screen. */
   const [victory, setVictory] = useState<RunVictory | null>(null)
   const [checklistDismissed, setChecklistDismissed] = useState(readChecklistDismissed)
+  const wizardDismissed = useWizardDismissed()
 
   const activeRuns = runs?.filter((run) => !run.resolved_at) ?? []
   const claimableRuns = runs?.filter((run) => run.resolved_at && !run.claimed_at) ?? []
@@ -71,8 +77,25 @@ export function HomeScreen() {
     chests: chests ?? [],
     runs: runs ?? [],
     collection: collection ?? [],
+    parties: parties ?? [],
   })
-  const showChecklist = !checklistDismissed && !steps.every((step) => step.done)
+
+  // The first party (slot_index order) is the one a new player runs, so Home shows it in
+  // full: name, power and its cards, with a tap through to the editor.
+  const firstParty = parties?.[0]
+  const playerCardById = new Map((collection ?? []).map((copy) => [copy.id, copy]))
+  const cardById = new Map((cards ?? []).map((card) => [card.id, card]))
+  const partyMembers = (firstParty?.slots ?? []).flatMap((slot) => {
+    const playerCard = playerCardById.get(slot.player_card_id)
+    const card = playerCard ? cardById.get(playerCard.card_id) : undefined
+    return card && playerCard ? [{ card, playerCard }] : []
+  })
+  const firstPartyPower = partyPower(
+    partyMembers.map(({ playerCard }) => ({ rank: playerCard.rank, level: playerCard.level })),
+  )
+  // Wizard first, checklist after: the full list only appears once the coach card is skipped.
+  const showChecklist =
+    wizardDismissed && !checklistDismissed && !steps.every((step) => step.done)
   const slotsFree = (profile?.run_slots ?? 0) > activeRuns.length
   const anythingReady =
     claimableRuns.length > 0 || dailyReady || unopened.length > 0 || rankReady.length > 0
@@ -205,6 +228,45 @@ export function HomeScreen() {
           {rushRun.error ? (
             <p className="mt-2 text-xs text-faction-ember">{rushRun.error.message}</p>
           ) : null}
+        </Panel>
+
+        <Panel title="Your party">
+          {firstParty ? (
+            <>
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="truncate text-sm text-ink-100">{firstParty.party.name}</p>
+                <span className="shrink-0 text-xs tabular-nums text-ink-400">
+                  {firstPartyPower.toLocaleString('en-US')} power
+                </span>
+              </div>
+              {partyMembers.length > 0 ? (
+                <div className="mt-2 grid grid-cols-5 gap-1.5">
+                  {partyMembers.map(({ card, playerCard }) => (
+                    <CardTile
+                      key={playerCard.id}
+                      card={card}
+                      owned
+                      compact
+                      rank={playerCard.rank}
+                      level={playerCard.level}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-ink-400">
+                  No cards in this lineup yet — add one to send it on a run.
+                </p>
+              )}
+              <NavLink
+                to="/party"
+                className="mt-3 block rounded-card border border-ink-700 px-3 py-2 text-center text-xs text-ink-300 hover:border-ink-600"
+              >
+                Edit party
+              </NavLink>
+            </>
+          ) : (
+            <p className="text-sm text-ink-400">No party yet.</p>
+          )}
         </Panel>
       </div>
 

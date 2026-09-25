@@ -29,6 +29,35 @@ begin
     from public.cards c
     order by c.sort_order, c.id
     limit 5;
+
+    -- One of them is the guaranteed 3★ starter — the same first-in-catalog copy, so the guide
+    -- always has a known strong body to lead the first party. Catalog content is empty during
+    -- the migration that creates the dev account, so this is a no-op there and lands for real
+    -- signups (which run after the importers).
+    update public.player_cards
+    set rank = 3
+    where id = (
+      select pc.id
+      from public.player_cards pc
+      join public.cards c on c.id = pc.card_id
+      where pc.profile_id = p_profile_id
+      order by c.sort_order, c.id
+      limit 1
+    );
+  end if;
+
+  -- The free Rare chest is what the first guided step opens. Guarded on the source tag so
+  -- provisioning stays idempotent, and on the chest existing so the migration-time dev account
+  -- (created before the generated seed) cannot trip the chests FK — the seed's later
+  -- `provision_starter_loadout` call grants it once chests are seeded.
+  if exists (select 1 from public.chests where id = 'rare')
+    and not exists (
+      select 1 from public.chest_inventory
+      where profile_id = p_profile_id and source = 'starter'
+    )
+  then
+    insert into public.chest_inventory (profile_id, chest_id, source)
+    values (p_profile_id, 'rare', 'starter');
   end if;
 
   select id into starter_party_id
@@ -535,7 +564,13 @@ begin
   loop
     select * into dungeon from public.dungeons where id = run.dungeon_id;
 
-    mult := greatest(1, least(1.5, run.power_snapshot::numeric / greatest(dungeon.req_power, 1)));
+    -- The tutorial pays a fixed bundle so the guided rank-up is affordable no matter how
+    -- strong the party is; party power must not scale it.
+    if dungeon.is_tutorial then
+      mult := 1;
+    else
+      mult := greatest(1, least(1.5, run.power_snapshot::numeric / greatest(dungeon.req_power, 1)));
+    end if;
     reward_gold := round(dungeon.gold_base * mult);
 
     -- EVERY entry pays out, rather than one weighted pick, because a predictable yield is
@@ -614,6 +649,18 @@ begin
   select * into profile from public.profiles where id = auth.uid() for update;
   select * into dungeon from public.dungeons where id = p_dungeon_id;
   if not found then raise exception 'dungeon not found'; end if;
+
+  -- The tutorial is a one-time lesson: any run already logged for it (live, unclaimed or
+  -- claimed) bars a second. Enforced here, not in the UI, so a hand-rolled client cannot farm
+  -- the guaranteed payout.
+  if dungeon.is_tutorial then
+    if exists (
+      select 1 from public.dungeon_runs
+      where profile_id = auth.uid() and dungeon_id = dungeon.id
+    ) then
+      raise exception 'tutorial already completed';
+    end if;
+  end if;
 
   -- Checked before the party is picked, so the gate is account-wide rather than per-lineup:
   -- keeping a queue of resolved-but-unclaimed runs would otherwise make ignoring the claim
@@ -819,3 +866,62 @@ end;
 $$;
 
 grant execute on function public.rank_up_card(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Marketplace: the second gem sink, selling chests for gems
+-- ---------------------------------------------------------------------------
+
+-- Same trust split as every other spend: the client names *which* chest and *how many*,
+-- never the price. `buy_chest` re-reads `chests.gem_price` (seeded from CHEST_GEM_PRICES in
+-- src/game/formulas.ts) inside the transaction, takes the gems behind a guarded update and
+-- only then inserts the chests and the ledger row. `p_qty` is bounded like open_chests.
+create or replace function public.buy_chest(p_chest_id text, p_qty integer default 1)
+returns public.market_transactions
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  unit integer;
+  total integer;
+  tx public.market_transactions;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  if p_qty is null or p_qty < 1 or p_qty > 10 then
+    raise exception 'purchase quantity must be between 1 and 10';
+  end if;
+
+  select gem_price into unit from public.chests where id = p_chest_id;
+  if not found then raise exception 'unknown chest'; end if;
+  if unit <= 0 then raise exception 'chest is not for sale'; end if;
+
+  total := unit * p_qty;
+
+  -- Guarded spend, exactly like rush_run: `not found` means the balance never covered the
+  -- purchase, and the exception rolls back everything below.
+  update public.profiles
+  set gems = gems - total
+  where id = auth.uid() and gems >= total;
+  if not found then raise exception 'not enough gems'; end if;
+
+  insert into public.chest_inventory (profile_id, chest_id, source)
+  select auth.uid(), p_chest_id, 'marketplace'
+  from generate_series(1, p_qty);
+
+  insert into public.market_transactions (profile_id, chest_id, qty, unit_price, total_gems)
+  values (auth.uid(), p_chest_id, p_qty, unit, total)
+  returning * into tx;
+
+  -- Server-source telemetry: the purchase is a progression event the client cannot name.
+  perform private.log_telemetry_event(auth.uid(), 'chest_purchased', jsonb_build_object(
+    'chest_id', p_chest_id,
+    'qty', p_qty,
+    'unit_price', unit,
+    'total_gems', total
+  ));
+
+  return tx;
+end;
+$$;
+
+grant execute on function public.buy_chest(text, integer) to authenticated;
