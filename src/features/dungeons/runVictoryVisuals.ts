@@ -145,8 +145,8 @@ export const VICTORY_LAYOUT = {
 
 /**
  * One row of the payoff grid: the id it was built from, its label and how many were paid.
- * `icon` is the material's uploaded icon URL when the catalog has one; a row without it makes
- * the tile fall back to the placeholder glyph.
+ * `icon` is the uploaded icon URL from the matching catalog when there is one; a row without
+ * it makes the tile fall back to the placeholder glyph.
  */
 export type VictoryReward = { id: string; label: string; qty: number; icon?: string | null }
 
@@ -156,12 +156,14 @@ export type VictoryReward = { id: string; label: string; qty: number; icon?: str
  * yield multiplier existed carry `gold: 0`.
  *
  * `iconOf` is optional so the row shape stays testable without a material catalog; a row is
- * only given an `icon` when one actually resolves, never a null placeholder.
+ * only given an `icon` when one actually resolves, never a null placeholder. `chestIconOf`
+ * mirrors it for the chest row, whose art lives in the chest catalog rather than the material one.
  */
 export function victoryRewards(
   rewards: RunRewards | null,
   materialLabel: (materialId: string) => string,
   iconOf?: (materialId: string) => string | null,
+  chestIconOf?: (chestId: string) => string | null,
 ): VictoryReward[] {
   if (!rewards) return []
   const rows: VictoryReward[] = []
@@ -177,11 +179,14 @@ export function victoryRewards(
     rows.push(row)
   }
   if (rewards.chest_id) {
-    rows.push({
+    const row: VictoryReward = {
       id: rewards.chest_id,
       label: rewards.chest_id.charAt(0).toUpperCase() + rewards.chest_id.slice(1),
       qty: 1,
-    })
+    }
+    const icon = chestIconOf?.(rewards.chest_id)
+    if (icon) row.icon = icon
+    rows.push(row)
   }
   return rows
 }

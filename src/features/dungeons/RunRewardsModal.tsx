@@ -1,15 +1,19 @@
 import { X } from 'lucide-react'
 
+import { ChestIcon } from '@/features/chests/ChestIcon'
 import { materialLabel } from '@/features/dungeons/format'
 import { useMaterialCatalog } from '@/features/inventory/api'
 import { MaterialIcon } from '@/features/inventory/MaterialIcon'
+import { useChestCatalog } from '@/features/marketplace/api'
 import type { RunClaim } from '@/features/progression/api'
 
 export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: () => void }) {
   const rewards = claim.rewards
   const { data: materials } = useMaterialCatalog()
+  const { data: chests } = useChestCatalog()
 
   const materialById = new Map((materials ?? []).map((material) => [material.id, material]))
+  const chestById = new Map((chests ?? []).map((chest) => [chest.id, chest]))
   const nameOf = (id: string) => materialById.get(id)?.name ?? materialLabel(id)
 
   return (
@@ -65,8 +69,13 @@ export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: 
             ))}
             {rewards.chest_id ? (
               <li className="flex items-center justify-between py-3">
-                <span className="text-ink-200">Chest</span>
-                <span className="capitalize text-gold-300">{rewards.chest_id}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <ChestIcon chest={chestById.get(rewards.chest_id)} size={24} />
+                  <span className="truncate text-ink-200">
+                    {chestById.get(rewards.chest_id)?.name ?? rewards.chest_id}
+                  </span>
+                </span>
+                <span className="tabular-nums text-ink-50">+1</span>
               </li>
             ) : null}
           </ul>
