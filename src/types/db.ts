@@ -88,6 +88,8 @@ export type Chest = {
   source: string
   /** Gems the marketplace charges per chest; 0 means not for sale. */
   gem_price: number
+  /** Public Storage URL of the art once chests-4-import has run; null until then. */
+  icon: string | null
 }
 
 export type MarketTransaction = {

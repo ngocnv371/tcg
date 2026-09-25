@@ -30,14 +30,15 @@ testers.
 ## Layout
 
 ```
-data/                    rendered art (cards/, materials/, dungeons/) + the asset catalog
-data/assets.csv          the shared asset catalog: `type=card` + `type=material` rows
+data/                    rendered art (cards/, materials/, chests/, dungeons/) + the asset catalog
+data/assets.csv          the shared asset catalog: `type=card` + `type=material` + `type=chest` rows
 scripts/build-seed.mjs              balance constants -> supabase/seed.sql (no cards, no dungeons)
 scripts/cards-1-idea.mjs            IDEATE.MD pools -> new `type=card` rows in data/assets.csv
 scripts/cards-2-design.mjs          blank card `design` cells -> AI-written art prompts
 scripts/assets-render.mjs           `design` -> <type folder>/<id>.png via a local ComfyUI
 scripts/cards-4-import.mjs          data/assets.csv + data/cards/<id>.png -> cards + `card-art` bucket
 scripts/materials-4-import.mjs      data/assets.csv + data/materials/<id>.png -> materials.icon
+scripts/chests-4-import.mjs         data/assets.csv + data/chests/<id>.png -> chests.icon
 scripts/dungeons-1-import.mjs       concept-art folder (json + png) -> dungeons + `dungeon-art` bucket
 scripts/verify-db.sh                migration + seed against a throwaway Postgres, with assertions
 scripts/make-icons.py               placeholder PWA icons (pure stdlib, swap for real art)

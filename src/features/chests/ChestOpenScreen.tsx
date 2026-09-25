@@ -7,10 +7,12 @@ import { useCardCatalog } from '@/features/cards/api'
 import { CardGrid } from '@/features/cards/CardBrowser'
 import { CardTile } from '@/features/cards/CardTile'
 import { CardUnlockAnimation } from '@/features/chests/CardUnlockAnimation'
+import { ChestIcon } from '@/features/chests/ChestIcon'
 import { ChestOpenErrorModal } from '@/features/chests/ChestOpenErrorModal'
 import { batchVariant, pickBatchVariant, type BatchVariantId } from '@/features/chests/batchVariants'
 import { describeChestOpenFailure, type ChestOpenFailure } from '@/features/chests/openError'
 import { REVEAL_PLAYER_STAGE, UNLOCK_DURATION } from '@/features/chests/unlockVisuals'
+import { useChestCatalog } from '@/features/marketplace/api'
 import {
   useChestInventory,
   useClaimDailyChest,
@@ -155,6 +157,7 @@ function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () =
 export function ChestOpenScreen() {
   const { data: inventory, isPending, error } = useChestInventory()
   const { data: catalog } = useCardCatalog()
+  const { data: chestCatalog } = useChestCatalog()
   const claimDailyChest = useClaimDailyChest()
   const openChests = useOpenChests()
   const [batch, setBatch] = useState<ChestOpening[]>([])
@@ -212,6 +215,8 @@ export function ChestOpenScreen() {
 
   // Reveals render as library tiles, so they need the catalog rows (already cached by `['cards']`).
   const cardById = new Map((catalog ?? []).map((card) => [card.id, card]))
+  // The vault tiles carry the chest's uploaded art; the catalog row is keyed by chest id.
+  const chestById = new Map((chestCatalog ?? []).map((chest) => [chest.id, chest]))
 
   return (
     <>
@@ -244,9 +249,10 @@ export function ChestOpenScreen() {
                 key={chestId}
                 className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-card border border-ink-700 bg-ink-850 px-3 py-2"
               >
-                <span className="text-sm text-ink-100">
+                <span className="flex items-center gap-2 text-sm text-ink-100">
+                  <ChestIcon chest={chestById.get(chestId)} size={30} />
                   <span className="capitalize">{chestId} chest</span>
-                  <span className="ml-2 rounded-full bg-ink-700 px-2 py-0.5 text-xs tabular-nums text-ink-200">
+                  <span className="rounded-full bg-ink-700 px-2 py-0.5 text-xs tabular-nums text-ink-200">
                     ×{count}
                   </span>
                 </span>

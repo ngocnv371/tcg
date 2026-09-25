@@ -13,15 +13,16 @@
  * Assets are rendered strictly one at a time on purpose — one local GPU, and serialising the
  * queue keeps the per-image time predictable instead of thrashing VRAM across queued jobs.
  *
- * The three stages that used to render now are one:
+ * The stages that used to render now are one:
  *   card art     data/cards/<id>.png     390x844
  *   material art data/materials/<id>.png 256x256
+ *   chest art    data/chests/<id>.png    256x256
  * Output size lives in ASSET_TYPES, not in the workflow json, so a new type is one entry.
  *
  * Usage: node scripts/assets-render.mjs [options]
  *
  * Options:
- *   --type=<t>        Only render one asset type (card, material). Default: every type.
+ *   --type=<t>        Only render one asset type (card, material, chest). Default: every type.
  *   --csv=<path>      Catalog to read. Default data/assets.csv.
  *   --url=<url>       ComfyUI base url. Defaults to env COMFY_URL (fallback COMFYUI_URL),
  *                     then http://127.0.0.1:8188.
@@ -54,6 +55,7 @@ if (existsSync(join(root, '.env.local'))) process.loadEnvFile(join(root, '.env.l
 const ASSET_TYPES = {
   card: { dir: 'data/cards', width: 390, height: 844 },
   material: { dir: 'data/materials', width: 256, height: 256 },
+  chest: { dir: 'data/chests', width: 256, height: 256 },
 }
 
 /** The token the workflow json carries where the prompt goes. */
