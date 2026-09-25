@@ -203,6 +203,10 @@ create table public.dungeon_runs (
   dungeon_id text not null references public.dungeons (id),
   party_id uuid references public.parties (id) on delete set null,
   power_snapshot integer not null,
+  -- Elemental affinity snapped at start: the share of party cards carrying a dungeon tag,
+  -- mapped onto the band in `affinityMultiplier()` (src/game/formulas.ts). `resolve_due_runs`
+  -- folds it into the yield, so editing the party mid-run cannot change the payout.
+  affinity_mult numeric not null default 1 check (affinity_mult > 0),
   started_at timestamptz not null default now(),
   ends_at timestamptz not null,
   resolved_at timestamptz,

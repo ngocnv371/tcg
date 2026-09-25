@@ -62,6 +62,7 @@ function run(claimed: boolean): DungeonRun {
     dungeon_id: 'd1',
     party_id: 'party1',
     power_snapshot: 100,
+    affinity_mult: 1,
     started_at: '2026-01-01T00:00:00Z',
     ends_at: '2026-01-01T00:05:00Z',
     resolved_at: '2026-01-01T00:05:00Z',

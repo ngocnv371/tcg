@@ -4,7 +4,14 @@ import { X } from 'lucide-react'
 import { formatDuration, materialLabel } from '@/features/dungeons/format'
 import { useMaterialCatalog } from '@/features/inventory/api'
 import { MaterialIcon } from '@/features/inventory/MaterialIcon'
-import { REWARD_MULT_MAX, REWARD_MULT_MIN, coreVariantForRank, tagLabel } from '@/game/formulas'
+import {
+  AFFINITY_MULT_MAX,
+  AFFINITY_MULT_MIN,
+  RUN_MULT_MAX,
+  RUN_MULT_MIN,
+  coreVariantForRank,
+  tagLabel,
+} from '@/game/formulas'
 import type { Dungeon } from '@/types/db'
 
 /**
@@ -38,9 +45,13 @@ export function DungeonResourcesModal({
   const materialById = new Map((materials ?? []).map((material) => [material.id, material]))
   const nameOf = (id: string) => materialById.get(id)?.name ?? materialLabel(id)
 
-  // The listed numbers are the 1.0x floor; a stronger party scales them up to the cap.
-  const goldMin = Math.round(dungeon.gold_base * REWARD_MULT_MIN)
-  const goldMax = Math.round(dungeon.gold_base * REWARD_MULT_MAX)
+  // The tutorial pays a fixed bundle (`resolve_due_runs` pins its multiplier to 1), so it has
+  // no band; every other dungeon lists its payout at the floor across both yield bands.
+  const fixed = dungeon.is_tutorial
+  const multMin = fixed ? 1 : RUN_MULT_MIN
+  const multMax = fixed ? 1 : RUN_MULT_MAX
+  const goldMin = Math.round(dungeon.gold_base * multMin)
+  const goldMax = Math.round(dungeon.gold_base * multMax)
   const grade = coreVariantForRank(dungeon.rank)
 
   return (
@@ -100,7 +111,7 @@ export function DungeonResourcesModal({
                   <span className="truncate text-ink-200">{nameOf(drop.material_id)}</span>
                 </span>
                 <span className="tabular-nums text-ink-50">
-                  {Math.round(drop.min * REWARD_MULT_MIN)} – {Math.round(drop.max * REWARD_MULT_MAX)}
+                  {Math.round(drop.min * multMin)} – {Math.round(drop.max * multMax)}
                 </span>
               </li>
             ))}
@@ -129,13 +140,29 @@ export function DungeonResourcesModal({
                 {dungeon.req_power.toLocaleString('en-US')}
               </dd>
             </div>
+            {!fixed && dungeon.tags.length > 0 ? (
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-ink-400">Resonance</dt>
+                <dd className="tabular-nums text-ink-300">
+                  ×{AFFINITY_MULT_MIN.toFixed(2)}–×{AFFINITY_MULT_MAX.toFixed(2)}
+                </dd>
+              </div>
+            ) : null}
           </dl>
 
-          <p className="text-xs text-ink-500">
-            Every clear pays this whole list — a run never fails. Sending a stronger party
-            raises the yield multiplier (×{REWARD_MULT_MIN.toFixed(2)}–×
-            {REWARD_MULT_MAX.toFixed(2)}), and both gold and stacks scale with it.
-          </p>
+          {fixed ? (
+            <p className="text-xs text-ink-500">
+              The tutorial pays exactly this — party power and resonance do not change it, so the
+              guided rank-up is always affordable.
+            </p>
+          ) : (
+            <p className="text-xs text-ink-500">
+              Every clear pays this whole list — a run never fails. Yield scales with party power
+              (×1.00–×1.50) and elemental resonance (×{AFFINITY_MULT_MIN.toFixed(2)}–×
+              {AFFINITY_MULT_MAX.toFixed(2)}): cards sharing these tags push it up, off-element
+              cards pull it down. Both gold and stacks scale with the final multiplier.
+            </p>
+          )}
         </div>
       </section>
     </div>

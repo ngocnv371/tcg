@@ -6,7 +6,7 @@ import { useCardCatalog, useCollection } from '@/features/cards/api'
 import { formatDuration } from '@/features/dungeons/format'
 import { useParties } from '@/features/party/api'
 import { useStartRun } from '@/features/progression/api'
-import { partyPower, rewardMultiplier } from '@/game/formulas'
+import { affinityMatchCount, affinityMultiplier, partyPower, runMultiplier } from '@/game/formulas'
 import { cn } from '@/lib/utils'
 import type { PartyLoadout } from '@/features/party/api'
 import type { Card, CardRank, Dungeon, DungeonRun, PlayerCard } from '@/types/db'
@@ -15,10 +15,25 @@ type PartyOption = {
   loadout: PartyLoadout
   members: Array<{ card: Card; playerCard: PlayerCard }>
   power: number
+  /** Elemental affinity against this dungeon (0.85–1.15); 1 when the dungeon carries no tags. */
+  affinity: number
+  /** Party cards sharing a dungeon tag, out of the party size — for the resonance caption. */
+  matches: number
+  cardCount: number
+  /** Power scaling times affinity — the same number `resolve_due_runs` will record. */
+  yield: number
   /** A party already out on a run cannot be sent again. */
   busy: boolean
   /** An empty lineup fails server-side ("party has no cards"), so it is never confirmable. */
   empty: boolean
+}
+
+/** `1.08` → `+8%`, `0.85` → `-15%`, an empty/unmatched party → `—`. */
+function affinityLabel(option: PartyOption): string {
+  if (option.cardCount === 0) return '—'
+  const pct = Math.round((option.affinity - 1) * 100)
+  if (pct === 0) return '±0%'
+  return `${pct > 0 ? '+' : ''}${pct}%`
 }
 
 /**
@@ -70,20 +85,34 @@ export function StartRunModal({
         return card && playerCard ? [{ card, playerCard }] : []
       })
 
+      const power = partyPower(
+        members.map(({ playerCard }) => ({
+          rank: playerCard.rank as CardRank,
+          level: playerCard.level,
+        })),
+      )
+      const partyTags = members.map(({ card }) => card.tags ?? [])
+      // The tutorial pays a fixed bundle (`resolve_due_runs` pins its multiplier to 1), so it
+      // must not preview a resonance bonus either.
+      const affinity = dungeon.is_tutorial
+        ? 1
+        : affinityMultiplier(partyTags, dungeon.tags)
+
       return {
         loadout,
         members,
-        power: partyPower(
-          members.map(({ playerCard }) => ({
-            rank: playerCard.rank as CardRank,
-            level: playerCard.level,
-          })),
-        ),
+        power,
+        affinity,
+        matches: affinityMatchCount(partyTags, dungeon.tags),
+        cardCount: members.length,
+        yield: dungeon.is_tutorial
+          ? 1
+          : runMultiplier(power, dungeon.req_power, partyTags, dungeon.tags),
         busy: busyPartyIds.has(loadout.party.id),
         empty: members.length === 0,
       }
     })
-  }, [activeRuns, catalog, collection, parties])
+  }, [activeRuns, catalog, collection, dungeon, parties])
 
   // Best default is a party that can actually go, so the common case is one tap.
   const firstUsable = options.find((option) => !option.busy && !option.empty)
@@ -198,12 +227,31 @@ export function StartRunModal({
                       {option.power.toLocaleString('en-US')}
                     </dd>
                   </div>
+                  {dungeon.is_tutorial || dungeon.tags.length === 0 ? null : (
+                    <div
+                      className="flex gap-1.5"
+                      title={`${option.matches} of ${option.cardCount} cards share this dungeon's tags`}
+                    >
+                      <dt className="text-ink-400">Resonance</dt>
+                      <dd
+                        className={cn(
+                          'tabular-nums',
+                          option.affinity > 1
+                            ? 'text-faction-verdant'
+                            : option.affinity < 1
+                              ? 'text-faction-ember'
+                              : 'text-ink-200',
+                        )}
+                      >
+                        {affinityLabel(option)}
+                      </dd>
+                    </div>
+                  )}
                   <div className="flex gap-1.5">
                     <dt className="text-ink-400">Yield</dt>
-                    {/* Preview only — the server scales the payout from the power snapshot. */}
-                    <dd className="tabular-nums text-ink-200">
-                      ×{rewardMultiplier(option.power, dungeon.req_power).toFixed(2)}
-                    </dd>
+                    {/* Preview only — the server scales the payout from the power snapshot and
+                        the affinity it snapped when the run started. */}
+                    <dd className="tabular-nums text-ink-200">×{option.yield.toFixed(2)}</dd>
                   </div>
                 </dl>
               </button>
@@ -212,6 +260,12 @@ export function StartRunModal({
         </div>
 
         <footer className="border-t border-ink-800 p-4">
+          {!dungeon.is_tutorial && dungeon.tags.length > 0 ? (
+            <p className="mb-1.5 text-xs text-ink-500">
+              Cards matching this dungeon's tags raise resonance (up to +15%); off-element cards
+              lower it (to -15%).
+            </p>
+          ) : null}
           <p className="mb-2 text-xs text-ink-400">
             Needs {dungeon.req_power.toLocaleString('en-US')} power ·{' '}
             {formatDuration(dungeon.duration_seconds)}

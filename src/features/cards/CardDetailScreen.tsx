@@ -4,6 +4,8 @@ import { Link, useParams } from 'react-router-dom'
 import { Panel, Screen } from '@/components/Screen'
 import { useCardCatalog, useCollection, useRankCosts, useRankUpCard } from '@/features/cards/api'
 import { RankUpOverlay, type RankUpReveal } from '@/features/cards/RankUpOverlay'
+import { useDungeons } from '@/features/dungeons/api'
+import { dungeonsDropping } from '@/features/dungeons/farmRoutes'
 import { useInventory, useMaterialCatalog } from '@/features/inventory/api'
 import { MaterialIcon } from '@/features/inventory/MaterialIcon'
 import { useProfile } from '@/features/profile/api'
@@ -42,6 +44,7 @@ export function CardDetailScreen() {
   const { data: costs } = useRankCosts(cardId)
   const { data: inventory } = useInventory()
   const { data: materials } = useMaterialCatalog()
+  const { data: dungeons } = useDungeons()
   const { data: profile } = useProfile()
   const rankUp = useRankUpCard()
   const [reveal, setReveal] = useState<RankUpReveal | null>(null)
@@ -199,16 +202,48 @@ export function CardDetailScreen() {
                 {rankUp.isPending ? 'Ranking up…' : `Rank up to ${step.to_rank}★`}
               </button>
               {short.length ? (
-                <p className="mt-2 text-xs text-ink-500">
-                  Missing{' '}
-                  {short
-                    .map(
-                      (requirement) =>
-                        `${(requirement.need - requirement.have).toLocaleString('en-US')} ${requirement.label}`,
+                <div className="mt-3 space-y-2 border-t border-ink-800 pt-3">
+                  <p className="text-xs text-ink-500">Still needed:</p>
+                  {short.map((requirement) => {
+                    // Turn a shortfall into a destination: the dungeons that list this drop,
+                    // easiest first. Gold is the exception — every dungeon pays it.
+                    const farms =
+                      requirement.id === 'gold'
+                        ? []
+                        : dungeonsDropping(requirement.id, dungeons ?? [])
+                    const more = requirement.need - requirement.have
+                    return (
+                      <div key={requirement.id} className="text-xs">
+                        <p className="text-faction-ember">
+                          {more.toLocaleString('en-US')} more {requirement.label}
+                        </p>
+                        {requirement.id === 'gold' ? (
+                          <p className="mt-0.5 text-ink-600">
+                            Gold drops from every dungeon —{' '}
+                            <Link to="/dungeons" className="text-gold-300 underline">
+                              go farming
+                            </Link>
+                            .
+                          </p>
+                        ) : farms.length ? (
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {farms.slice(0, 4).map((dungeon) => (
+                              <Link
+                                key={dungeon.id}
+                                to={`/dungeons?focus=${dungeon.id}`}
+                                className="rounded-card border border-gold-600 px-2 py-1 text-[11px] text-gold-300 hover:bg-ink-850"
+                              >
+                                Farm {dungeon.name}
+                              </Link>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-0.5 text-ink-600">No dungeon lists this drop yet.</p>
+                        )}
+                      </div>
                     )
-                    .join(', ')}
-                  .
-                </p>
+                  })}
+                </div>
               ) : null}
               {rankUp.error ? (
                 <p className="mt-2 text-xs text-faction-ember">{rankUp.error.message}</p>

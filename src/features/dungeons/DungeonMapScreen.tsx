@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import { Panel, Screen } from '@/components/Screen'
 import { DungeonResourcesModal } from '@/features/dungeons/DungeonResourcesModal'
@@ -19,6 +20,9 @@ export function DungeonMapScreen() {
   const { data: dungeons, error } = useDungeons()
   const { data: runs } = useRuns()
   const { data: profile } = useProfile()
+  const [searchParams] = useSearchParams()
+  /** Deep link from a card's rank-up shortfall ("Farm <dungeon>") — highlight and scroll there. */
+  const focusId = searchParams.get('focus')
   const claimRun = useClaimRun()
   const rushRun = useRushRun()
   const [claim, setClaim] = useState<RunClaim | null>(null)
@@ -38,6 +42,13 @@ export function DungeonMapScreen() {
     if (!dungeon.is_tutorial) return true
     return !(runs ?? []).some((run) => run.dungeon_id === dungeon.id && run.claimed_at)
   })
+
+  useEffect(() => {
+    if (!focusId || !dungeons) return
+    document
+      .getElementById(`dungeon-${focusId}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [dungeons, focusId])
 
   return (
     <Screen
@@ -65,8 +76,8 @@ export function DungeonMapScreen() {
           const claimable = claimableRuns.filter((run) => run.dungeon_id === dungeon.id)
 
           return (
-            <li key={dungeon.id}>
-              <Panel>
+            <li key={dungeon.id} id={`dungeon-${dungeon.id}`}>
+              <Panel className={focusId === dungeon.id ? 'ring-2 ring-gold-500' : undefined}>
                 {artSrc ? (
                   <div className="mb-2.5 aspect-video w-full overflow-hidden rounded-card bg-ink-850">
                     <img src={artSrc} alt={dungeon.name} className="h-full w-full object-cover" />

@@ -141,7 +141,16 @@ client badge is display only). **A run never fails**: `private.resolve_due_runs`
 party power only scales the
 payout between ×1.00 and ×1.50 — that multiplier is recorded on `rewards.multiplier`, and it scales
 both the gold and *every* stack in the drop table, which is paid in full rather than as one weighted
-pick. So the party picker shows `Yield ×N` where it used to show success odds, and the failure
+pick. **Elemental affinity** multiplies on top: a party's share of cards sharing a dungeon's `tags`
+is snapped onto ×0.85–×1.15 by `start_run` (the `dungeon_runs.affinity_mult` column, so editing the
+party mid-run cannot change the payout) and `resolve_due_runs` folds it into `rewards.multiplier`.
+The band is `AFFINITY_MULT_MIN`/`MAX` + `affinityMultiplier()` in `src/game/formulas.ts`, mirrored in
+`start_run`; the tutorial pins its multiplier to 1 and is exempt. The party picker shows the
+previewed `Resonance` and combined `Yield`, and the Resources panel shows the full ×0.85–×1.73 band.
+A rank-up shortfall is now a destination: `dungeonsDropping()`
+(`src/features/dungeons/farmRoutes.ts`) turns a missing material into "Farm <dungeon>" links on
+`CardDetailScreen`, which deep-link to `/dungeons?focus=<id>` (highlighted and scrolled to). So the
+party picker shows `Yield ×N` where it used to show success odds, and the failure
 messaging and pity gold are gone. The online resolve and the cron sweep share that one body, so a
 run cannot expire two different ways. Rank-up is live: `rank_up_card`
 locks the copy, re-reads the `card_rank_costs` step for its

@@ -1043,6 +1043,77 @@ begin
     delete from public.player_cards where card_id = 'verify_tut_card';
     delete from public.cards where id = 'verify_tut_card';
   end;
+
+  -- elemental affinity: a party's share of cards sharing a dungeon tag snaps onto the yield
+  -- band at start, and the resolver folds it into the multiplier. Guards the SQL mirror of
+  -- affinityMultiplier() / AFFINITY_MULT_MIN / AFFINITY_MULT_MAX in src/game/formulas.ts.
+  declare
+    aff_dungeon text := 'verify_affinity_dungeon';
+    fire_party uuid;
+    ice_party uuid;
+    fire_card uuid;
+    ice_card uuid;
+    fire_mult numeric;
+    ice_mult numeric;
+  begin
+    insert into public.dungeons (id, name, kind, tier, rank, tags, req_power,
+                                 duration_seconds, gold_base, materials, is_tutorial)
+      values (aff_dungeon, 'Verify Affinity', 'resource', 1, 1, array['fire'], 1,
+              60, 0, '[]'::jsonb, false);
+    insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
+                              passive_name, passive_text, lore, tags)
+      values ('verify_fire_card', 'Verify Fire Card', 1, 'ember', 'dps', 1, 0, 'p', 'p', 'p', array['fire']),
+             ('verify_ice_card', 'Verify Ice Card', 1, 'tide', 'dps', 1, 0, 'p', 'p', 'p', array['ice']);
+    insert into public.player_cards (profile_id, card_id, rank)
+      values ('00000000-0000-0000-0000-000000000001', 'verify_fire_card', 1)
+      returning id into fire_card;
+    insert into public.player_cards (profile_id, card_id, rank)
+      values ('00000000-0000-0000-0000-000000000001', 'verify_ice_card', 1)
+      returning id into ice_card;
+    insert into public.parties (profile_id, name, slot_index)
+      values ('00000000-0000-0000-0000-000000000001', 'Verify Fire', 91)
+      returning id into fire_party;
+    insert into public.parties (profile_id, name, slot_index)
+      values ('00000000-0000-0000-0000-000000000001', 'Verify Ice', 92)
+      returning id into ice_party;
+    insert into public.party_slots (party_id, slot, player_card_id)
+      values (fire_party, 1, fire_card), (ice_party, 1, ice_card);
+
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select '00000000-0000-0000-0000-000000000001'::uuid $fn$;
+
+    perform public.start_run(aff_dungeon, fire_party);
+    perform public.start_run(aff_dungeon, ice_party);
+
+    -- rewind both so the resolver pays them, then read the multiplier it wrote. Power 32
+    -- against req 1 clamps to 1.5, so the only variable is affinity.
+    update public.dungeon_runs set started_at = now() - interval '2 minutes',
+      ends_at = now() - interval '1 second'
+      where dungeon_id = aff_dungeon;
+    perform public.resolve_runs();
+
+    select (rewards ->> 'multiplier')::numeric into fire_mult
+      from public.dungeon_runs where dungeon_id = aff_dungeon and party_id = fire_party;
+    select (rewards ->> 'multiplier')::numeric into ice_mult
+      from public.dungeon_runs where dungeon_id = aff_dungeon and party_id = ice_party;
+
+    if abs(fire_mult - 1.725) > 0.0001 then
+      raise exception 'matching party multiplier was %, expected 1.725', fire_mult;
+    end if;
+    if abs(ice_mult - 1.275) > 0.0001 then
+      raise exception 'off-element party multiplier was %, expected 1.275', ice_mult;
+    end if;
+
+    -- leave the throwaway database as the assertions found it
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select null::uuid $fn$;
+    delete from public.dungeon_runs where dungeon_id = aff_dungeon;
+    delete from public.party_slots where party_id in (fire_party, ice_party);
+    delete from public.parties where id in (fire_party, ice_party);
+    delete from public.player_cards where id in (fire_card, ice_card);
+    delete from public.cards where id in ('verify_fire_card', 'verify_ice_card');
+    delete from public.dungeons where id = aff_dungeon;
+  end;
 end $$;
 
 select 'cards'                 as check, count(*)::text as value from public.cards

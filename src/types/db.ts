@@ -158,6 +158,8 @@ export type DungeonRun = {
   dungeon_id: string
   party_id: string
   power_snapshot: number
+  /** Elemental affinity snapped at start; folded into the yield at resolve time. */
+  affinity_mult: number
   started_at: string
   ends_at: string
   resolved_at: string | null
@@ -172,6 +174,8 @@ export type RunRewards = {
   chest_id?: string
   /** The party's yield multiplier at resolve time; absent on pre-multiplier rows. */
   multiplier?: number
+  /** The elemental-affinity factor inside `multiplier`; absent on older rows. */
+  affinity?: number
 }
 
 export type ChestInventoryRow = {

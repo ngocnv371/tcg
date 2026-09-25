@@ -23,7 +23,7 @@ export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: 
       aria-modal="true"
       aria-labelledby="run-rewards-title"
     >
-      <section className="w-full max-w-sm rounded-card border border-ink-700 bg-ink-900 p-4 shadow-lg">
+      <section className="flex max-h-[calc(100dvh-3rem)] w-full max-w-sm flex-col rounded-card border border-ink-700 bg-ink-900 p-4 shadow-lg">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 id="run-rewards-title" className="font-display text-lg text-ink-50">
@@ -31,9 +31,19 @@ export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: 
             </h2>
             <p className="mt-1 text-sm text-ink-400">
               {/* A run always clears now; the only variable is how much it paid. */}
-              {rewards?.multiplier
-                ? `Yield ×${rewards.multiplier.toFixed(2)} — added to your vault.`
-                : 'Resources added to your vault.'}
+              {rewards?.multiplier ? (
+                <>
+                  Yield ×{rewards.multiplier.toFixed(2)}
+                  {rewards.affinity && Math.round((rewards.affinity - 1) * 100) !== 0
+                    ? ` · resonance ${rewards.affinity > 1 ? '+' : ''}${Math.round(
+                        (rewards.affinity - 1) * 100,
+                      )}%`
+                    : ''}{' '}
+                  — added to your vault.
+                </>
+              ) : (
+                'Resources added to your vault.'
+              )}
             </p>
           </div>
           <button
@@ -48,7 +58,7 @@ export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: 
         </div>
 
         {rewards ? (
-          <ul className="mt-4 divide-y divide-ink-800 border-y border-ink-800 text-sm">
+          <ul className="scrollbar-slim mt-4 min-h-0 flex-1 divide-y divide-ink-800 overflow-y-auto border-y border-ink-800 text-sm">
             {/* Runs resolved before the yield-multiplier change carry gold: 0 — nothing to show. */}
             {rewards.gold > 0 ? (
               <li className="flex items-center justify-between py-3">
@@ -84,7 +94,7 @@ export function RunRewardsModal({ claim, onClose }: { claim: RunClaim; onClose: 
         <button
           type="button"
           onClick={onClose}
-          className="mt-4 w-full rounded-card bg-gold-500 px-3 py-2.5 text-sm font-medium text-ink-950"
+          className="mt-4 w-full shrink-0 rounded-card bg-gold-500 px-3 py-2.5 text-sm font-medium text-ink-950"
         >
           Continue
         </button>

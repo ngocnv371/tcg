@@ -569,7 +569,10 @@ begin
     if dungeon.is_tutorial then
       mult := 1;
     else
-      mult := greatest(1, least(1.5, run.power_snapshot::numeric / greatest(dungeon.req_power, 1)));
+      -- Power band times the affinity snapped at start. Mirrors rewardMultiplier() *
+      -- affinityMultiplier() in src/game/formulas.ts.
+      mult := greatest(1, least(1.5, run.power_snapshot::numeric / greatest(dungeon.req_power, 1)))
+        * run.affinity_mult;
     end if;
     reward_gold := round(dungeon.gold_base * mult);
 
@@ -602,7 +605,8 @@ begin
         'gold', reward_gold,
         'materials', reward_materials,
         'chest_id', dungeon.chest_on_clear,
-        'multiplier', mult
+        'multiplier', mult,
+        'affinity', run.affinity_mult
       )
     where id = run.id;
 
@@ -641,6 +645,8 @@ declare
   profile public.profiles;
   card_count integer;
   power integer;
+  match_count integer;
+  affinity numeric;
   result public.dungeon_runs;
 begin
   if auth.uid() is null then raise exception 'not authenticated'; end if;
@@ -695,16 +701,29 @@ begin
     raise exception 'that party is already on a run';
   end if;
 
-  select count(*), coalesce(sum(public.card_power(pc.rank, pc.level)), 0)::integer
-  into card_count, power
-  from public.party_slots ps join public.player_cards pc on pc.id = ps.player_card_id
+  select count(*), coalesce(sum(public.card_power(pc.rank, pc.level)), 0)::integer,
+    coalesce(sum(case when c.tags && dungeon.tags then 1 else 0 end), 0)::integer
+  into card_count, power, match_count
+  from public.party_slots ps
+    join public.player_cards pc on pc.id = ps.player_card_id
+    join public.cards c on c.id = pc.card_id
   where ps.party_id = party.id;
   if card_count = 0 then raise exception 'party has no cards'; end if;
+
+  -- Elemental affinity: the share of the party carrying at least one of the dungeon's tags,
+  -- mapped onto [0.85, 1.15]. An untagged dungeon is neutral. Mirrors
+  -- AFFINITY_MULT_MIN / AFFINITY_MULT_MAX / affinityMultiplier() in src/game/formulas.ts.
+  if coalesce(array_length(dungeon.tags, 1), 0) = 0 then
+    affinity := 1;
+  else
+    affinity := 0.85 + (1.15 - 0.85) * (match_count::numeric / card_count);
+  end if;
+
   if (select count(*) from public.dungeon_runs where profile_id = auth.uid() and resolved_at is null) >= profile.run_slots
     then raise exception 'all run slots are busy'; end if;
 
-  insert into public.dungeon_runs (profile_id, dungeon_id, party_id, power_snapshot, ends_at)
-  values (auth.uid(), dungeon.id, party.id, power, now() + make_interval(secs => dungeon.duration_seconds))
+  insert into public.dungeon_runs (profile_id, dungeon_id, party_id, power_snapshot, affinity_mult, ends_at)
+  values (auth.uid(), dungeon.id, party.id, power, affinity, now() + make_interval(secs => dungeon.duration_seconds))
   returning * into result;
   return result;
 end;

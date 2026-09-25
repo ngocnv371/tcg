@@ -72,6 +72,34 @@ textarea {
 }
 
 /*
+ * Scroll areas inside dark panels. The OS default is a bright, wide track that
+ * punches a hole in the surface; this keeps it thin and translucent so it only
+ * reads on hover/scroll.
+ */
+@utility scrollbar-slim {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--color-ink-400) 60%, transparent) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--color-ink-400) 50%, transparent);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--color-ink-400) 80%, transparent);
+  }
+}
+
+/*
  * Run progress fill. The bar is driven entirely by inline animation-* values
  * (duration = run length, negative delay = time already elapsed), so a single
  * render paints the whole remaining countdown with no per-second JS tick.

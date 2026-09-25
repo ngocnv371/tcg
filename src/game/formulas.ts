@@ -261,6 +261,59 @@ export function goldReward(baseGold: number, power: number, requiredPower: numbe
   return Math.round(baseGold * rewardMultiplier(power, requiredPower))
 }
 
+/**
+ * Elemental affinity band: how much matching a dungeon's Core tags is worth. A party whose
+ * every card shares a dungeon tag brings `AFFINITY_MULT_MAX`; one where none do gets
+ * `AFFINITY_MULT_MIN`; mixed parties sit in between. Mirrored in `start_run`
+ * (20260915000001_progression.sql) — change one, change both.
+ */
+export const AFFINITY_MULT_MIN = 0.85
+export const AFFINITY_MULT_MAX = 1.15
+
+/**
+ * How many party cards carry at least one of a dungeon's tags. Case-insensitive; a card
+ * counts once however many tags it shares.
+ */
+export function affinityMatchCount(
+  partyTags: ReadonlyArray<readonly string[]>,
+  dungeonTags: readonly string[],
+): number {
+  const dungeon = new Set(dungeonTags.map((tag) => tag.toLowerCase()))
+  return partyTags.filter((tags) => tags.some((tag) => dungeon.has(tag.toLowerCase()))).length
+}
+
+/**
+ * Yield multiplier from elemental affinity. `partyTags` is one tag list per party card (the
+ * card's own `tags`); a card counts when it shares at least one tag with `dungeonTags`. A
+ * dungeon with no tags, or an empty party, is neutral (1.0) — `start_run` short-circuits an
+ * untagged dungeon the same way, so the two agree on the tutorial.
+ */
+export function affinityMultiplier(
+  partyTags: ReadonlyArray<readonly string[]>,
+  dungeonTags: readonly string[],
+): number {
+  if (partyTags.length === 0 || dungeonTags.length === 0) return 1
+  const matches = affinityMatchCount(partyTags, dungeonTags)
+  return AFFINITY_MULT_MIN + (AFFINITY_MULT_MAX - AFFINITY_MULT_MIN) * (matches / partyTags.length)
+}
+
+/**
+ * The full run yield: power scaling times affinity. Mirrors the `mult` that
+ * `resolve_due_runs` records on the run (and that the client previews before sending).
+ */
+export function runMultiplier(
+  power: number,
+  requiredPower: number,
+  partyTags: ReadonlyArray<readonly string[]>,
+  dungeonTags: readonly string[],
+): number {
+  return rewardMultiplier(power, requiredPower) * affinityMultiplier(partyTags, dungeonTags)
+}
+
+/** Widest possible run yield, used by the Resources panel's min–max preview. */
+export const RUN_MULT_MIN = REWARD_MULT_MIN * AFFINITY_MULT_MIN
+export const RUN_MULT_MAX = REWARD_MULT_MAX * AFFINITY_MULT_MAX
+
 export function dupeShards(rank: CardRank): number {
   return RANK_META[rank].dupeShards
 }

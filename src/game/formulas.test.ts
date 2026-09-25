@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  AFFINITY_MULT_MAX,
+  AFFINITY_MULT_MIN,
   CHEST_GEM_PRICES,
   CHEST_ODDS,
   CORE_TAGS,
@@ -9,6 +11,7 @@ import {
   RANK_UP_LADDER,
   TUTORIAL_DUNGEON_ID,
   TUTORIAL_DURATION_SECONDS,
+  affinityMultiplier,
   allCoreIds,
   cardAtk,
   cardDef,
@@ -23,6 +26,7 @@ import {
   pickRank,
   rankUpCost,
   rewardMultiplier,
+  runMultiplier,
   runSlotsForLevel,
   rushCost,
   tagCoreId,
@@ -83,6 +87,32 @@ describe('rewards', () => {
   it('pays a stronger team strictly more of the same dungeon', () => {
     expect(goldReward(60, 500, 500)).toBe(60)
     expect(goldReward(60, 5000, 500)).toBe(90)
+  })
+})
+
+describe('elemental affinity', () => {
+  it('interpolates between the band ends by share of matching cards', () => {
+    expect(affinityMultiplier([['fire'], ['dragon']], ['fire', 'dragon'])).toBeCloseTo(
+      AFFINITY_MULT_MAX,
+    )
+    expect(affinityMultiplier([['water'], ['ice']], ['fire'])).toBeCloseTo(AFFINITY_MULT_MIN)
+    expect(
+      affinityMultiplier([['fire'], ['water'], ['physical']], ['fire']),
+    ).toBeCloseTo(AFFINITY_MULT_MIN + (AFFINITY_MULT_MAX - AFFINITY_MULT_MIN) / 3)
+  })
+
+  it('counts a multi-tag card once and matches case-insensitively', () => {
+    expect(affinityMultiplier([['Fire', 'dragon']], ['fire'])).toBeCloseTo(AFFINITY_MULT_MAX)
+  })
+
+  it('is neutral with no dungeon tags or no party', () => {
+    expect(affinityMultiplier([['fire']], [])).toBe(1)
+    expect(affinityMultiplier([], ['fire'])).toBe(1)
+  })
+
+  it('composes with the power band into one yield', () => {
+    expect(runMultiplier(500, 500, [['fire']], ['fire'])).toBeCloseTo(AFFINITY_MULT_MAX)
+    expect(runMultiplier(750, 500, [['water']], ['fire'])).toBeCloseTo(1.5 * AFFINITY_MULT_MIN)
   })
 })
 
