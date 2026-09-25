@@ -149,6 +149,26 @@ export function rankUpCost(
 }
 
 /**
+ * The one-time tutorial run that bootstraps a new account (see
+ * `supabase/migrations/20260915000001_progression.sql`). Its payout is not a bespoke bundle:
+ * it IS the ladder's cheapest step (1→2) for *every* Core family, because a card can carry
+ * more than one tag. `scripts/build-seed.mjs` bakes this into the seeded `dungeons` row and
+ * the resolver pins its yield multiplier to 1, so the guided rank-up is always affordable.
+ */
+export const TUTORIAL_DUNGEON_ID = 'training_grounds'
+export const TUTORIAL_DUNGEON_NAME = 'Training Grounds'
+export const TUTORIAL_DURATION_SECONDS = 10
+
+export function tutorialReward(): { gold: number; materials: Record<string, number> } {
+  const step = RANK_UP_LADDER[1]
+  const materials: Record<string, number> = { ...step.materials }
+  for (const tag of CORE_TAGS) {
+    materials[tagCoreId(tag, step.coreVariant)] = step.coreQty
+  }
+  return { gold: step.gold, materials }
+}
+
+/**
  * Reward scaling band for the over/under-powered yield multiplier. A run never fails any
  * more — power only decides how much the same dungeon pays out.
  */

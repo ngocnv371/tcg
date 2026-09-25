@@ -1,8 +1,8 @@
-import { useState, type CSSProperties } from 'react'
-import { Gem } from 'lucide-react'
+import { useState } from 'react'
 
 import { Panel, Screen } from '@/components/Screen'
 import { DungeonResourcesModal } from '@/features/dungeons/DungeonResourcesModal'
+import { RunProgress } from '@/features/dungeons/RunProgress'
 import { RunRewardsModal } from '@/features/dungeons/RunRewardsModal'
 import { RunVictoryOverlay, type RunVictory } from '@/features/dungeons/RunVictoryOverlay'
 import { StartRunModal } from '@/features/dungeons/StartRunModal'
@@ -11,94 +11,9 @@ import { formatDuration } from '@/features/dungeons/format'
 import { useProfile } from '@/features/profile/api'
 import { useClaimRun, useRushRun } from '@/features/progression/api'
 import type { RunClaim } from '@/features/progression/api'
-import { rushCost, tagLabel } from '@/game/formulas'
+import { tagLabel } from '@/game/formulas'
 import { resolveArtSrc } from '@/lib/art'
-import type { Dungeon, DungeonRun } from '@/types/db'
-
-/**
- * Reads the wall clock once to turn a run into a progress snapshot. Deliberately not a
- * live timer: the animation carries the bar from here to 100% on its own.
- */
-function runTimeline(run: DungeonRun) {
-  const startedAt = new Date(run.started_at).getTime()
-  const endsAt = new Date(run.ends_at).getTime()
-  const totalSeconds = Math.max(1, Math.round((endsAt - startedAt) / 1000))
-  const elapsedSeconds = Math.min(
-    totalSeconds,
-    Math.max(0, Math.round((Date.now() - startedAt) / 1000)),
-  )
-
-  return { totalSeconds, elapsedSeconds, remainingSeconds: totalSeconds - elapsedSeconds }
-}
-
-/**
- * The bar is painted once and handed to CSS: `run-progress` scales the fill from 0 to 1
- * over the run's full length and the negative delay skips it forward to where the run
- * already is. No interval, no per-second re-render — `ends_at` is the clock.
- */
-function RunProgress({
-  run,
-  gems,
-  onRush,
-  rushPending,
-}: {
-  run: DungeonRun
-  gems: number | undefined
-  onRush: () => void
-  rushPending: boolean
-}) {
-  const { totalSeconds, elapsedSeconds, remainingSeconds } = runTimeline(run)
-  // Preview only: `rush_run` recomputes the price from the stored `ends_at`.
-  const cost = rushCost(remainingSeconds)
-  const affordable = (gems ?? 0) >= cost
-
-  return (
-    <div>
-      <div className="flex items-baseline justify-between gap-2 text-xs">
-        <span className="text-gold-300">Running</span>
-        <span className="tabular-nums text-ink-400">
-          {remainingSeconds > 0 ? `~${formatDuration(remainingSeconds)} left` : 'Finishing...'}
-        </span>
-      </div>
-      <div
-        role="progressbar"
-        aria-label="Run progress"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round((elapsedSeconds / totalSeconds) * 100)}
-        className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-ink-800"
-      >
-        <div
-          className="run-progress-fill h-full w-full origin-left rounded-full bg-gold-500"
-          style={
-            {
-              // Static fraction for prefers-reduced-motion; otherwise the animation below wins.
-              '--run-progress': elapsedSeconds / totalSeconds,
-              animationName: 'run-progress',
-              animationDuration: `${totalSeconds}s`,
-              animationDelay: `-${elapsedSeconds}s`,
-              animationTimingFunction: 'linear',
-              animationFillMode: 'both',
-            } as CSSProperties
-          }
-        />
-      </div>
-      <p className="mt-1 text-[11px] text-ink-600">
-        Ends {new Date(run.ends_at).toLocaleTimeString()}
-      </p>
-      <button
-        type="button"
-        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-card border border-faction-tide/60 px-3 py-1.5 text-xs text-faction-tide disabled:cursor-not-allowed disabled:opacity-40"
-        disabled={rushPending || !affordable}
-        title={affordable ? undefined : 'Not enough gems'}
-        onClick={onRush}
-      >
-        <Gem className="size-3.5" />
-        {rushPending ? 'Finishing...' : `Finish now · ${cost} gems`}
-      </button>
-    </div>
-  )
-}
+import type { Dungeon } from '@/types/db'
 
 export function DungeonMapScreen() {
   const { data: dungeons, error } = useDungeons()
@@ -117,6 +32,12 @@ export function DungeonMapScreen() {
   const claimableRuns = runs?.filter((run) => run.resolved_at && !run.claimed_at) ?? []
   /** `start_run` refuses account-wide while a finished run is uncollected, so the buttons do too. */
   const pendingClaims = claimableRuns.length > 0
+  // The tutorial is a one-time lesson: once its run is claimed it drops off the map rather than
+  // sitting there unstartable. It is still listed while live or unclaimed so it can be finished.
+  const visibleDungeons = (dungeons ?? []).filter((dungeon) => {
+    if (!dungeon.is_tutorial) return true
+    return !(runs ?? []).some((run) => run.dungeon_id === dungeon.id && run.claimed_at)
+  })
 
   return (
     <Screen
@@ -138,7 +59,7 @@ export function DungeonMapScreen() {
       ) : null}
 
       <ul className="space-y-2.5">
-        {(dungeons ?? []).map((dungeon) => {
+        {visibleDungeons.map((dungeon) => {
           const artSrc = resolveArtSrc(dungeon.art_path)
           const running = activeRuns.filter((run) => run.dungeon_id === dungeon.id)
           const claimable = claimableRuns.filter((run) => run.dungeon_id === dungeon.id)
@@ -154,7 +75,7 @@ export function DungeonMapScreen() {
                 <div className="flex items-baseline justify-between gap-2">
                   <h2 className="text-sm text-ink-100">{dungeon.name}</h2>
                   <span className="text-xs text-ink-400">
-                    {dungeon.kind} · tier {dungeon.tier}
+                    {dungeon.is_tutorial ? 'one-time tutorial' : `${dungeon.kind} · tier ${dungeon.tier}`}
                   </span>
                 </div>
                 <dl className="mt-2 grid grid-cols-3 gap-y-1 text-xs">

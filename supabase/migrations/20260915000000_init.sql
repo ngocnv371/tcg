@@ -102,7 +102,11 @@ create table public.dungeons (
   card_id text references public.cards (id) on delete set null,
   unlocks_at_level smallint not null default 1,
   chest_on_clear text,
-  art_path text
+  art_path text,
+  -- One-time onboarding run: fixed yield (party power does not scale it) and startable once
+  -- per profile. The row is owned by scripts/build-seed.mjs; the guards live in
+  -- 20260915000001_progression.sql.
+  is_tutorial boolean not null default false
 );
 
 comment on column public.dungeons.rank is
@@ -114,7 +118,12 @@ create table public.chests (
   id text primary key,
   name text not null,
   tier smallint not null check (tier between 1 and 5),
-  source text not null
+  source text not null,
+  -- Gems the marketplace charges per chest; mirrors CHEST_GEM_PRICES in src/game/formulas.ts.
+  -- 0 means not for sale.
+  gem_price integer not null default 0 check (gem_price >= 0),
+  -- Public Storage URL of the chest art once scripts/chests-4-import.mjs has run; null until then.
+  icon text
 );
 
 create table public.chest_odds (
@@ -225,6 +234,19 @@ create table public.pull_history (
   pulled_at timestamptz not null default now()
 );
 
+-- The marketplace ledger. Read-only to its owner; a row can only appear through `buy_chest`
+-- (20260915000001_progression.sql), which captures the unit price at purchase time.
+create table public.market_transactions (
+  id bigserial primary key,
+  profile_id uuid not null references public.profiles (id) on delete cascade,
+  chest_id text not null references public.chests (id),
+  qty integer not null check (qty >= 1),
+  -- Price captured at purchase time, so a later balance change cannot rewrite history.
+  unit_price integer not null check (unit_price >= 0),
+  total_gems integer not null check (total_gems >= 0),
+  created_at timestamptz not null default now()
+);
+
 create index player_cards_profile_idx on public.player_cards (profile_id);
 create index player_cards_card_idx on public.player_cards (card_id);
 create index dungeon_runs_open_idx on public.dungeon_runs (profile_id, ends_at)
@@ -233,6 +255,7 @@ create index dungeon_runs_profile_idx on public.dungeon_runs (profile_id, starte
 create index chest_inventory_unopened_idx on public.chest_inventory (profile_id)
   where opened_at is null;
 create index pull_history_profile_idx on public.pull_history (profile_id, pulled_at desc);
+create index market_transactions_profile_idx on public.market_transactions (profile_id, created_at desc);
 
 -- ---------------------------------------------------------------------------
 -- Derived numbers (mirror src/game/formulas.ts — keep them in sync)
@@ -311,6 +334,7 @@ alter table public.party_slots enable row level security;
 alter table public.dungeon_runs enable row level security;
 alter table public.chest_inventory enable row level security;
 alter table public.pull_history enable row level security;
+alter table public.market_transactions enable row level security;
 
 -- Catalog: readable by anyone (including signed-out clients rendering the shell).
 create policy catalog_rank_meta_read on public.rank_meta for select to anon, authenticated using (true);
@@ -352,6 +376,11 @@ create policy chest_inventory_select_own on public.chest_inventory
 create policy pull_history_select_own on public.pull_history
   for select to authenticated using (profile_id = auth.uid());
 
+-- Read-only, own rows only: there is no INSERT/UPDATE/DELETE policy, so the ledger can only
+-- grow through buy_chest.
+create policy market_transactions_select_own on public.market_transactions
+  for select to authenticated using (profile_id = auth.uid());
+
 grant usage on schema public to anon, authenticated;
 
 grant select on public.rank_meta, public.materials, public.cards, public.card_rank_costs,
@@ -359,7 +388,8 @@ grant select on public.rank_meta, public.materials, public.cards, public.card_ra
   to anon, authenticated;
 
 grant select on public.profiles, public.player_cards, public.player_materials, public.parties,
-  public.party_slots, public.dungeon_runs, public.chest_inventory, public.pull_history
+  public.party_slots, public.dungeon_runs, public.chest_inventory, public.pull_history,
+  public.market_transactions
   to authenticated;
 
 grant execute on function public.card_atk(smallint, integer) to anon, authenticated;

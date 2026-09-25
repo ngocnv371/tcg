@@ -1,30 +1,31 @@
 /**
- * Material pipeline, stage 4 of 4 — *import*: turns the rendered icons in data/materials
- * (`<id>.png`, one per material) into the `materials.icon` column, optionally re-encoding
- * them to WebP and uploading to the public `material-art` Storage bucket first.
+ * Chest pipeline, stage 4 of 4 — *import*: turns the rendered art in data/chests
+ * (`<id>.png`, one per chest) into the `chests.icon` column, optionally re-encoding it to WebP
+ * and uploading it to the public `material-art` Storage bucket first. Chest art and material
+ * icons are functionally the same thing — a flat, centered catalog icon — so they share one
+ * bucket rather than each minting their own; the ids never collide.
  *
- * Materials have no idea/design stage (the catalog is derived from CORE_TAGS / CORE_VARIANTS
- * and the prompts already live in data/assets.csv as `type=material` rows), and no row to
- * *insert*: scripts/build-seed.mjs owns the catalog, so this stage only ever updates the
- * `icon` of a row that already exists. A CSV id with no matching material row is reported and
- * skipped rather than invented.
+ * Chests have no idea/design stage (the catalog is seeded by scripts/build-seed.mjs and the
+ * prompts already live in data/assets.csv as `type=chest` rows), and no row to *insert*: this
+ * stage only ever updates the `icon` of a row that already exists. A CSV id with no matching
+ * chest row is reported and skipped rather than invented.
  *
- * Only rows whose art actually exists are imported: a material with no `<id>.png` is not
- * content yet, so `icon` is left alone instead of pointing at nothing.
+ * Only rows whose art actually exists are imported: a chest with no `<id>.png` is not content
+ * yet, so `icon` is left alone instead of pointing at nothing.
  *
  * This is a content-authoring tool, not app code: it talks to Postgres with the
  * service_role key (never the anon key), so it must only ever be run from a trusted
  * machine/CI, never shipped to the client.
  *
  * Usage:
- *   node scripts/materials-4-import.mjs [artFolder] [options]
+ *   node scripts/chests-4-import.mjs [artFolder] [options]
  *
  * Options:
  *   --csv=<path>          Catalog to read. Defaults to data/assets.csv.
  *   --import              Write the resolved `icon` into Supabase.
  *   --upload-art          Re-encode each png to WebP, upload it to the public
  *                         `material-art` bucket and point `icon` at its public URL.
- *   --stage-art           Re-encode each png to WebP into public/art/materials/<id>.webp.
+ *   --stage-art           Re-encode each png to WebP into public/art/chests/<id>.webp.
  *   --supabase-url=<url>  Defaults to env SUPABASE_URL.
  *   --service-key=<key>   Defaults to env SUPABASE_SERVICE_ROLE_KEY.
  *   --dry-run             Print what would happen, write/import nothing.
@@ -39,11 +40,11 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 /** The catalog: one row per asset in data/assets.csv, in display order. */
 const ASSETS_CSV = join(root, 'data/assets.csv')
 
-/** Where the rendered material icons live — `<material id>.png` files. */
-const DEFAULT_ART_FOLDER = join(root, 'data/materials')
+/** Where the rendered chest art lives — `<chest id>.png` files. */
+const DEFAULT_ART_FOLDER = join(root, 'data/chests')
 
-/** Public Storage bucket material icons are uploaded to (created on first use). */
-const MATERIAL_ART_BUCKET = 'material-art'
+/** Public Storage bucket chest art is uploaded to (created on first use). Shared with materials. */
+const ART_BUCKET = 'material-art'
 
 // Picks up SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY from .env.local without
 // requiring it to be exported in the shell first.
@@ -97,16 +98,15 @@ function parseCsv(text) {
     .map((line) =>
       Object.fromEntries(header.map((key, index) => [key.trim(), (line[index] ?? '').trim()])),
     )
-    .filter((material) => material.id)
+    .filter((chest) => chest.id)
 }
 
 /**
- * Reads the catalog csv into row objects, in file order, keeping only `type=material` rows —
- * the shared catalog also carries cards. A row without a `type` is treated as a material so an
- * older single-type file still works.
+ * Reads the catalog csv into row objects, in file order, keeping only `type=chest` rows — the
+ * shared catalog also carries cards and materials.
  */
 export function readCatalog(csvPath = ASSETS_CSV) {
-  return parseCsv(readFileSync(csvPath, 'utf8')).filter((row) => (row.type ?? 'material') === 'material')
+  return parseCsv(readFileSync(csvPath, 'utf8')).filter((row) => row.type === 'chest')
 }
 
 // --- step 2: art ---------------------------------------------------------------
@@ -114,8 +114,8 @@ export function readCatalog(csvPath = ASSETS_CSV) {
 /** Extensions an art folder may use for `<id><ext>`, in preference order. */
 const ART_EXTS = ['.png', '.webp', '.jpg', '.jpeg']
 
-/** The image for a material id, or null when that material has not been rendered yet. */
-export function findMaterialArt(folder, id) {
+/** The image for a chest id, or null when that chest has not been rendered yet. */
+export function findChestArt(folder, id) {
   for (const ext of ART_EXTS) {
     const candidate = join(folder, `${id}${ext}`)
     if (existsSync(candidate)) return candidate
@@ -123,9 +123,9 @@ export function findMaterialArt(folder, id) {
   return null
 }
 
-/** Converts the source image to WebP and writes it into public/art/materials/<id>.webp. */
+/** Converts the source image to WebP and writes it into public/art/chests/<id>.webp. */
 export async function stageArt(imagePath, id) {
-  const outDir = join(root, 'public', 'art', 'materials')
+  const outDir = join(root, 'public', 'art', 'chests')
   mkdirSync(outDir, { recursive: true })
   const outPath = join(outDir, `${id}.webp`)
   writeFileSync(outPath, await toWebp(readFileSync(imagePath)))
@@ -156,50 +156,50 @@ async function toWebp(buffer) {
 }
 
 /**
- * The `icon` already stored for every material. `--import` without `--upload-art` must not
+ * The `icon` already stored for every chest. `--import` without `--upload-art` must not
  * blank a URL the database already has, so this is how a re-run recovers it.
  */
 export async function fetchExistingIcons(admin) {
-  const { data, error } = await admin.from('materials').select('id, icon')
-  if (error) throw new Error(`failed to read existing materials: ${error.message}`)
+  const { data, error } = await admin.from('chests').select('id, icon')
+  if (error) throw new Error(`failed to read existing chests: ${error.message}`)
   return new Map((data ?? []).map((row) => [row.id, row.icon]))
 }
 
 /**
- * Converts a material's icon to WebP and uploads it to the public `material-art` Storage
- * bucket (created if missing), returning its public URL. Material icons are public
- * game-asset data, not player progression, so a public bucket + service-role upload is fine.
+ * Converts a chest's art to WebP and uploads it to the public `material-art` Storage bucket
+ * (created if missing), returning its public URL. Chest art is public game-asset data, not
+ * player progression, so a public bucket + service-role upload is fine.
  */
 export async function uploadArtToSupabase(admin, imagePath, id) {
   const { data: buckets, error: listError } = await admin.storage.listBuckets()
   if (listError) throw new Error(`storage.listBuckets failed: ${listError.message}`)
-  if (!buckets.some((b) => b.name === MATERIAL_ART_BUCKET)) {
-    const { error: createError } = await admin.storage.createBucket(MATERIAL_ART_BUCKET, { public: true })
+  if (!buckets.some((b) => b.name === ART_BUCKET)) {
+    const { error: createError } = await admin.storage.createBucket(ART_BUCKET, { public: true })
     if (createError) throw new Error(`storage.createBucket failed: ${createError.message}`)
   }
 
   const objectPath = `${id}.webp`
   const webp = await toWebp(readFileSync(imagePath))
-  const { error: uploadError } = await admin.storage.from(MATERIAL_ART_BUCKET).upload(objectPath, webp, {
+  const { error: uploadError } = await admin.storage.from(ART_BUCKET).upload(objectPath, webp, {
     contentType: 'image/webp',
     upsert: true,
   })
   if (uploadError) throw new Error(`storage upload failed for ${id}: ${uploadError.message}`)
 
-  const { data } = admin.storage.from(MATERIAL_ART_BUCKET).getPublicUrl(objectPath)
+  const { data } = admin.storage.from(ART_BUCKET).getPublicUrl(objectPath)
   return data.publicUrl
 }
 
 /**
- * Sets `icon` on the given material rows. A material is seeded catalog data, so this is an
- * update and never an upsert — a row the seed does not know about is a mistake, not a card
- * to mint. Sequential on purpose: 41 tiny updates is not worth a bulk payload, and it keeps
+ * Sets `icon` on the given chest rows. A chest is seeded catalog data, so this is an
+ * update and never an upsert — a row the seed does not know about is a mistake, not a chest
+ * to mint. Sequential on purpose: 5 tiny updates is not worth a bulk payload, and it keeps
  * a failure pinned to the id it happened on.
  */
 export async function importIconsToSupabase(admin, updates) {
   let updated = 0
   for (const { id, icon } of updates) {
-    const { error } = await admin.from('materials').update({ icon }).eq('id', id)
+    const { error } = await admin.from('chests').update({ icon }).eq('id', id)
     if (error) throw new Error(`supabase update failed for ${id}: ${error.message}`)
     updated += 1
   }
@@ -239,7 +239,7 @@ async function main() {
   const csvPath = values.csv ? join(root, values.csv) : ASSETS_CSV
   const rows = readCatalog(csvPath)
   if (!rows.length) {
-    console.error(`no material rows found in ${csvPath}`)
+    console.error(`no chest rows found in ${csvPath}`)
     process.exit(1)
   }
 
@@ -263,7 +263,7 @@ async function main() {
       continue
     }
 
-    const imagePath = findMaterialArt(artFolder, row.id)
+    const imagePath = findChestArt(artFolder, row.id)
     if (!imagePath) {
       withoutArt.push(row.id)
       continue
@@ -281,7 +281,7 @@ async function main() {
       console.log(`${row.id} -> uploaded ${icon}`)
     } else if (values['stage-art']) {
       stageArt(imagePath, row.id)
-      icon = `art/materials/${row.id}.webp`
+      icon = `art/chests/${row.id}.webp`
       console.log(`${row.id} -> staged ${icon}`)
     } else {
       console.log(`${row.id} -> ${icon ?? '(no icon)'}`)
@@ -291,28 +291,28 @@ async function main() {
 
   if (unknown.length) {
     console.warn(
-      `${unknown.length} csv id(s) have no materials row — run npm run seed:build + db reset: ${unknown.join(', ')}`,
+      `${unknown.length} csv id(s) have no chests row — run npm run seed:build + db reset: ${unknown.join(', ')}`,
     )
   }
   if (withoutArt.length) {
     console.warn(
-      `${withoutArt.length} of ${rows.length} material(s) have no art in ${artFolder} — run npm run assets:render -- --type=material`,
+      `${withoutArt.length} of ${rows.length} chest(s) have no art in ${artFolder} — run npm run assets:render -- --type=chest`,
     )
   }
 
   if (!updates.length) {
-    console.error(`no material in ${csvPath} has art in ${artFolder} — nothing to import`)
+    console.error(`no chest in ${csvPath} has art in ${artFolder} — nothing to import`)
     process.exit(1)
   }
 
   if (values['dry-run']) {
-    console.log(`dry-run: ${updates.length} material(s) not written`)
+    console.log(`dry-run: ${updates.length} chest(s) not written`)
     process.exit(0)
   }
 
   if (values.import) {
     const updated = await importIconsToSupabase(admin, updates)
-    console.log(`updated ${updated} material icon(s) in Supabase`)
+    console.log(`updated ${updated} chest icon(s) in Supabase`)
   }
 }
 

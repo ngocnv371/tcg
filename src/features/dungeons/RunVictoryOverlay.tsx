@@ -7,6 +7,7 @@ import { RunVictoryAnimation, type VictoryPartyCard } from '@/features/dungeons/
 import { materialLabel } from '@/features/dungeons/format'
 import { RUN_VICTORY_DURATION, victoryRewards } from '@/features/dungeons/runVictoryVisuals'
 import { useMaterialCatalog } from '@/features/inventory/api'
+import { useChestCatalog } from '@/features/marketplace/api'
 import { useParties } from '@/features/party/api'
 import type { RunClaim } from '@/features/progression/api'
 import { resolveArtSrc } from '@/lib/art'
@@ -38,6 +39,7 @@ export function RunVictoryOverlay({ victory, onClose }: { victory: RunVictory; o
   const { data: collection } = useCollection()
   const { data: catalog } = useCardCatalog()
   const { data: materials } = useMaterialCatalog()
+  const { data: chests } = useChestCatalog()
 
   const loadout = useMemo(
     () => (parties ?? []).find((option) => option.party.id === victory.run.party_id) ?? null,
@@ -62,12 +64,14 @@ export function RunVictoryOverlay({ victory, onClose }: { victory: RunVictory; o
   // would be a stutter for nothing.
   const rewards = useMemo(() => {
     const materialById = new Map((materials ?? []).map((material) => [material.id, material]))
+    const chestById = new Map((chests ?? []).map((chest) => [chest.id, chest]))
     return victoryRewards(
       victory.claim.rewards,
       (id) => materialById.get(id)?.name ?? materialLabel(id),
       (id) => resolveArtSrc(materialById.get(id)?.icon ?? null),
+      (id) => resolveArtSrc(chestById.get(id)?.icon ?? null),
     )
-  }, [materials, victory.claim.rewards])
+  }, [materials, chests, victory.claim.rewards])
 
   // Starting the Player before the party resolves would animate an empty stage: the animation
   // is driven by its own frame number, so late-arriving cards never get their entrance.

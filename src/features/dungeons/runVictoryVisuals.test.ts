@@ -160,6 +160,16 @@ describe('reward rows', () => {
     expect(victoryRewards({ gold: 0, materials: [] }, label)).toEqual([])
     expect(victoryRewards(null, label)).toEqual([])
   })
+
+  it('gives the chest row the catalog icon when one resolves', () => {
+    const rewards: RunRewards = { chest_id: 'rare', gold: 0, materials: [], multiplier: 1 }
+    expect(victoryRewards(rewards, label, undefined, (id) => `icon:${id}`)).toEqual([
+      { id: 'rare', label: 'Rare', qty: 1, icon: 'icon:rare' },
+    ])
+    expect(victoryRewards(rewards, label, undefined, () => null)).toEqual([
+      { id: 'rare', label: 'Rare', qty: 1 },
+    ])
+  })
 })
 
 describe('placeholder glyphs', () => {

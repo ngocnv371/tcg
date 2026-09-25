@@ -11,7 +11,7 @@ import {
 import { CardTile } from '@/features/cards/CardTile'
 import { useCardCatalog, useCollection } from '@/features/cards/api'
 import { useDeleteParty, useParties, useRenameParty, useSaveParty } from '@/features/party/api'
-import { partyPower } from '@/game/formulas'
+import { cardPower, partyPower } from '@/game/formulas'
 import type { CardBrowserItem } from '@/features/cards/CardBrowser'
 import type { PartyLoadout } from '@/features/party/api'
 import type { CardRank } from '@/types/db'
@@ -114,6 +114,40 @@ export function PartyCard({ loadout, canDelete }: { loadout: PartyLoadout; canDe
     const next = [...selectedIds]
     while (next.length < SLOT_COUNT) next.push(undefined)
     next[slot] = undefined
+    setDraft(next)
+  }
+
+  /**
+   * Fills only the empty slots with the strongest off-team copies, leaving the cards
+   * already placed untouched. Writes to the draft, not the server, so the player still
+   * reviews and saves. One copy per catalog card, matching the uniqueness rule.
+   */
+  function autoFill() {
+    const equipped = new Set(
+      stripEmpty(selectedIds).map((playerCardId) => playerCardById.get(playerCardId)?.card_id),
+    )
+    const candidates = (collection ?? [])
+      .filter((playerCard) => {
+        if (otherPartyByCardId.has(playerCard.id)) return false
+        if (!cardByPlayerCardId.has(playerCard.id)) return false
+        return !equipped.has(playerCard.card_id)
+      })
+      .sort(
+        (a, b) => cardPower(b.rank as CardRank, b.level) - cardPower(a.rank as CardRank, a.level),
+      )
+
+    const next = [...selectedIds]
+    while (next.length < SLOT_COUNT) next.push(undefined)
+    let cursor = 0
+    for (let slot = 0; slot < SLOT_COUNT; slot++) {
+      if (next[slot] !== undefined) continue
+      while (cursor < candidates.length && equipped.has(candidates[cursor].card_id)) cursor++
+      const pick = candidates[cursor]
+      if (!pick) break
+      next[slot] = pick.id
+      equipped.add(pick.card_id)
+      cursor++
+    }
     setDraft(next)
   }
 
@@ -311,6 +345,15 @@ export function PartyCard({ loadout, canDelete }: { loadout: PartyLoadout; canDe
       </div>
 
       <div className="mt-3 flex gap-2">
+        <button
+          type="button"
+          disabled={busy || emptySlots === 0 || pickerItems.length === 0}
+          onClick={autoFill}
+          title={emptySlots === 0 ? 'No empty slots' : 'Fill empty slots with your strongest cards'}
+          className="rounded-card border border-ink-700 px-3 py-2.5 text-sm text-ink-300 hover:border-gold-500 hover:text-gold-300 disabled:opacity-50"
+        >
+          Auto-fill
+        </button>
         <button
           type="button"
           disabled={busy || !isDirty}

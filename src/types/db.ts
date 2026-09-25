@@ -79,6 +79,8 @@ export type Dungeon = {
   /** Chest handed out by a clear; null when the dungeon only pays resources. */
   chest_on_clear: string | null
   art_path: string | null
+  /** One-time onboarding run: fixed yield and startable once per profile. */
+  is_tutorial: boolean
 }
 
 export type Chest = {
@@ -88,6 +90,8 @@ export type Chest = {
   source: string
   /** Gems the marketplace charges per chest; 0 means not for sale. */
   gem_price: number
+  /** Public Storage URL of the art once chests-4-import has run; null until then. */
+  icon: string | null
 }
 
 export type MarketTransaction = {

@@ -7,6 +7,8 @@ import {
   CORE_VARIANTS,
   RANK_META,
   RANK_UP_LADDER,
+  TUTORIAL_DUNGEON_ID,
+  TUTORIAL_DURATION_SECONDS,
   allCoreIds,
   cardAtk,
   cardDef,
@@ -25,6 +27,7 @@ import {
   rushCost,
   tagCoreId,
   tagLabel,
+  tutorialReward,
   type CardRank,
 } from './formulas'
 
@@ -156,6 +159,23 @@ describe('rank-up costs', () => {
 
   it('has no step past 5★', () => {
     expect(rankUpCost(5, ['fire', 'dragon'])).toBeNull()
+  })
+})
+
+describe('tutorial reward', () => {
+  it('covers the 1→2 step for every tag, so the guided rank-up is always affordable', () => {
+    const reward = tutorialReward()
+    const cost = rankUpCost(1, CORE_TAGS)
+    if (!cost) throw new Error('rank 1 must have a rank-up step')
+    expect(reward.gold).toBeGreaterThanOrEqual(cost.gold)
+    for (const [id, qty] of Object.entries(cost.materials)) {
+      expect(reward.materials[id] ?? 0).toBeGreaterThanOrEqual(qty)
+    }
+  })
+
+  it('names the seeded tutorial dungeon and pins its short timer', () => {
+    expect(TUTORIAL_DUNGEON_ID).toBe('training_grounds')
+    expect(TUTORIAL_DURATION_SECONDS).toBe(10)
   })
 })
 

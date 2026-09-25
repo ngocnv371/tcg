@@ -1,7 +1,7 @@
 /**
- * Card pipeline, stage 4 of 4 — *import*: pushes the card catalog into Supabase: one row of
- * data/cards.csv per card, plus that card's art at data/cards/<id>.png — the file
- * scripts/cards-3-render.mjs renders. Rows are turned into `Card` records (src/types/db.ts)
+ * Asset pipeline (cards), stage 4 of 4 — *import*: pushes the card catalog into Supabase: one row
+ * of data/assets.csv with `type=card` per card, plus that card's art at data/cards/<id>.png — the
+ * file scripts/assets-render.mjs renders. Rows are turned into `Card` records (src/types/db.ts)
  * and, optionally, upserted straight into Supabase with a service-role token.
  *
  * The CSV is the source of truth for id / name / lore / tags / role / passives; whatever a row
@@ -22,7 +22,7 @@
  *   node scripts/cards-4-import.mjs [artFolder] [options]
  *
  * Options:
- *   --csv=<path>          Catalog to read. Defaults to data/cards.csv.
+ *   --csv=<path>          Catalog to read. Defaults to data/assets.csv.
  *   --import              Also upsert the derived cards into Supabase.
  *   --upload-art          Re-encode each image to WebP, upload it to the public
  *                         `card-art` Storage bucket, and point art_path at its
@@ -42,8 +42,8 @@ import { parseArgs } from 'node:util'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-/** The catalog: one row per card, in display order. */
-const CARDS_CSV = join(root, 'data/cards.csv')
+/** The catalog: one row per asset in data/assets.csv, in display order. */
+const ASSETS_CSV = join(root, 'data/assets.csv')
 
 /** Where the card art lives — `<card id>.png` files, not json pairs. */
 const DEFAULT_ART_FOLDER = join(root, 'data/cards')
@@ -159,9 +159,13 @@ function parseCsv(text) {
     .filter((card) => card.id || card.name)
 }
 
-/** Reads the catalog csv into row objects, in file order. */
-export function readCatalog(csvPath = CARDS_CSV) {
-  return parseCsv(readFileSync(csvPath, 'utf8'))
+/**
+ * Reads the catalog csv into row objects, in file order, keeping only `type=card` rows — the
+ * shared catalog also carries materials. A row without a `type` is treated as a card so an
+ * older single-type file still works.
+ */
+export function readCatalog(csvPath = ASSETS_CSV) {
+  return parseCsv(readFileSync(csvPath, 'utf8')).filter((row) => (row.type ?? 'card') === 'card')
 }
 
 // --- step 2: derive Card-model fields from title + summary -------------------
@@ -295,7 +299,7 @@ export async function createServiceClient({ supabaseUrl, serviceRoleKey }) {
 }
 
 /** Re-encodes a source image (any format sharp reads) to WebP. Matches the
- * `art/cards/<id>.webp` convention every other card in data/cards.csv uses. */
+ * `art/cards/<id>.webp` convention every other card in data/assets.csv uses. */
 async function toWebp(buffer) {
   const sharp = (await import('sharp')).default
   return sharp(buffer).webp({ quality: 90 }).toBuffer()
@@ -413,7 +417,7 @@ async function main() {
   })
 
   const artFolder = positionals[0]?.replace(/["']+$/, '') || DEFAULT_ART_FOLDER
-  const csvPath = values.csv ? join(root, values.csv) : CARDS_CSV
+  const csvPath = values.csv ? join(root, values.csv) : ASSETS_CSV
   const rows = readCatalog(csvPath)
   if (!rows.length) {
     console.error(`no card rows found in ${csvPath}`)
@@ -433,7 +437,7 @@ async function main() {
   const withoutArt = []
   for (const [index, row] of rows.entries()) {
     const card = buildCardRecord(row, { index, existingIds })
-    // Art is found by card id — the name scripts/cards-3-render.mjs writes it under. A row with
+    // Art is found by card id — the name scripts/assets-render.mjs writes it under. A row with
     // no image is still an idea, not content, so it is skipped instead of imported artless.
     const imagePath = findCardArt(artFolder, card.id)
     if (!imagePath) {
@@ -456,7 +460,7 @@ async function main() {
     cards.push(card)
   }
   if (withoutArt.length) {
-    console.warn(`${withoutArt.length} of ${rows.length} row(s) skipped for missing art — run npm run cards:3:render`)
+    console.warn(`${withoutArt.length} of ${rows.length} row(s) skipped for missing art — run npm run assets:render`)
   }
   if (!cards.length) {
     console.error(`no card in ${csvPath} has art in ${artFolder} — nothing to import`)

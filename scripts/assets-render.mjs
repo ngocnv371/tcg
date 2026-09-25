@@ -1,30 +1,39 @@
 /**
- * Material pipeline — *render*: renders material (shard / Core) icons with a local ComfyUI
- * instance, one material at a time. Counterpart to scripts/cards-3-render.mjs; there is no
- * idea or design stage because data/materials.csv already carries the `design` prompt for
- * every row (the catalog is derived from CORE_TAGS / CORE_VARIANTS, not rolled).
+ * Asset pipeline — *render*: renders concept art for every row in data/assets.csv with a local
+ * ComfyUI instance, one asset at a time. This replaces the near-identical card and material
+ * renderers that used to live in scripts/cards-3-render.mjs and scripts/materials-3-render.mjs:
+ * the workflow is the same graph and the only thing that ever differed was the output size, so
+ * the size is now switched by the row's `type`.
  *
- * For every row in data/materials.csv it takes the `design` column, drops it into the
- * __PROMPT__ placeholder of the workflow json and queues that workflow. If
- * data/materials/<id>.png already exists the material is skipped, so this is resumable:
- * kill it, re-run it, and it picks up the materials that never finished.
+ * For every row it takes the `design` column (the concept-art prompt), drops it into the
+ * __PROMPT__ placeholder of the workflow json, sets the latent image width/height for that asset
+ * type and queues the workflow. If `<type folder>/<id>.png` already exists the asset is skipped,
+ * so this is resumable: kill it, re-run it, and it picks up whatever never finished.
  *
- * Materials are rendered strictly one at a time on purpose — one local GPU, and serialising
- * the queue keeps the per-image time predictable instead of thrashing VRAM across jobs.
+ * Assets are rendered strictly one at a time on purpose — one local GPU, and serialising the
+ * queue keeps the per-image time predictable instead of thrashing VRAM across queued jobs.
  *
- * Usage: node scripts/materials-3-render.mjs [options]
+ * The stages that used to render now are one:
+ *   card art     data/cards/<id>.png     390x844
+ *   material art data/materials/<id>.png 256x256
+ *   chest art    data/chests/<id>.png    256x256
+ * Output size lives in ASSET_TYPES, not in the workflow json, so a new type is one entry.
+ *
+ * Usage: node scripts/assets-render.mjs [options]
  *
  * Options:
+ *   --type=<t>        Only render one asset type (card, material, chest). Default: every type.
+ *   --csv=<path>      Catalog to read. Default data/assets.csv.
  *   --url=<url>       ComfyUI base url. Defaults to env COMFY_URL (fallback COMFYUI_URL),
  *                     then http://127.0.0.1:8188.
- *   --workflow=<p>    Workflow json to run. Default data/comfy-zimage-material.json.
- *   --limit=<n>       Stop after n materials (for a cheap smoke test).
- *   --seed=<n>        Base seed. Material n uses seed+n, so a run is reproducible and no two
- *                     materials share a composition. Omit for random seeds (which are logged).
+ *   --workflow=<p>    Workflow json to run. Default data/comfy-zimage.json.
+ *   --limit=<n>       Stop after n assets (for a cheap smoke test).
+ *   --seed=<n>        Base seed. Asset n uses seed+n, so a run is reproducible and no two
+ *                     assets share a composition. Omit for random seeds (which are logged).
  *   --keep-seed       Run the workflow's own seed untouched.
- *   --timeout=<ms>    Per-material budget. Default 300000.
+ *   --timeout=<ms>    Per-asset budget. Default 300000.
  *   --interval=<ms>   Poll interval for /history. Default 2000.
- *   --force           Re-render materials whose png already exists.
+ *   --force           Re-render assets whose png already exists.
  *   --dry-run         List what would be rendered and exit.
  *   --help            Show this message.
  */
@@ -34,11 +43,20 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const MATERIALS_CSV = join(root, 'data/materials.csv')
-const MATERIALS_DIR = join(root, 'data/materials')
-const WORKFLOW_JSON = join(root, 'data/comfy-zimage-material.json')
+const ASSETS_CSV = join(root, 'data/assets.csv')
+const WORKFLOW_JSON = join(root, 'data/comfy-zimage.json')
 
 if (existsSync(join(root, '.env.local'))) process.loadEnvFile(join(root, '.env.local'))
+
+/**
+ * The one place an asset type is described: where its art is written and the ComfyUI latent size.
+ * The workflow graph is shared, so adding a type means adding an entry here (and nothing else).
+ */
+const ASSET_TYPES = {
+  card: { dir: 'data/cards', width: 390, height: 844 },
+  material: { dir: 'data/materials', width: 256, height: 256 },
+  chest: { dir: 'data/chests', width: 256, height: 256 },
+}
 
 /** The token the workflow json carries where the prompt goes. */
 const PROMPT_TOKEN = '__PROMPT__'
@@ -47,12 +65,12 @@ const PROMPT_TOKEN = '__PROMPT__'
 const DEFAULT_COMFY_URL = 'http://127.0.0.1:8188'
 
 /** Identifies this queueing client to ComfyUI. */
-const CLIENT_ID = 'tcg2-material-art'
+const CLIENT_ID = 'tcg2-asset-art'
 
-/** How often the "still waiting" line is printed, so a long material does not look hung. */
+/** How often the "still waiting" line is printed, so a long render does not look hung. */
 const PROGRESS_EVERY_MS = 15_000
 
-/** PNG magic bytes — a guard against saving an HTML error page as material art. */
+/** PNG magic bytes — a guard against saving an HTML error page as asset art. */
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 
 // --- helpers ------------------------------------------------------------------
@@ -123,8 +141,27 @@ function applyTokens(workflow, replacements) {
 }
 
 /**
+ * Sets the latent image size. Every workflow shares one graph; only the output dimensions differ
+ * per asset type, so the size is injected here instead of maintaining a workflow json per size.
+ */
+function applySize(workflow, { width, height }) {
+  const nodes = Object.values(workflow).filter(
+    (node) => node && typeof node === 'object' && /LatentImage/.test(node.class_type ?? ''),
+  )
+  if (!nodes.length) {
+    throw new Error('workflow has no latent-image node — cannot set the output size')
+  }
+  for (const node of nodes) {
+    const inputs = node.inputs ?? (node.inputs = {})
+    inputs.width = width
+    inputs.height = height
+  }
+  return workflow
+}
+
+/**
  * Sets every `seed` input to a distinct value. Z-Image Turbo is a fixed-seed workflow, so
- * without this every material would render the same composition in different colours.
+ * without this every asset would render the same composition in different colours.
  */
 function applySeeds(workflow, seedOf) {
   const nodes = Object.values(workflow).filter((node) => node && typeof node === 'object' && node.inputs)
@@ -242,6 +279,8 @@ function firstImage(outputs) {
 
 const { values } = parseArgs({
   options: {
+    type: { type: 'string' },
+    csv: { type: 'string' },
     url: { type: 'string' },
     workflow: { type: 'string' },
     limit: { type: 'string' },
@@ -258,16 +297,18 @@ const { values } = parseArgs({
 if (values.help) {
   console.log(
     [
-      'Render material (shard / Core) icons with a local ComfyUI instance, one at a time.',
-      'Skips any material that already has data/materials/<id>.png.',
+      'Render concept art for every row in data/assets.csv with a local ComfyUI instance.',
+      'Output size is switched by the row type; skips any <id>.png that already exists.',
       '',
-      'Usage: node scripts/materials-3-render.mjs [options]',
+      'Usage: node scripts/assets-render.mjs [options]',
+      `  --type=<t>        Only one type (${Object.keys(ASSET_TYPES).join(', ')}). Default: all.`,
+      '  --csv=<path>      Default data/assets.csv.',
       '  --url=<url>       Defaults to env COMFY_URL / COMFYUI_URL, then http://127.0.0.1:8188.',
-      '  --workflow=<p>    Default data/comfy-zimage-material.json.',
-      '  --limit=<n>       Stop after n materials.',
-      '  --seed=<n>        Base seed; material n gets seed+n. Omit for random seeds.',
+      '  --workflow=<p>    Default data/comfy-zimage.json.',
+      '  --limit=<n>       Stop after n assets.',
+      '  --seed=<n>        Base seed; asset n gets seed+n. Omit for random seeds.',
       '  --keep-seed       Do not touch the workflow seed.',
-      '  --timeout=<ms>    Per-material budget. Default 300000.',
+      '  --timeout=<ms>    Per-asset budget. Default 300000.',
       '  --interval=<ms>   /history poll interval. Default 2000.',
       '  --force           Re-render even if the png exists.',
       '  --dry-run         List what would be rendered, queue nothing.',
@@ -281,6 +322,7 @@ if (values.help) {
 const envUrl = process.env.COMFY_URL ?? process.env.COMFYUI_URL
 const baseUrl = values.url ?? envUrl ?? DEFAULT_COMFY_URL
 const workflowPath = values.workflow ? join(root, values.workflow) : WORKFLOW_JSON
+const csvPath = values.csv ? join(root, values.csv) : ASSETS_CSV
 
 const intOption = (flag, raw, min) => {
   const value = Number(raw)
@@ -295,81 +337,120 @@ const timeoutMs = intOption('--timeout', values.timeout, 1000)
 const intervalMs = intOption('--interval', values.interval, 200)
 const baseSeed = values.seed === undefined ? null : intOption('--seed', values.seed, 0)
 
+if (values.type !== undefined && !ASSET_TYPES[values.type]) {
+  console.error(`--type must be one of ${Object.keys(ASSET_TYPES).join(', ')}, got ${values.type}`)
+  process.exit(1)
+}
 if (!existsSync(workflowPath)) {
   console.error(`workflow not found: ${workflowPath}`)
   process.exit(1)
 }
-if (!existsSync(MATERIALS_CSV)) {
-  console.error(`materials csv not found: ${MATERIALS_CSV}`)
+if (!existsSync(csvPath)) {
+  console.error(`assets csv not found: ${csvPath}`)
   process.exit(1)
 }
 
-const { header, rows } = parseCsv(readFileSync(MATERIALS_CSV, 'utf8'))
+const { header, rows } = parseCsv(readFileSync(csvPath, 'utf8'))
 const column = (name) => {
   const index = header.indexOf(name)
   if (index === -1) {
-    console.error(`data/materials.csv has no "${name}" column.`)
+    console.error(`data/assets.csv has no "${name}" column.`)
     process.exit(1)
   }
   return index
 }
 const idIndex = column('id')
+const typeIndex = column('type')
 const designIndex = column('design')
 
-/** A material with no design has no prompt, so it can never render. */
-const undesign = rows.filter((row) => !(row[designIndex] ?? '').trim())
+const cell = (row, index) => (row[index] ?? '').trim()
+
+/** A row with no design has no prompt, so it can never render. */
+const undesign = rows.filter((row) => !cell(row, designIndex))
 if (undesign.length) {
-  console.warn(`warn: ${undesign.length} row(s) have no design yet — fill in data/materials.csv first`)
+  console.warn(`warn: ${undesign.length} row(s) have no design yet — fill in data/assets.csv first`)
 }
 
-let pending = rows.filter((row) => (row[designIndex] ?? '').trim())
-if (!values.force) pending = pending.filter((row) => !existsSync(join(MATERIALS_DIR, `${row[idIndex]}.png`)))
+const selectedTypes = values.type ? [values.type] : Object.keys(ASSET_TYPES)
+const unknown = new Set()
+const designed = rows.filter((row) => {
+  const type = cell(row, typeIndex)
+  if (!ASSET_TYPES[type]) {
+    if (type) unknown.add(type)
+    return false
+  }
+  return selectedTypes.includes(type) && cell(row, designIndex)
+})
+if (unknown.size) {
+  console.warn(`warn: ignoring row(s) with unknown type: ${[...unknown].join(', ')}`)
+}
+
+let pending = designed
+if (!values.force) {
+  pending = pending.filter((row) => {
+    const config = ASSET_TYPES[cell(row, typeIndex)]
+    return !existsSync(join(root, config.dir, `${cell(row, idIndex)}.png`))
+  })
+}
 if (values.limit !== undefined) pending = pending.slice(0, intOption('--limit', values.limit, 1))
+
+const byType = pending.reduce((counts, row) => {
+  const type = cell(row, typeIndex)
+  counts[type] = (counts[type] ?? 0) + 1
+  return counts
+}, {})
 
 console.log(`comfy: ${baseUrl}${values.url ? '' : envUrl ? ' (env)' : ' (default)'}`)
 console.log(`workflow: ${workflowPath}`)
-console.log(`materials.csv: ${rows.length} rows, ${pending.length} to render${values.force ? ' (--force)' : ''}`)
+console.log(
+  `assets.csv: ${rows.length} rows, ${pending.length} to render${
+    Object.keys(byType).length ? ` (${Object.entries(byType).map(([type, n]) => `${n} ${type}`).join(', ')})` : ''
+  }${values.force ? ' (--force)' : ''}`,
+)
 if (!pending.length) {
-  console.log('nothing to do — every designed material already has an image')
+  console.log('nothing to do — every designed asset already has an image')
   process.exit(0)
 }
 
 if (values['dry-run']) {
-  for (const row of pending) console.log(`  ${row[idIndex]}`)
-  console.log(`dry-run: ${pending.length} materials not rendered`)
+  for (const row of pending) console.log(`  [${cell(row, typeIndex)}] ${cell(row, idIndex)}`)
+  console.log(`dry-run: ${pending.length} assets not rendered`)
   process.exit(0)
 }
 
 const baseWorkflow = JSON.parse(readFileSync(workflowPath, 'utf8'))
 const client = new ComfyClient(baseUrl)
 
-// Fail once, loudly, instead of pretending every material failed to connect.
+// Fail once, loudly, instead of pretending every asset failed to connect.
 if (!(await client.isReachable())) {
   console.error(
     [
       `ComfyUI is not answering at ${baseUrl}.`,
       'Start it (or point the script at it) then re-run:',
       '  COMFY_URL=http://127.0.0.1:8188',
-      '  node scripts/materials-3-render.mjs --url=http://<host>:8188',
+      '  node scripts/assets-render.mjs --url=http://<host>:8188',
     ].join('\n'),
   )
   process.exit(1)
 }
 
-mkdirSync(MATERIALS_DIR, { recursive: true })
-
 let written = 0
 let failed = 0
 
 for (const [index, row] of pending.entries()) {
-  const id = row[idIndex]
-  const design = row[designIndex].trim()
-  const target = join(MATERIALS_DIR, `${id}.png`)
+  const id = cell(row, idIndex)
+  const type = cell(row, typeIndex)
+  const config = ASSET_TYPES[type]
+  const design = cell(row, designIndex)
+  const target = join(root, config.dir, `${id}.png`)
   const label = `[${index + 1}/${pending.length}]`
 
-  // Per-material seed keeps the run reproducible without giving every material the same composition.
+  mkdirSync(join(root, config.dir), { recursive: true })
+
+  // Per-asset seed keeps the run reproducible without giving every asset the same composition.
   const seed = baseSeed === null ? randomSeed() : baseSeed + index
   const workflow = applyTokens(baseWorkflow, { [PROMPT_TOKEN]: design })
+  applySize(workflow, config)
   if (!values['keep-seed']) {
     let call = 0
     applySeeds(workflow, () => seed + call++)
@@ -378,7 +459,7 @@ for (const [index, row] of pending.entries()) {
   const startedAt = Date.now()
   try {
     const promptId = await client.queuePrompt(workflow)
-    console.log(`${label} ${id} — queued ${promptId} (seed ${seed})`)
+    console.log(`${label} [${type}] ${id} — queued ${promptId} (seed ${seed})`)
 
     const outputs = await client.waitForOutputs(promptId, {
       timeoutMs,
@@ -395,15 +476,17 @@ for (const [index, row] of pending.entries()) {
     }
     writeFileSync(target, bytes)
     written += 1
-    console.log(`${label} saved data/materials/${id}.png — ${(bytes.length / 1024).toFixed(0)} KB in ${((Date.now() - startedAt) / 1000).toFixed(1)}s`)
+    console.log(
+      `${label} saved ${config.dir}/${id}.png (${config.width}x${config.height}) — ${(bytes.length / 1024).toFixed(0)} KB in ${((Date.now() - startedAt) / 1000).toFixed(1)}s`,
+    )
   } catch (error) {
     failed += 1
     console.error(`${label} ${id} failed: ${error.message}`)
-    console.error(`${label} continuing — re-run to retry this material`)
+    console.error(`${label} continuing — re-run to retry this asset`)
   }
 }
 
-console.log(`rendered ${written}/${pending.length} materials${failed ? ` (${failed} failed)` : ''}`)
+console.log(`rendered ${written}/${pending.length} assets${failed ? ` (${failed} failed)` : ''}`)
 if (failed) {
   console.log('re-run to retry the failures — existing images are skipped, not re-rendered.')
   process.exitCode = 1

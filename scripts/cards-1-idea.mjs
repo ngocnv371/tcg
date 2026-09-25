@@ -1,11 +1,11 @@
 /**
- * Card pipeline, stage 1 of 4 — *idea*: rolls new card ideas from the pools in IDEATE.MD
+ * Asset pipeline (cards), stage 1 of 4 — *idea*: rolls new card ideas from the pools in IDEATE.MD
  * (an animal + 1-2 elements, named animal-first so the catalog sorts by species) and
- * appends them to data/cards.csv. Stage 2 is scripts/cards-2-design.mjs, which writes the
- * `design` prompt for those rows.
+ * appends them to data/assets.csv with `type=card`. Stage 2 is scripts/cards-2-design.mjs,
+ * which writes the `design` prompt for those rows.
  *
  * These are seeds, not content: only the columns we can roll from IDEATE.MD are filled
- * (id, name, rank, faction, base_atk, base_def, tags, plus the `status=idea` marker).
+ * (id, type, name, rank, faction, base_atk, base_def, tags, plus the `status=idea` marker).
  * role / passive_name / passive_text / lore are left blank because those are design
  * decisions, not dice — which is also why this never touches data/cards/*.json: that
  * folder is the finished art pipeline, this is the sketchbook in front of it.
@@ -28,7 +28,7 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const CARDS_CSV = join(root, 'data/cards.csv')
+const ASSETS_CSV = join(root, 'data/assets.csv')
 const CONCEPT_DIR = join(root, 'data/cards')
 
 // --- pools (IDEATE.MD) --------------------------------------------------------
@@ -240,6 +240,7 @@ function rollIdea(rng) {
 
   const rollStat = () => STAT_MIN + Math.floor(rng() * (STAT_MAX - STAT_MIN + 1))
   return {
+    type: 'card',
     name,
     tags: elements.map((element) => element.tag).join(';'),
     rank: IDEA_RANK,
@@ -264,7 +265,7 @@ const { values } = parseArgs({
 if (values.help) {
   console.log(
     [
-      'Roll card ideas from IDEATE.MD pools and append them to data/cards.csv.',
+      'Roll card ideas from IDEATE.MD pools and append them to data/assets.csv.',
       'Rank 1, faction "radiant", ATK/DEF rolled 1-100, status "idea".',
       '',
       'Usage: node scripts/cards-1-idea.mjs [options]',
@@ -289,7 +290,7 @@ if (!Number.isInteger(seed)) {
 }
 const rng = makeRng(seed)
 
-const { header, rows } = parseCsv(readFileSync(CARDS_CSV, 'utf8'))
+const { header, rows } = parseCsv(readFileSync(ASSETS_CSV, 'utf8'))
 const taken = takenIds(rows)
 
 const ideas = []
@@ -326,9 +327,9 @@ if (values['dry-run']) {
 }
 
 // Preserve the existing file exactly and just add lines, so manual edits stay put.
-const existing = readFileSync(CARDS_CSV, 'utf8')
+const existing = readFileSync(ASSETS_CSV, 'utf8')
 const prefix = existing.endsWith('\n') || existing === '' ? existing : `${existing}\n`
-writeFileSync(CARDS_CSV, `${prefix}${lines.join('\n')}\n`)
+writeFileSync(ASSETS_CSV, `${prefix}${lines.join('\n')}\n`)
 
-console.log(`appended ${ideas.length} ideas to data/cards.csv — fill in role/passive/lore`)
+console.log(`appended ${ideas.length} ideas to data/assets.csv — fill in role/passive/lore`)
 console.log('(status "idea" is the marker: seed:build skips these rows until they are promoted)')

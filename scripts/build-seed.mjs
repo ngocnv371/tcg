@@ -4,7 +4,7 @@
  * The seed owns the *economy scaffolding* and nothing else: rank metadata, the material
  * catalog, chests, chest odds and run-slot pacing. It deliberately seeds NO cards and NO
  * dungeons — those are catalog content, and they ship through the importers
- * (`npm run cards:4:import` reads data/cards.csv + data/cards/<id>.png; dungeons:1:import reads
+ * (`npm run cards:4:import` reads data/assets.csv `type=card` rows + data/cards/<id>.png; dungeons:1:import reads
  * its own source folder). Two writers of the same rows would only disagree about art paths
  * and rank-up costs.
  *
@@ -28,8 +28,12 @@ import {
   LEVELUP_GOLD_EXP,
   RANK_META,
   RUN_SLOT_UNLOCKS,
+  TUTORIAL_DUNGEON_ID,
+  TUTORIAL_DUNGEON_NAME,
+  TUTORIAL_DURATION_SECONDS,
   tagCoreId,
   tagLabel,
+  tutorialReward,
 } from '../src/game/formulas.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -84,6 +88,27 @@ const CHESTS = [
 ]
 
 const sql = (value) => `'${String(value).replace(/'/g, "''")}'`
+const sqlArray = (values) => `array[${values.map(sql).join(', ')}]`
+const sqlJson = (value) => `${sql(JSON.stringify(value))}::jsonb`
+
+// The tutorial is the ONE dungeon the seed owns: it is onboarding scaffolding, not catalog
+// content, and its fixed payout is derived from the rank-up ladder so the guided rank-up can
+// never be priced out. Every other dungeon still ships via scripts/dungeons-1-import.mjs.
+const tutorial = tutorialReward()
+const TUTORIAL_DUNGEON = {
+  id: TUTORIAL_DUNGEON_ID,
+  name: TUTORIAL_DUNGEON_NAME,
+  duration: TUTORIAL_DURATION_SECONDS,
+  rank: 1,
+  tags: [...CORE_TAGS],
+  gold: tutorial.gold,
+  materials: Object.entries(tutorial.materials).map(([material_id, qty]) => ({
+    material_id,
+    weight: 0,
+    min: qty,
+    max: qty,
+  })),
+}
 
 // --- integrity checks: fail the build instead of seeding a broken economy -----
 const errors = []
@@ -111,6 +136,7 @@ push(
   '-- Rebuild with: npm run seed:build',
   '-- Sources: src/game/formulas.ts',
   '-- Cards and dungeons are deliberately NOT seeded — they ship via the importers.',
+  '-- The one exception is the tutorial dungeon, which is onboarding scaffolding, not content.',
   '',
   'begin;',
   '',
@@ -180,16 +206,29 @@ push(
   '',
 )
 
+push(
+  '-- the one-time tutorial run (onboarding scaffolding, not catalog content)',
+  '-- its fixed payout is the ladder\'s 1→2 step for every Core family, so the guided rank-up is affordable',
+  'insert into public.dungeons (id, name, kind, tier, rank, tags, req_power, duration_seconds, gold_base, materials, unlocks_at_level, chest_on_clear, is_tutorial) values',
+  `  (${sql(TUTORIAL_DUNGEON.id)}, ${sql(TUTORIAL_DUNGEON.name)}, 'resource', 1, ` +
+    `${TUTORIAL_DUNGEON.rank}, ${sqlArray(TUTORIAL_DUNGEON.tags)}, 1, ${TUTORIAL_DUNGEON.duration}, ` +
+    `${TUTORIAL_DUNGEON.gold}, ${sqlJson(TUTORIAL_DUNGEON.materials)}, 1, null, true)`,
+  'on conflict (id) do update set',
+  '  tags = excluded.tags, duration_seconds = excluded.duration_seconds,',
+  '  gold_base = excluded.gold_base, materials = excluded.materials, is_tutorial = excluded.is_tutorial;',
+  '',
+)
+
 push('commit;', '')
 push(
   "-- local development account's starter cards and party",
   "select public.provision_starter_loadout('00000000-0000-0000-0000-000000000002'::uuid);",
   '',
-  `-- summary: ${MATERIALS.length} materials, ${CHESTS.length} chests, ${oddRows.length} chest odds rows, ${RUN_SLOT_UNLOCKS.length} run-slot rows`,
-  '-- no cards and no dungeons: catalog content ships via npm run cards:4:import / dungeons:1:import',
+  `-- summary: ${MATERIALS.length} materials, ${CHESTS.length} chests, ${oddRows.length} chest odds rows, ${RUN_SLOT_UNLOCKS.length} run-slot rows, 1 tutorial dungeon`,
+  '-- no cards and no catalog dungeons: content ships via npm run cards:4:import / dungeons:1:import',
 )
 
 writeFileSync(join(root, 'supabase/seed.sql'), `${lines.join('\n')}\n`)
 console.log(
-  `seed.sql written — ${MATERIALS.length} materials, ${CHESTS.length} chests, ${oddRows.length} odds rows (no cards, no dungeons)`,
+  `seed.sql written — ${MATERIALS.length} materials, ${CHESTS.length} chests, ${oddRows.length} odds rows, 1 tutorial dungeon (no cards, no catalog dungeons)`,
 )

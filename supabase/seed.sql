@@ -2,6 +2,7 @@
 -- Rebuild with: npm run seed:build
 -- Sources: src/game/formulas.ts
 -- Cards and dungeons are deliberately NOT seeded — they ship via the importers.
+-- The one exception is the tutorial dungeon, which is onboarding scaffolding, not content.
 
 begin;
 
@@ -108,10 +109,18 @@ insert into public.run_slot_unlocks (player_level, slots) values
   (25, 4)
 on conflict (player_level) do update set slots = excluded.slots;
 
+-- the one-time tutorial run (onboarding scaffolding, not catalog content)
+-- its fixed payout is the ladder's 1→2 step for every Core family, so the guided rank-up is affordable
+insert into public.dungeons (id, name, kind, tier, rank, tags, req_power, duration_seconds, gold_base, materials, unlocks_at_level, chest_on_clear, is_tutorial) values
+  ('training_grounds', 'Training Grounds', 'resource', 1, 1, array['physical', 'fire', 'water', 'electric', 'grass', 'earth', 'ice', 'dragon', 'dark'], 1, 10, 1000, '[{"material_id":"common_shard","weight":0,"min":10,"max":10},{"material_id":"lesser_physical_core","weight":0,"min":3,"max":3},{"material_id":"lesser_fire_core","weight":0,"min":3,"max":3},{"material_id":"lesser_water_core","weight":0,"min":3,"max":3},{"material_id":"lesser_electric_core","weight":0,"min":3,"max":3},{"material_id":"lesser_grass_core","weight":0,"min":3,"max":3},{"material_id":"lesser_earth_core","weight":0,"min":3,"max":3},{"material_id":"lesser_ice_core","weight":0,"min":3,"max":3},{"material_id":"lesser_dragon_core","weight":0,"min":3,"max":3},{"material_id":"lesser_dark_core","weight":0,"min":3,"max":3}]'::jsonb, 1, null, true)
+on conflict (id) do update set
+  tags = excluded.tags, duration_seconds = excluded.duration_seconds,
+  gold_base = excluded.gold_base, materials = excluded.materials, is_tutorial = excluded.is_tutorial;
+
 commit;
 
 -- local development account's starter cards and party
 select public.provision_starter_loadout('00000000-0000-0000-0000-000000000002'::uuid);
 
--- summary: 41 materials, 5 chests, 19 chest odds rows, 3 run-slot rows
--- no cards and no dungeons: catalog content ships via npm run cards:4:import / dungeons:1:import
+-- summary: 41 materials, 5 chests, 19 chest odds rows, 3 run-slot rows, 1 tutorial dungeon
+-- no cards and no catalog dungeons: content ships via npm run cards:4:import / dungeons:1:import

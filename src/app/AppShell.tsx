@@ -4,6 +4,8 @@ import { NavLink, Outlet } from 'react-router-dom'
 
 import { supabase } from '@/lib/supabase'
 import { track } from '@/lib/telemetry'
+import { useRunSync } from '@/features/dungeons/api'
+import { OnboardingWizard } from '@/features/onboarding/OnboardingWizard'
 import { useProfile } from '@/features/profile/api'
 import { cn } from '@/lib/utils'
 
@@ -38,6 +40,7 @@ let appOpenTracked = false
 /** Shell: resource bar on top, bottom tab bar, outlet in between. */
 export function AppShell() {
   const { data: profile } = useProfile()
+  useRunSync()
   const [signingOut, setSigningOut] = useState(false)
   const num = (value: number | undefined) =>
     value === undefined ? '—' : value.toLocaleString('en-US')
@@ -99,6 +102,8 @@ export function AppShell() {
       <main className="flex-1">
         <Outlet />
       </main>
+
+      <OnboardingWizard />
 
       <nav className="sticky bottom-0 z-20 grid grid-cols-6 border-t border-ink-800/70 bg-ink-900/95 pb-[var(--safe-bottom)] backdrop-blur">
         {NAV.map((item) => (
