@@ -6,18 +6,15 @@ import { useBuyChest, useChestCatalog } from '@/features/marketplace/api'
 import { useProfile } from '@/features/profile/api'
 import { toast } from '@/lib/toast'
 
-/** Marketplace purchase steps. 1 is the default action. */
-const BUY_QUANTITIES = [1, 10] as const
-
 export function MarketScreen() {
   const { data: profile } = useProfile()
   const { data: marketChests } = useChestCatalog()
   const buyChest = useBuyChest()
   const gems = profile?.gems ?? 0
 
-  const handleBuy = (chestId: string, qty: number) => {
+  const handleBuy = (chestId: string) => {
     buyChest.mutate(
-      { chestId, qty },
+      { chestId, qty: 1 },
       { onSuccess: (tx) => toast(`Bought ${tx.qty} × ${chestId} chest for ${tx.total_gems} gems`) },
     )
   }
@@ -37,45 +34,42 @@ export function MarketScreen() {
             {(marketChests ?? []).map((chest) => {
               const isBuying = buyChest.isPending && buyChest.variables?.chestId === chest.id
               const forSale = chest.gem_price > 0
+              const affordable = forSale && gems >= chest.gem_price
               return (
                 <div
                   key={chest.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-ink-700 bg-ink-850 px-3 py-2"
+                  className="flex items-center gap-3 rounded-card border border-ink-700 bg-ink-850 p-3"
                 >
-                  <span className="flex flex-wrap items-center gap-2 text-sm text-ink-100">
-                    <ChestIcon chest={chest} size={32} />
-                    <span className="capitalize">{chest.name}</span>
-                    <span className="rounded-full bg-ink-700 px-2 py-0.5 text-xs tabular-nums text-ink-200">
+                  <ChestIcon chest={chest} size={48} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base font-medium capitalize text-ink-50">
+                      {chest.name}
+                    </p>
+                    <span className="mt-0.5 inline-block rounded-full bg-ink-700 px-2 py-0.5 text-xs tabular-nums text-ink-200">
                       T{chest.tier}
                     </span>
-                    {forSale ? (
-                      <span className="inline-flex items-center gap-0.5 text-xs tabular-nums text-faction-tide">
-                        <Gem className="size-3" />
-                        {chest.gem_price.toLocaleString('en-US')}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-ink-500">Not for sale</span>
-                    )}
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {BUY_QUANTITIES.map((qty) => {
-                      const cost = chest.gem_price * qty
-                      const affordable = forSale && gems >= cost
-                      return (
-                        <button
-                          key={qty}
-                          type="button"
-                          aria-label={`Buy ${qty} ${chest.id} chest${qty === 1 ? '' : 's'} for ${cost} gems`}
-                          className="rounded-card border border-ink-600 px-2.5 py-1.5 text-xs font-medium text-ink-200 disabled:cursor-not-allowed disabled:opacity-40"
-                          disabled={buyChest.isPending || !affordable}
-                          title={affordable ? undefined : 'Not enough gems'}
-                          onClick={() => handleBuy(chest.id, qty)}
-                        >
-                          {isBuying ? '...' : `Buy ${qty} · ${cost}`}
-                        </button>
-                      )
-                    })}
                   </div>
+                  {forSale ? (
+                    <button
+                      type="button"
+                      aria-label={`Buy ${chest.id} chest for ${chest.gem_price} gems`}
+                      className="flex shrink-0 items-center gap-1.5 rounded-card bg-faction-tide px-4 py-3 text-base font-semibold tabular-nums text-ink-950 shadow-[0_4px_16px_-4px] shadow-faction-tide/60 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-ink-700 disabled:text-ink-400 disabled:shadow-none"
+                      disabled={buyChest.isPending || !affordable}
+                      title={affordable ? undefined : 'Not enough gems'}
+                      onClick={() => handleBuy(chest.id)}
+                    >
+                      {isBuying ? (
+                        '…'
+                      ) : (
+                        <>
+                          <Gem className="size-5" />
+                          {chest.gem_price.toLocaleString('en-US')}
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <span className="shrink-0 text-sm text-ink-500">Not for sale</span>
+                  )}
                 </div>
               )
             })}
