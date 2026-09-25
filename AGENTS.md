@@ -41,21 +41,25 @@ An idle collection RPG (cards → chests → timed dungeon runs → rank-ups) at
 - Comments explain *why* (a constraint, a trade-off), never *what* the next line does.
 - Keep `npm run build`, `npm test` and `bash scripts/verify-db.sh` green before finishing a task.
 
-## Asset pipeline (cards)
+## Asset pipeline (cards, materials, dungeons)
 
-`data/cards.csv` is the card catalog — one row per card, in display order — and four stage-numbered
-scripts move one card along it. Each step owns one column or one folder, skips what is already done
-and can be re-run at will. Dungeons have no earlier stages: `dungeons-1-import.mjs` turns an art
-export folder straight into rows.
+`data/assets.csv` is the shared catalog for every Comfy-rendered asset — one row per asset, in
+display order, distinguished by a `type` column (`card` or `material`) — and the card stages move
+one row along it. Each step owns one column or one folder, skips what is already done and can be
+re-run at will. The render stage is one script for every type: the workflow graph is shared and
+only the output size differs, so `ASSET_TYPES` in `scripts/assets-render.mjs` maps a type to its
+art folder and latent dimensions (card 390×844, material 256×256). Dungeons are not in this CSV
+and have no earlier stages: `dungeons-1-import.mjs` turns an art export folder straight into rows.
 
 | Step | Script | Command | Reads | Writes |
 | --- | --- | --- | --- | --- |
-| 1 idea | `scripts/cards-1-idea.mjs` | `npm run cards:1:idea` | `IDEATE.MD` pools | new rows in `data/cards.csv` |
-| 2 design | `scripts/cards-2-design.mjs` | `npm run cards:2:design` | rows whose `design` is blank | `design` (the concept-art prompt) |
-| 3 render | `scripts/cards-3-render.mjs` | `npm run cards:3:render` | `design` + `data/comfy-zimage.json` | `data/cards/<id>.png` (local ComfyUI) |
-| 4 import | `scripts/cards-4-import.mjs` | `npm run cards:4:import` | `data/cards.csv` + `data/cards/<id>.png` | `cards` + `card_rank_costs`, `card-art` bucket |
+| 1 idea | `scripts/cards-1-idea.mjs` | `npm run cards:1:idea` | `IDEATE.MD` pools | new `type=card` rows in `data/assets.csv` |
+| 2 design | `scripts/cards-2-design.mjs` | `npm run cards:2:design` | blank-`design` `type=card` rows | `design` (the concept-art prompt) |
+| 3 render | `scripts/assets-render.mjs` | `npm run assets:render` | `design` + `data/comfy-zimage.json` | `data/cards/<id>.png` / `data/materials/<id>.png` (local ComfyUI) |
+| 4 import (cards) | `scripts/cards-4-import.mjs` | `npm run cards:4:import` | `type=card` rows + `data/cards/<id>.png` | `cards` + `card_rank_costs`, `card-art` bucket |
+| 4 import (materials) | `scripts/materials-4-import.mjs` | `npm run materials:4:import` | `type=material` rows + `data/materials/<id>.png` | `materials.icon`, `material-art` bucket |
 
-`npm run seed:build` reads none of it. Step 4 fills whatever a row leaves blank (tags from the
+`npm run seed:build` reads none of it. The card importer fills whatever a row leaves blank (tags from the
 title, role and passives hashed from the id) and always re-derives `base_atk`/`base_def` from
 `RANK_META`, so the CSV's stats stay a sketch instead of a second balance table. **Every catalog
 card is a rank-1 base**: the importer writes `rank = 1` and ignores the CSV's `rank` cell, because

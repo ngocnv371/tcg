@@ -4,10 +4,10 @@
  * them to WebP and uploading to the public `material-art` Storage bucket first.
  *
  * Materials have no idea/design stage (the catalog is derived from CORE_TAGS / CORE_VARIANTS
- * and the prompts already live in data/materials.csv), and no row to *insert*: scripts/
- * build-seed.mjs owns the catalog, so this stage only ever updates the `icon` of a row that
- * already exists. A CSV id with no matching material row is reported and skipped rather than
- * invented.
+ * and the prompts already live in data/assets.csv as `type=material` rows), and no row to
+ * *insert*: scripts/build-seed.mjs owns the catalog, so this stage only ever updates the
+ * `icon` of a row that already exists. A CSV id with no matching material row is reported and
+ * skipped rather than invented.
  *
  * Only rows whose art actually exists are imported: a material with no `<id>.png` is not
  * content yet, so `icon` is left alone instead of pointing at nothing.
@@ -20,7 +20,7 @@
  *   node scripts/materials-4-import.mjs [artFolder] [options]
  *
  * Options:
- *   --csv=<path>          Catalog to read. Defaults to data/materials.csv.
+ *   --csv=<path>          Catalog to read. Defaults to data/assets.csv.
  *   --import              Write the resolved `icon` into Supabase.
  *   --upload-art          Re-encode each png to WebP, upload it to the public
  *                         `material-art` bucket and point `icon` at its public URL.
@@ -36,8 +36,8 @@ import { parseArgs } from 'node:util'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-/** The catalog: one row per material, in display order. */
-const MATERIALS_CSV = join(root, 'data/materials.csv')
+/** The catalog: one row per asset in data/assets.csv, in display order. */
+const ASSETS_CSV = join(root, 'data/assets.csv')
 
 /** Where the rendered material icons live — `<material id>.png` files. */
 const DEFAULT_ART_FOLDER = join(root, 'data/materials')
@@ -100,9 +100,13 @@ function parseCsv(text) {
     .filter((material) => material.id)
 }
 
-/** Reads the material catalog csv into row objects, in file order. */
-export function readCatalog(csvPath = MATERIALS_CSV) {
-  return parseCsv(readFileSync(csvPath, 'utf8'))
+/**
+ * Reads the catalog csv into row objects, in file order, keeping only `type=material` rows —
+ * the shared catalog also carries cards. A row without a `type` is treated as a material so an
+ * older single-type file still works.
+ */
+export function readCatalog(csvPath = ASSETS_CSV) {
+  return parseCsv(readFileSync(csvPath, 'utf8')).filter((row) => (row.type ?? 'material') === 'material')
 }
 
 // --- step 2: art ---------------------------------------------------------------
@@ -232,7 +236,7 @@ async function main() {
   })
 
   const artFolder = positionals[0]?.replace(/["']+$/, '') || DEFAULT_ART_FOLDER
-  const csvPath = values.csv ? join(root, values.csv) : MATERIALS_CSV
+  const csvPath = values.csv ? join(root, values.csv) : ASSETS_CSV
   const rows = readCatalog(csvPath)
   if (!rows.length) {
     console.error(`no material rows found in ${csvPath}`)
@@ -292,7 +296,7 @@ async function main() {
   }
   if (withoutArt.length) {
     console.warn(
-      `${withoutArt.length} of ${rows.length} material(s) have no art in ${artFolder} — run npm run materials:3:render`,
+      `${withoutArt.length} of ${rows.length} material(s) have no art in ${artFolder} — run npm run assets:render -- --type=material`,
     )
   }
 

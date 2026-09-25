@@ -1,13 +1,14 @@
 /**
- * Card pipeline, stage 2 of 4 — *design*: fills the `design` column of data/cards.csv, the
- * concept-art prompt for a card, using an OpenAI-compatible chat endpoint (DeepSeek, OpenAI,
+ * Asset pipeline (cards), stage 2 of 4 — *design*: fills the `design` column of data/assets.csv,
+ * the concept-art prompt for a card, using an OpenAI-compatible chat endpoint (DeepSeek, OpenAI,
  * a local vLLM, …). Stage 1 is scripts/cards-1-idea.mjs (it writes the rows); stage 3 is
- * scripts/cards-3-render.mjs, which renders this prompt.
+ * scripts/assets-render.mjs, which renders this prompt.
  *
- * Only rows with a BLANK design are touched, so this is resumable: re-running after a
- * crash (or a rate-limit that killed one batch) picks up exactly where it stopped. The
- * CSV is rewritten after every batch for the same reason — a long run that dies at row
- * 180 of 200 keeps the 175 designs it already paid for.
+ * Only rows with `type=card` and a BLANK design are touched, so this is resumable and never
+ * spends a creature prompt on a material row: re-running after a crash (or a rate-limit that
+ * killed one batch) picks up exactly where it stopped. The CSV is rewritten after every batch for
+ * the same reason — a long run that dies at row 180 of 200 keeps the 175 designs it already paid
+ * for.
  *
  * The house style lives in HOUSE_STYLE and is handed to the model as a verbatim clause;
  * that keeps every prompt in one art direction instead of one per request.
@@ -35,7 +36,7 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const CARDS_CSV = join(root, 'data/cards.csv')
+const ASSETS_CSV = join(root, 'data/assets.csv')
 
 if (existsSync(join(root, '.env.local'))) process.loadEnvFile(join(root, '.env.local'))
 
@@ -247,7 +248,7 @@ const { values } = parseArgs({
 if (values.help) {
   console.log(
     [
-      'Generate the `design` (concept-art prompt) for every card in data/cards.csv with a blank one.',
+      'Generate the `design` (concept-art prompt) for every card in data/assets.csv with a blank one.',
       `House style: ${HOUSE_STYLE}`,
       '',
       'Usage: node scripts/cards-2-design.mjs [options]',
@@ -299,10 +300,15 @@ for (const [flag, raw, min] of [
 const batchSize = Number(values.batch)
 const delayMs = Number(values.delay)
 
-const { header, rows } = parseCsv(readFileSync(CARDS_CSV, 'utf8'))
+const { header, rows } = parseCsv(readFileSync(ASSETS_CSV, 'utf8'))
 const designIndex = header.indexOf(DESIGN_COLUMN)
 if (designIndex === -1) {
-  console.error(`data/cards.csv has no "${DESIGN_COLUMN}" column — add it to the header first.`)
+  console.error(`data/assets.csv has no "${DESIGN_COLUMN}" column — add it to the header first.`)
+  process.exit(1)
+}
+const typeIndex = header.indexOf('type')
+if (typeIndex === -1) {
+  console.error('data/assets.csv has no "type" column — add it to the header first.')
   process.exit(1)
 }
 // Shorter rows are common in hand-edited CSVs; pad so every row can hold a design.
@@ -313,8 +319,8 @@ if (rows.some((row) => row.length > header.length)) {
 
 const cell = (row, key) => (row[header.indexOf(key)] ?? '').trim()
 
-/** Only blanks: a filled design is a human decision (or a previous run's result). */
-let pending = rows.filter((row) => !row[designIndex].trim())
+/** Only blank card designs: a filled design is a human decision (or a previous run's result). */
+let pending = rows.filter((row) => row[typeIndex]?.trim() === 'card' && !row[designIndex].trim())
 if (values.limit !== undefined) {
   const limit = Number(values.limit)
   if (!Number.isInteger(limit) || limit < 1) {
@@ -324,9 +330,9 @@ if (values.limit !== undefined) {
   pending = pending.slice(0, limit)
 }
 
-console.log(`cards.csv: ${rows.length} rows, ${pending.length} with a blank design`)
+console.log(`assets.csv: ${rows.length} rows, ${pending.length} card(s) with a blank design`)
 if (!pending.length) {
-  console.log('nothing to do — every row already has a design')
+  console.log('nothing to do — every card already has a design')
   process.exit(0)
 }
 console.log(`model: ${model} @ ${endpoint}  (batch ${batchSize}${values['dry-run'] ? ', dry-run' : ''})`)
@@ -376,7 +382,7 @@ for (const [index, batch] of batches.entries()) {
     console.log(`${label} ${applied}/${batch.length} designs — ${cell(batch[0], 'name')} …`)
 
     // Written per batch on purpose: a run that dies later keeps everything it already paid for.
-    if (applied && !values['dry-run']) writeFileSync(CARDS_CSV, renderCsv(header, rows))
+    if (applied && !values['dry-run']) writeFileSync(ASSETS_CSV, renderCsv(header, rows))
   } catch (error) {
     failed += 1
     console.error(`${label} failed: ${error.message}`)
@@ -389,7 +395,7 @@ for (const [index, batch] of batches.entries()) {
 console.log(
   values['dry-run']
     ? `dry-run: ${written} designs generated, CSV untouched (${failed} batches failed)`
-    : `wrote ${written} designs to data/cards.csv (${failed} batches failed)`,
+    : `wrote ${written} designs to data/assets.csv (${failed} batches failed)`,
 )
 if (failed) {
   console.log('re-run to retry the failed batches — filled designs are never regenerated.')
