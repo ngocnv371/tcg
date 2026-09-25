@@ -52,7 +52,12 @@ export function useClaimDailyChest() {
       if (error) throw error
       return data as ChestInventoryRow
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chest_inventory'] }),
+    onSuccess: () => {
+      // `daily_chest_claimed_at` lives on the profile, so the Home "ready now" row only
+      // clears once that query is refreshed too.
+      void queryClient.invalidateQueries({ queryKey: ['chest_inventory'] })
+      void queryClient.invalidateQueries({ queryKey: ['profile'] })
+    },
   })
 }
 
