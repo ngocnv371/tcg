@@ -4,7 +4,8 @@ import { Panel, Screen } from '@/components/Screen'
 import { ChestIcon } from '@/features/chests/ChestIcon'
 import { useBuyChest, useChestCatalog } from '@/features/marketplace/api'
 import { useProfile } from '@/features/profile/api'
-import { toast } from '@/lib/toast'
+import { rewardToast } from '@/lib/toast'
+import type { Chest } from '@/types/db'
 
 export function MarketScreen() {
   const { data: profile } = useProfile()
@@ -12,10 +13,17 @@ export function MarketScreen() {
   const buyChest = useBuyChest()
   const gems = profile?.gems ?? 0
 
-  const handleBuy = (chestId: string) => {
+  const handleBuy = (chest: Chest) => {
     buyChest.mutate(
-      { chestId, qty: 1 },
-      { onSuccess: (tx) => toast(`Bought ${tx.qty} × ${chestId} chest for ${tx.total_gems} gems`) },
+      { chestId: chest.id, qty: 1 },
+      {
+        onSuccess: (tx) =>
+          rewardToast({
+            title: `${chest.name} secured`,
+            detail: `Added to your vault · ${tx.total_gems.toLocaleString('en-US')} gems spent`,
+            icon: <ChestIcon chest={chest} size={44} />,
+          }),
+      },
     )
   }
 
@@ -56,7 +64,7 @@ export function MarketScreen() {
                       className="flex shrink-0 items-center gap-1.5 rounded-card bg-faction-tide px-4 py-3 text-base font-semibold tabular-nums text-ink-950 shadow-[0_4px_16px_-4px] shadow-faction-tide/60 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-ink-700 disabled:text-ink-400 disabled:shadow-none"
                       disabled={buyChest.isPending || !affordable}
                       title={affordable ? undefined : 'Not enough gems'}
-                      onClick={() => handleBuy(chest.id)}
+                      onClick={() => handleBuy(chest)}
                     >
                       {isBuying ? (
                         '…'
