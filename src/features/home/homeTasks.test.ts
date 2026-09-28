@@ -23,6 +23,7 @@ function card(overrides: Partial<Card> & { id: string }): Card {
     passive_text: '',
     lore: '',
     tags: [],
+    speed: 10,
     art_path: null,
     ...overrides,
   }

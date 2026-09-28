@@ -1,4 +1,4 @@
-import { Coins, Gem, LogOut, Store, Swords, Wrench } from 'lucide-react'
+import { Coins, Gem, LogOut, Map, Store, Swords, Wrench } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 
@@ -13,7 +13,7 @@ const NAV = [
   { to: '/', label: 'Home', icon: '⌂' },
   { to: '/cards', label: 'Cards', icon: '▤' },
   { to: '/party', label: 'Party', icon: '⚔' },
-  { to: '/dungeons', label: 'Dungeons', icon: '◈' },
+  { to: '/quests', label: 'Quests', icon: '✦' },
   { to: '/chests', label: 'Chests', icon: '▣' },
   { to: '/inventory', label: 'Vault', icon: '◇' },
 ]
@@ -21,6 +21,7 @@ const NAV = [
 /** Secondary destinations that live in the header so they don't crowd the bottom tab bar. */
 const HEADER_NAV = [
   { to: '/market', label: 'Market', icon: Store },
+  { to: '/dungeons', label: 'Dungeons', icon: Map },
   { to: '/dev', label: 'Dev', icon: Wrench },
 ]
 

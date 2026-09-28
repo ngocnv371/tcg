@@ -29,6 +29,8 @@ export type VictoryPartyCard = {
 
 export type RunVictoryAnimationProps = {
   dungeonName: string
+  /** The headline card. Defaults to "DUNGEON CLEARED"; quests pass "QUEST CLEARED". */
+  title?: string
   /** The lineup's name, or null when the run's party has since been deleted. */
   partyName: string | null
   multiplier: number | null
@@ -269,6 +271,7 @@ function RewardTile({ reward, appear }: { reward: VictoryReward; appear: number 
  */
 export function RunVictoryAnimation({
   dungeonName,
+  title = 'DUNGEON CLEARED',
   partyName,
   multiplier,
   party,
@@ -309,7 +312,7 @@ export function RunVictoryAnimation({
             textShadow: '0 0 22px #ffb02e99',
           }}
         >
-          DUNGEON CLEARED
+          {title}
         </div>
         <div style={{ color: '#a9a4c2', fontSize: 12, marginTop: 8 }}>
           {partyName ? `${partyName} · ${dungeonName}` : dungeonName}

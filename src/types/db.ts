@@ -32,6 +32,8 @@ export type Card = {
   passive_text: string
   lore: string
   tags: string[]
+  /** Quest turn-order stat; baseline 10 (`CARD_SPEED_BASE`). A 20 acts twice as often. */
+  speed: number
   art_path: string | null
 }
 
@@ -218,4 +220,51 @@ export type NotificationToken = {
   created_at: string
   last_seen_at: string
   disabled_at: string | null
+}
+
+/** An opponent in a quest battle — a catalog card's art with its own authored battle stats. */
+export type QuestEnemy = {
+  id: string
+  /** Catalog card whose art (and display name) this opponent wears. */
+  cardId: string
+  name: string
+  icon: string
+  hp: number
+  atk: number
+  def: number
+  spd: number
+}
+
+/** One visual-novel beat (speaker + avatar + line). */
+export type QuestLine = {
+  speaker: string
+  avatar: string
+  text: string
+}
+
+/** An authored quest encounter. Seeded from `src/game/quests.ts`. */
+export type Quest = {
+  id: string
+  name: string
+  sort_order: number
+  /** Advisory "recommended power"; the server does not gate a clear on it. */
+  req_power: number
+  enemies: QuestEnemy[]
+  /** Repeating reward, paid every clear. */
+  gold: number
+  materials: Record<string, number>
+  /** One-time bonus, paid only on the first clear. */
+  first_clear_gold: number
+  first_clear_materials: Record<string, number>
+  intro: QuestLine[]
+  outro: QuestLine[]
+}
+
+/** How often the player cleared one quest. Write-through `complete_quest` only. */
+export type QuestCompletion = {
+  profile_id: string
+  quest_id: string
+  clears: number
+  first_cleared_at: string | null
+  last_cleared_at: string
 }

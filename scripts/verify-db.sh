@@ -664,6 +664,141 @@ begin
     delete from public.cards where id = 'verify_rank_card';
   end;
 
+  -- quests: the fight is simulated on the client (it has no RNG), so the SERVER is what pays.
+  -- complete_quest re-reads the reward from the quest row and merges the first-clear bonus
+  -- exactly once — a replay must pay the base reward only and leave first_cleared_at alone.
+  declare
+    q_card uuid;
+    q_party uuid;
+    q_empty_party uuid;
+    q_quest text := 'verify_quest';
+    q_gold_before bigint;
+    q_clear jsonb;
+    q_first_at timestamptz;
+  begin
+    -- SPD lives on the card row; a battle reads it, the server never derives it
+    if not exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public' and table_name = 'cards' and column_name = 'speed'
+    ) then raise exception 'cards.speed is missing'; end if;
+
+    if not exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = 'complete_quest' and p.prosecdef
+    ) then raise exception 'complete_quest is missing or not SECURITY DEFINER'; end if;
+
+    select gold into q_gold_before from public.profiles
+      where id = '00000000-0000-0000-0000-000000000001';
+
+    if (select count(*) from public.quests) < 1 then raise exception 'no quests were seeded'; end if;
+
+    insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
+                              passive_name, passive_text, lore, speed)
+      values ('verify_quest_card', 'Verify Quest Card', 1, 'ember', 'dps', 1, 0, 'p', 'p', 'p', 12);
+    insert into public.player_cards (profile_id, card_id, rank)
+      values ('00000000-0000-0000-0000-000000000001', 'verify_quest_card', 1)
+      returning id into q_card;
+
+    insert into public.parties (profile_id, name, slot_index)
+      values ('00000000-0000-0000-0000-000000000001', 'Quest team', 7)
+      returning id into q_party;
+    insert into public.party_slots (party_id, slot, player_card_id)
+      values (q_party, 1, q_card);
+
+    insert into public.parties (profile_id, name, slot_index)
+      values ('00000000-0000-0000-0000-000000000001', 'Quest empty team', 8)
+      returning id into q_empty_party;
+
+    insert into public.quests (id, name, sort_order, req_power, enemies, gold, materials,
+                               first_clear_gold, first_clear_materials, intro, outro)
+      values (q_quest, 'Verify Quest', 99, 1,
+              '[{"id":"dummy","name":"Dummy","icon":"x","hp":1,"atk":1,"def":0,"spd":10}]'::jsonb,
+              100, '{"lesser_fire_core": 1}'::jsonb,
+              50, '{"lesser_fire_core": 2, "greater_fire_core": 1}'::jsonb,
+              '[]'::jsonb, '[]'::jsonb);
+
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select '00000000-0000-0000-0000-000000000001'::uuid $fn$;
+
+    -- an empty lineup cannot clear a quest
+    begin
+      perform public.complete_quest(q_quest, q_empty_party);
+      raise exception 'complete_quest accepted an empty party';
+    exception when others then
+      if sqlerrm <> 'party has no cards' then raise; end if;
+    end;
+
+    update public.profiles set gold = 1000 where id = '00000000-0000-0000-0000-000000000001';
+    delete from public.player_materials
+      where profile_id = '00000000-0000-0000-0000-000000000001'
+        and material_id in ('lesser_fire_core', 'greater_fire_core');
+
+    -- FIRST clear: base + first-clear bonus (150 gold, and the merged materials)
+    q_clear := public.complete_quest(q_quest, q_party);
+    if (q_clear ->> 'first_clear')::boolean is not true then
+      raise exception 'the first clear was not flagged as such';
+    end if;
+    if (select gold from public.profiles where id = '00000000-0000-0000-0000-000000000001') <> 1150 then
+      raise exception 'the first clear did not pay base + bonus gold';
+    end if;
+    if (select qty from public.player_materials
+        where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = 'lesser_fire_core') <> 3 then
+      raise exception 'the first clear did not merge the base and bonus materials';
+    end if;
+    if (select qty from public.player_materials
+        where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = 'greater_fire_core') <> 1 then
+      raise exception 'the first clear did not pay its bonus material';
+    end if;
+
+    select first_cleared_at into q_first_at from public.quest_completions
+      where profile_id = '00000000-0000-0000-0000-000000000001' and quest_id = q_quest;
+
+    -- SECOND clear: base only, and the first-clear stamp must not move
+    q_clear := public.complete_quest(q_quest, q_party);
+    if (q_clear ->> 'first_clear')::boolean is not false then
+      raise exception 'a replay was flagged as a first clear';
+    end if;
+    if (select gold from public.profiles where id = '00000000-0000-0000-0000-000000000001') <> 1250 then
+      raise exception 'a replay did not pay the base reward only';
+    end if;
+    if (select qty from public.player_materials
+        where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = 'lesser_fire_core') <> 4 then
+      raise exception 'a replay did not pay its base material';
+    end if;
+    if (select clears from public.quest_completions
+        where profile_id = '00000000-0000-0000-0000-000000000001' and quest_id = q_quest) <> 2 then
+      raise exception 'the clear count did not advance';
+    end if;
+    if (select first_cleared_at from public.quest_completions
+        where profile_id = '00000000-0000-0000-0000-000000000001' and quest_id = q_quest) <> q_first_at then
+      raise exception 'a replay rewrote first_cleared_at — the bonus could be farmed';
+    end if;
+
+    -- another player's party is not addressable, even with its uuid
+    begin
+      perform public.complete_quest(q_quest, (select id from public.parties
+        where profile_id = '00000000-0000-0000-0000-000000000002' order by slot_index limit 1));
+      raise exception 'complete_quest paid a party the caller does not own';
+    exception when others then
+      if sqlerrm <> 'party not found' then raise; end if;
+    end;
+
+    -- leave the throwaway database as the assertions found it
+    create or replace function auth.uid() returns uuid language sql stable
+      as $fn$ select null::uuid $fn$;
+    update public.profiles set gold = q_gold_before
+      where id = '00000000-0000-0000-0000-000000000001';
+    delete from public.quest_completions where quest_id = q_quest;
+    delete from public.player_materials
+      where profile_id = '00000000-0000-0000-0000-000000000001'
+        and material_id in ('lesser_fire_core', 'greater_fire_core');
+    delete from public.parties where id in (q_party, q_empty_party);
+    delete from public.player_cards where card_id = 'verify_quest_card';
+    delete from public.cards where id = 'verify_quest_card';
+    delete from public.quests where id = q_quest;
+  end;
+
   -- telemetry is written by triggers on the tables the server already owns, so the
   -- client cannot skip or forge a progression event; track_event is allow-listed
   declare

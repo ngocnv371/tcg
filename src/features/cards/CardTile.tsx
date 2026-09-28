@@ -1,23 +1,8 @@
 import { cardAtk, cardDef } from '@/game/formulas'
+import { RANK_BORDER, RANK_TEXT } from '@/features/cards/rankFrame'
 import { resolveArtSrc } from '@/lib/art'
 import { cn } from '@/lib/utils'
 import type { Card, CardRank } from '@/types/db'
-
-const RANK_BORDER: Record<number, string> = {
-  1: 'border-rank-1',
-  2: 'border-rank-2',
-  3: 'border-rank-3',
-  4: 'border-rank-4',
-  5: 'border-rank-5',
-}
-
-const RANK_TEXT: Record<number, string> = {
-  1: 'text-rank-1',
-  2: 'text-rank-2',
-  3: 'text-rank-3',
-  4: 'text-rank-4',
-  5: 'text-rank-5',
-}
 
 export function CardTile({
   card,

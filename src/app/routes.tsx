@@ -12,6 +12,7 @@ import { InventoryScreen } from '@/features/inventory/InventoryScreen'
 import { MarketScreen } from '@/features/marketplace/MarketScreen'
 import { PartyBuilderScreen } from '@/features/party/PartyBuilderScreen'
 import { ProfileScreen } from '@/features/profile/ProfileScreen'
+import { QuestListScreen } from '@/features/quests/QuestListScreen'
 
 export const router = createBrowserRouter([
   {
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
       { path: 'cards/:cardRefId', element: <CardDetailScreen /> },
       { path: 'party', element: <PartyBuilderScreen /> },
       { path: 'dungeons', element: <DungeonMapScreen /> },
+      { path: 'quests', element: <QuestListScreen /> },
       { path: 'chests', element: <ChestOpenScreen /> },
       { path: 'market', element: <MarketScreen /> },
       { path: 'inventory', element: <InventoryScreen /> },

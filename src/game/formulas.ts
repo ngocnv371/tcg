@@ -342,3 +342,31 @@ export function pickRank(
   }
   return Number(entries[entries.length - 1][0]) as CardRank
 }
+
+// ---------------------------------------------------------------------------
+// Quest combat
+// ---------------------------------------------------------------------------
+
+/**
+ * Quest battles need one stat the idle dungeon runs never did: SPD, which decides how often
+ * a combatant acts. It is a per-card value (baseline 10 — a card with 20 acts twice as often
+ * as a card with 10), stored on the card row so the server never derives it twice.
+ * `rollCardSpeed` is what `scripts/cards-4-import.mjs` stamps onto `cards.speed`.
+ */
+export const CARD_SPEED_BASE = 10
+export const CARD_SPEED_MIN = 7
+export const CARD_SPEED_MAX = 16
+
+/** Deterministic per-card SPD from its id, so a re-import never churns a battle's turn order. */
+export function rollCardSpeed(id: string): number {
+  let hash = 0
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) % 997
+  return CARD_SPEED_MIN + (hash % (CARD_SPEED_MAX - CARD_SPEED_MIN + 1))
+}
+
+/** HP a card brings to a quest battle, derived from ATK so rank (and level) still matter. */
+export const CARD_HP_PER_ATK = 4
+
+export function cardHp(rank: CardRank, level: number): number {
+  return Math.round(cardAtk(rank, level) * CARD_HP_PER_ATK)
+}

@@ -10,8 +10,8 @@ An idle collection RPG (cards → chests → timed dungeon runs → rank-ups) at
 
 1. **Never let the client write progression state.** No new RLS INSERT/UPDATE/DELETE policies on
    `profiles`, `player_cards`, `player_materials`, `parties`, `party_slots`, `dungeon_runs`,
-   `chest_inventory`, `pull_history`. Every mutation goes through a `SECURITY DEFINER` Postgres
-   function that checks `auth.uid()`.
+   `chest_inventory`, `pull_history`, `quest_completions`. Every mutation goes through a
+   `SECURITY DEFINER` Postgres function that checks `auth.uid()`.
 2. **Never roll RNG or compute timers in the client.** Drop rolls, chest rarity, success/failure
    and run expiry are decided server-side. Run expiry = `started_at + duration`, never a client
    clock, never a background sweep loop.
@@ -76,8 +76,9 @@ provenance from before this pipeline existed (the first 39 cards were moved into
 
 ## Migrations
 
-Squashed into six topical files (re-squashed after marketplace, chest art and onboarding).
-Apply order is the file order, and the folder is the whole schema:
+Squashed into six topical files (re-squashed after marketplace, chest art and onboarding),
+with later features added as new dated files. Apply order is the file order, and the folder is
+the whole schema:
 
 | File | Owns |
 | --- | --- |
@@ -87,12 +88,12 @@ Apply order is the file order, and the folder is the whole schema:
 | `20260915000003_notifications.sql` | push endpoints, outbox, service-role sender API |
 | `20260915000004_storage.sql` | the `card-art` and `dungeon-art` buckets |
 | `20260915000005_jobs.sql` | realtime publication + the run-resolution cron job |
+| `20260928000000_quests.sql` | `cards.speed`, the `quests` + `quest_completions` tables and their RLS, and `complete_quest` |
 
-The block is dated *before* the first real migration on purpose: it replaces all of them, so a
-database that still lists the old versions must be `db reset`, never migrated. The storage and
-jobs files skip themselves with a notice when `storage` / `pg_cron` / `supabase_realtime` are
-missing, which is what lets `scripts/verify-db.sh` apply the whole folder to a bare Postgres — it
-globs the folder rather than keeping a list that can drift.
+The first six are dated *before* the first real migration on purpose: that block replaces all
+of them, so a database that still lists the old versions must be `db reset`, never migrated.
+Newer features (quests) ship as their own dated file appended after the block, so a live
+database picks them up with `migration up`.
 
 ## Where things stand
 
@@ -231,6 +232,23 @@ layers: `OnboardingWizard` (a shell-mounted coach card showing the first incompl
 derived purely from live state, never a progression row.
 
 Next up: the balance pass.
+
+**Quests** (`20260928000000_quests.sql`, `src/features/quests/`, `src/game/quests.ts`,
+`src/game/battle.ts`, `src/game/quiz.ts`) are the hands-on counterpart to the idle dungeons:
+a visual-novel intro, a party pick, then a manual turn-based fight. Turn order is SPD (a new
+`cards.speed` stat, baseline 10 — a 20 acts twice as often, stamped by the card importer from
+the id); on each of the player's cards' turns a multiple-choice times-table question decides
+whether the attack lands. `battle.ts` is deterministic and unit tested. **An opponent is a real
+catalog card** (`QuestEnemy.cardId`) so it wears that card's art in a rank frame — the battle
+board, the intro curtain and the attack clash all render actual card art — while its battle
+stats stay authored in `quests.ts`, so difficulty is tuned independently of the catalog. The
+fight is simulated
+on the CLIENT (there is no RNG and no timer — the only input is the quiz), and the SERVER owns
+the reward: `complete_quest(quest_id, party_id)` re-reads `quests` and pays gold + Cores,
+merging a one-time first-clear bonus exactly once (`first_cleared_at` is never rewritten, so
+it cannot be farmed). The quest catalog is authored in `src/game/quests.ts` and seeded by
+`npm run seed:build`, so the card preview and the payout read one row. Quests took the
+Dungeons bottom tab; Dungeons moved to the header nav.
 
 Scope decisions, 2026-09-20 — do not re-add these without asking:
 
