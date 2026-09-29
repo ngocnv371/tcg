@@ -64,7 +64,7 @@ npm run dev                    # http://localhost:5173
 
 Sign up with any email/password (local Supabase auto-confirms); the `handle_new_user` trigger
 creates your profile with 2 run slots, grants five rank-1 cards, and fills your first party.
-For local development, reset the database and sign in with `dev@tcg2.local` / `tcg2devpass`.
+For local development, reset the database and sign in with `dev@tcg.local` / `tcgdevpass`.
 
 A local database from before the 2026-09-20 squash lists migration versions that no longer exist,
 so bring it forward with `npm run db:reset` (never `supabase migration up`).

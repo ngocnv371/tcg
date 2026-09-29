@@ -110,9 +110,9 @@ insert into auth.users (
 values (
   '00000000-0000-0000-0000-000000000000',
   '00000000-0000-0000-0000-000000000002',
-  'authenticated', 'authenticated', 'dev@tcg2.local', crypt('tcg2devpass', gen_salt('bf', 10)), now(),
+  'authenticated', 'authenticated', 'dev@tcg.local', crypt('tcgdevpass', gen_salt('bf', 10)), now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"sub":"00000000-0000-0000-0000-000000000002","email":"dev@tcg2.local","email_verified":true,"phone_verified":false}'::jsonb,
+  '{"sub":"00000000-0000-0000-0000-000000000002","email":"dev@tcg.local","email_verified":true,"phone_verified":false}'::jsonb,
   now(), now(), '', '', '', ''
 )
 on conflict (id) do nothing;
@@ -121,7 +121,7 @@ insert into auth.identities (provider_id, user_id, identity_data, provider, crea
 values (
   '00000000-0000-0000-0000-000000000002',
   '00000000-0000-0000-0000-000000000002',
-  '{"sub":"00000000-0000-0000-0000-000000000002","email":"dev@tcg2.local","email_verified":false,"phone_verified":false}'::jsonb,
+  '{"sub":"00000000-0000-0000-0000-000000000002","email":"dev@tcg.local","email_verified":false,"phone_verified":false}'::jsonb,
   'email', now(), now()
 )
 on conflict (provider_id, provider) do nothing;

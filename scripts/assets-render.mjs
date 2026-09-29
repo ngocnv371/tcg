@@ -65,7 +65,7 @@ const PROMPT_TOKEN = '__PROMPT__'
 const DEFAULT_COMFY_URL = 'http://127.0.0.1:8188'
 
 /** Identifies this queueing client to ComfyUI. */
-const CLIENT_ID = 'tcg2-asset-art'
+const CLIENT_ID = 'tcg-asset-art'
 
 /** How often the "still waiting" line is printed, so a long render does not look hung. */
 const PROGRESS_EVERY_MS = 15_000

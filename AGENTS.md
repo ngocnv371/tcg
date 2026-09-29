@@ -227,7 +227,7 @@ tutorial's yield multiplier to 1 (party power must not scale it) and `start_run`
 `'tutorial already completed'` on any second run for a tutorial dungeon. `DungeonMapScreen` marks
 it "one-time tutorial" and drops it from the map once its run is claimed. The client guide is two
 layers: `OnboardingWizard` (a shell-mounted coach card showing the first incomplete
-`buildOnboardingSteps` beat, skippable via the `tcg2:onboarding:wizard-dismissed` key in
+`buildOnboardingSteps` beat, skippable via the `tcg:onboarding:wizard-dismissed` key in
 `src/features/onboarding/dismissal.ts`) and, once skipped, the Home `OnboardingChecklist` — both
 derived purely from live state, never a progression row.
 

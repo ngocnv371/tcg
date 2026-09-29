@@ -14,7 +14,7 @@ if command -v cygpath >/dev/null 2>&1; then
 else
   ROOT_HOST="$ROOT"
 fi
-NAME="${NAME:-tcg2-verify-pg}"
+NAME="${NAME:-tcg-verify-pg}"
 IMAGE="${IMAGE:-postgres:17-alpine}"
 
 docker rm -f "$NAME" >/dev/null 2>&1 || true
