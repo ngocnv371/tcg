@@ -1,4 +1,4 @@
-import { Coins, Gem, LogOut, Map, Store, Swords, Wrench } from 'lucide-react'
+import { Coins, Gem, LogOut, Map, Menu, Store, Wrench, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 
@@ -43,8 +43,18 @@ export function AppShell() {
   const { data: profile } = useProfile()
   useRunSync()
   const [signingOut, setSigningOut] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const num = (value: number | undefined) =>
     value === undefined ? '—' : value.toLocaleString('en-US')
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [menuOpen])
 
   useEffect(() => {
     if (appOpenTracked) return
@@ -68,37 +78,103 @@ export function AppShell() {
           Runewatch
         </NavLink>
         <div className="flex items-center gap-1.5">
-          {HEADER_NAV.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              aria-label={label}
-              title={label}
-              className={({ isActive }) =>
-                cn(
-                  'grid size-8 place-items-center rounded-card hover:bg-ink-800',
-                  isActive ? 'text-gold-300' : 'text-ink-400 hover:text-ink-100',
-                )
-              }
-            >
-              <Icon className="size-4" />
-            </NavLink>
-          ))}
+          {/* Desktop quick links; on small screens these move into the menu drawer. */}
+          <div className="hidden items-center gap-1.5 md:flex">
+            {HEADER_NAV.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                aria-label={label}
+                title={label}
+                className={({ isActive }) =>
+                  cn(
+                    'grid size-8 place-items-center rounded-card hover:bg-ink-800',
+                    isActive ? 'text-gold-300' : 'text-ink-400 hover:text-ink-100',
+                  )
+                }
+              >
+                <Icon className="size-4" />
+              </NavLink>
+            ))}
+          </div>
           <Resource icon={<Coins className="size-3.5 text-gold-400" />} value={num(profile?.gold)} />
           <Resource icon={<Gem className="size-3.5 text-faction-tide" />} value={num(profile?.gems)} />
-          <Resource icon={<Swords className="size-3.5 text-ink-200" />} value={num(profile?.run_slots)} />
           <button
             type="button"
-            onClick={signOut}
-            disabled={signingOut}
-            aria-label="Sign out"
-            title="Sign out"
-            className="grid size-8 place-items-center rounded-card text-ink-400 hover:bg-ink-800 hover:text-ink-100 disabled:opacity-50"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={menuOpen}
+            title="Menu"
+            className="grid size-8 place-items-center rounded-card text-ink-400 hover:bg-ink-800 hover:text-ink-100 md:hidden"
           >
-            <LogOut className="size-4" />
+            <Menu className="size-4" />
           </button>
         </div>
       </header>
+
+      {menuOpen ? (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+            className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm"
+          />
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
+            className="absolute inset-y-0 right-0 flex w-72 max-w-[85vw] flex-col border-l border-ink-800 bg-ink-900 pb-[var(--safe-bottom)] shadow-lg"
+          >
+            <header className="flex items-center justify-between border-b border-ink-800 px-4 py-3">
+              <span className="font-display text-sm tracking-wide text-gold-300">Runewatch</span>
+              <button
+                type="button"
+                onClick={() => setMenuOpen(false)}
+                aria-label="Close menu"
+                title="Close"
+                className="grid size-8 place-items-center rounded-card text-ink-400 hover:bg-ink-800 hover:text-ink-100"
+              >
+                <X className="size-4" />
+              </button>
+            </header>
+            <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+              {HEADER_NAV.map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => setMenuOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 rounded-card px-3 py-2.5 text-sm',
+                      isActive
+                        ? 'bg-ink-800 text-gold-300'
+                        : 'text-ink-300 hover:bg-ink-800 hover:text-ink-100',
+                    )
+                  }
+                >
+                  <Icon className="size-4" />
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+            <div className="border-t border-ink-800 p-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false)
+                  void signOut()
+                }}
+                disabled={signingOut}
+                className="flex w-full items-center gap-3 rounded-card px-3 py-2.5 text-sm text-ink-300 hover:bg-ink-800 hover:text-ink-100 disabled:opacity-50"
+              >
+                <LogOut className="size-4" />
+                Sign out
+              </button>
+            </div>
+          </aside>
+        </div>
+      ) : null}
 
       <main className="flex-1">
         <Outlet />
