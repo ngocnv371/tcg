@@ -105,7 +105,7 @@ export function buildOnboardingSteps(input: {
       hint: 'The first one is on the house.',
       cta: 'Open chests',
       done: input.chests.some((chest) => chest.opened_at),
-      to: '/chests',
+      to: '/inventory?tab=chests',
     },
     {
       id: 'build-party',

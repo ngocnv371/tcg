@@ -1,4 +1,4 @@
-import { Panel, Screen } from '@/components/Screen'
+import { Panel } from '@/components/Screen'
 import { useInventory, type InventoryRow } from '@/features/inventory/api'
 import { MaterialIcon } from '@/features/inventory/MaterialIcon'
 import { CORE_VARIANT_LABELS, CORE_VARIANTS } from '@/game/formulas'
@@ -25,7 +25,8 @@ function coreGradeLabel(row: InventoryRow): string | null {
   return variant ? CORE_VARIANT_LABELS[variant] : null
 }
 
-export function InventoryScreen() {
+/** The Resources tab body. The Vault screen owns the header and the tab bar. */
+export function VaultResources() {
   const { data: inventory, error } = useInventory()
 
   // Cheapest grade first inside a group, so the one a player is short of sits at the top.
@@ -43,10 +44,7 @@ export function InventoryScreen() {
   }
 
   return (
-    <Screen
-      title="Vault"
-      hint="Cores come from dungeons — farm the ones a card's tags need to rank it up."
-    >
+    <div>
       {error ? (
         <Panel>
           <p className="text-sm text-faction-ember">
@@ -94,6 +92,6 @@ export function InventoryScreen() {
           </p>
         </Panel>
       )}
-    </Screen>
+    </div>
   )
 }

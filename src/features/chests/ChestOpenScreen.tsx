@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Player, type PlayerRef } from '@remotion/player'
 
-import { Panel, Screen } from '@/components/Screen'
+import { Panel } from '@/components/Screen'
 import { useCardCatalog } from '@/features/cards/api'
 import { CardGrid } from '@/features/cards/CardBrowser'
 import { CardTile } from '@/features/cards/CardTile'
@@ -154,7 +154,8 @@ function RevealOverlay({ reveal, onClose }: { reveal: RevealState; onClose: () =
   )
 }
 
-export function ChestOpenScreen() {
+/** The Chests tab body. The Vault screen owns the header and the tab bar. */
+export function VaultChests() {
   const { data: inventory, isPending, error } = useChestInventory()
   const { data: catalog } = useCardCatalog()
   const { data: chestCatalog } = useChestCatalog()
@@ -220,9 +221,8 @@ export function ChestOpenScreen() {
 
   return (
     <>
-      <Screen title="Chests">
       <div className="space-y-3">
-        <Panel title="Vault">
+        <Panel title="Unopened">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-ink-200">
               {unopened.length ? `${unopened.length} chest${unopened.length === 1 ? '' : 's'} waiting` : 'No unopened chests'}
@@ -312,7 +312,6 @@ export function ChestOpenScreen() {
           {actionError ? <p className="mt-3 text-xs text-faction-ember">{actionError.message}</p> : null}
         </Panel>
       </div>
-      </Screen>
       {reveal ? <RevealOverlay onClose={closeReveal} reveal={reveal} /> : null}
       {openFailure ? (
         <ChestOpenErrorModal failure={openFailure} onClose={() => setOpenFailure(null)} />

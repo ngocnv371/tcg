@@ -208,8 +208,11 @@ than trusting the client. It follows `rush_run`'s guarded-spend shape (lock, `ge
 purchase time, and logs a server-source `chest_purchased` telemetry event. The ledger is
 SELECT-only to its owner and is the transaction record; the **Market** screen (`MarketScreen`,
 `/market`) shows each chest's gem price and buy buttons, reached from a header icon rather than the
-bottom tab bar (the Chests screen keeps only the Vault; Dev moved to the header the same way).
-Re-run `npm run seed:build` after a price change.
+bottom tab bar (Dev moved to the header the same way). Re-run `npm run seed:build` after a price
+change. The bottom bar holds five tabs (Home, Cards, Party, Quests, Vault): the old Chests tab is
+now the **Chests** tab *inside* `VaultScreen`, beside **Resources**; the tab is the URL
+(`/inventory?tab=chests`) and `/chests` redirects there, so Home's "open your chests" deep links
+still land on the right tab.
 
 Onboarding ships as the first-session script (free Rare chest → guaranteed 3★ starter →
 build a party → guided run → guided rank-up), split between the provisioning/yield branches in
