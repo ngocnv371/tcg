@@ -29,7 +29,7 @@ export function QuizPanel({
   }, [picked, question])
 
   return (
-    <div className="mx-auto w-full max-w-md rounded-card border border-gold-600/60 bg-ink-900/95 p-3.5">
+    <div className="mx-auto w-full max-w-md rounded-card border border-gold-600/60 bg-ink-900/70 p-3.5 shadow-2xl shadow-ink-950/60 backdrop-blur-md">
       <p className="text-center text-xs uppercase tracking-wide text-gold-300">Quick maths!</p>
       <p className="mt-1 text-center font-display text-xl text-ink-50 tabular-nums">
         {question.a} × {question.b} = ?

@@ -84,9 +84,10 @@ function CombatantCard({ combatant, active }: { combatant: Combatant; active: bo
     <div className={cn('w-20', alive ? '' : 'opacity-40 grayscale')}>
       <div
         className={cn(
+          // The active card wears its highlight on the frame it already has instead of a second
+          // ring around it: one border, one meaning — gold is the card whose turn it is.
           'relative aspect-[2/3] w-full overflow-hidden rounded-[10px] border-2 bg-ink-900',
-          RANK_BORDER[rank],
-          active ? 'ring-2 ring-gold-400 ring-offset-2 ring-offset-ink-950' : '',
+          active ? 'border-gold-400' : RANK_BORDER[rank],
         )}
       >
         {artSrc ? (
@@ -238,9 +239,10 @@ export function QuestBattle({
         </button>
       </header>
 
-      {/* The board keeps the whole height: the prompt below is a floating sheet, so the card rows
-          never have to reserve room for it. It scrolls if a short window cannot fit both rows. */}
-      <div className="scrollbar-slim relative z-10 flex min-h-0 flex-1 flex-col items-center justify-between gap-3 overflow-y-auto px-4 pb-28 pt-4">
+      {/* The board keeps the whole height: the two rows are pushed to its edges, so the empty
+          middle ground is what the clash and the prompt both sit over. It scrolls if a short
+          window cannot fit both rows. */}
+      <div className="scrollbar-slim relative z-10 flex min-h-0 flex-1 flex-col items-center justify-between gap-3 overflow-y-auto px-4 pb-4 pt-4">
         <div className="flex shrink-0 flex-wrap justify-center gap-2">
           {enemies.map((combatant) => (
             <CombatantCard
@@ -265,9 +267,10 @@ export function QuestBattle({
         </div>
       </div>
 
-      {/* Bottom sheet. It sits over the scene rather than in the layout: a question gets no help
-          from the cards behind it, so covering their lower half is fine when space is tight. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-ink-950 via-ink-950/95 to-transparent px-4 pb-5 pt-12">
+      {/* A centered dialog over the board's empty middle ground — never over a card row, so the
+          party's HP bars stay readable while a question is up. Translucent and click-through
+          apart from the prompt itself, so the arena keeps reading behind it. */}
+      <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center px-4">
         {!introDone ? (
           <p className="text-center text-sm text-ink-400">The enemy approaches…</p>
         ) : strike ? (
@@ -278,7 +281,7 @@ export function QuestBattle({
             {state.won ? 'Victory!' : 'Your party was defeated…'}
           </p>
         ) : activeActor?.side === 'player' ? (
-          <div className="pointer-events-auto">
+          <div className="pointer-events-auto w-full max-w-md">
             <QuizPanel key={questionIndex} question={question} onAnswer={answer} />
           </div>
         ) : (
