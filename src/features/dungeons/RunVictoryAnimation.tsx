@@ -278,15 +278,23 @@ export function RunVictoryAnimation({
   rewards,
 }: RunVictoryAnimationProps) {
   const frame = useCurrentFrame()
-  const { fps } = useVideoConfig()
+  const { fps, height, width } = useVideoConfig()
+  // The celebration is authored against the 390x844 stage; stretch its anchors onto the real
+  // composition so it fills the screen at any shape. Card and tile sizes stay put, so no art
+  // is ever distorted by the stage.
+  const scaleX = width / STAGE_SIZE.width
+  const scaleY = height / STAGE_SIZE.height
+  const anchor = (value: number) => value * scaleY
   const handoff = beatProgress(frame, VICTORY_BEATS.handoff)
   const total = beatProgress(frame, VICTORY_BEATS.total)
   const titleIn = spring({ config: TITLE_SPRING, fps, frame })
   const spots = partyPlacements(party.length)
-  const gridSpots = rewardGridPlacements(rewards.length)
-  // The party starts centre stage and ends as a compact strip under the title, which is what
-  // frees the lower half for the loot.
-  const partyTop = interpolate(handoff, [0, 1], [VICTORY_LAYOUT.partyCenter.y, VICTORY_LAYOUT.partyResting.y])
+  const gridSpots = rewardGridPlacements(rewards.length, width)
+  const partyTop = interpolate(
+    handoff,
+    [0, 1],
+    [anchor(VICTORY_LAYOUT.partyCenter.y), anchor(VICTORY_LAYOUT.partyResting.y)],
+  )
   const partyScale = interpolate(handoff, [0, 1], [1, VICTORY_LAYOUT.partyResting.scale])
 
   return (
@@ -300,7 +308,7 @@ export function RunVictoryAnimation({
           position: 'absolute',
           right: 0,
           textAlign: 'center',
-          top: VICTORY_LAYOUT.titleTop,
+          top: anchor(VICTORY_LAYOUT.titleTop),
           transform: `translateY(${(1 - titleIn) * -14}px)`,
         }}
       >
@@ -323,7 +331,7 @@ export function RunVictoryAnimation({
           the point every placement is measured from — the children centre themselves on it. */}
       <div
         style={{
-          left: VICTORY_LAYOUT.partyCenter.x,
+          left: VICTORY_LAYOUT.partyCenter.x * scaleX,
           position: 'absolute',
           top: partyTop,
           transform: `scale(${partyScale})`,
@@ -399,9 +407,9 @@ export function RunVictoryAnimation({
 
       <div
         style={{
-          left: VICTORY_LAYOUT.gridCenter.x,
+          left: VICTORY_LAYOUT.gridCenter.x * scaleX,
           position: 'absolute',
-          top: VICTORY_LAYOUT.gridCenter.y,
+          top: anchor(VICTORY_LAYOUT.gridCenter.y),
         }}
       >
         {rewards.map((reward, index) => {
@@ -431,7 +439,7 @@ export function RunVictoryAnimation({
 
       <div
         style={{
-          bottom: VICTORY_LAYOUT.captionBottom,
+          bottom: anchor(VICTORY_LAYOUT.captionBottom),
           left: 0,
           opacity: total,
           position: 'absolute',

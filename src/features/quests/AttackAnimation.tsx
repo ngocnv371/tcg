@@ -2,10 +2,13 @@ import { AbsoluteFill, Easing, interpolate, useCurrentFrame, useVideoConfig } fr
 
 import { UNLOCK_STAGE_STYLE } from '@/features/chests/unlockVisuals'
 import {
+  ATTACK_FIGURE_SIZE,
   ATTACK_LAYOUT,
-  attackerHome,
-  defenderHome,
+  attackerOffset,
+  combatArtScale,
+  defenderOffset,
   lungeOffset,
+  type Offset,
 } from '@/features/quests/questBattleVisuals'
 import { resolveArtSrc } from '@/lib/art'
 
@@ -20,14 +23,19 @@ export type AttackAnimationProps = {
   hit: boolean
 }
 
-/** Big enough to fill the stage: the clash owns the whole screen now, so the cards behind it are
- * hidden and the figures can be the size they deserve. */
-const FIGURE_WIDTH = 120
-const FIGURE_HEIGHT = 180
-
 /** A combatant's figure: the card art when there is any, else the emoji avatar. */
-function Figure({ icon, artPath }: { icon: string; artPath: string | null }) {
+function Figure({
+  icon,
+  artPath,
+  scale,
+}: {
+  icon: string
+  artPath: string | null
+  scale: number
+}) {
   const src = resolveArtSrc(artPath)
+  const width = ATTACK_FIGURE_SIZE.width * scale
+  const height = ATTACK_FIGURE_SIZE.height * scale
   if (src) {
     return (
       <img
@@ -37,14 +45,14 @@ function Figure({ icon, artPath }: { icon: string; artPath: string | null }) {
           border: '3px solid #6b6288',
           borderRadius: 14,
           boxShadow: '0 16px 36px #000000aa',
-          height: FIGURE_HEIGHT,
+          height,
           objectFit: 'cover',
-          width: FIGURE_WIDTH,
+          width,
         }}
       />
     )
   }
-  return <span style={{ fontSize: FIGURE_WIDTH * 0.8, lineHeight: 1 }}>{icon}</span>
+  return <span style={{ fontSize: width * 0.8, lineHeight: 1 }}>{icon}</span>
 }
 
 /**
@@ -63,10 +71,19 @@ export function AttackAnimation({
   hit,
 }: AttackAnimationProps) {
   const frame = useCurrentFrame()
-  const { durationInFrames } = useVideoConfig()
-  const home = attackerHome(side)
-  const defend = defenderHome(side)
-  const travel = lungeOffset(side)
+  const { durationInFrames, height, width } = useVideoConfig()
+  // The clash is authored against the 390x844 stage; `combatArtScale` grows the figures and their
+  // reach with the real screen (bounded by its height), and the centre sits at the middle of the
+  // composition, so the clash fills the whole stage instead of floating in a small rectangle.
+  const scale = combatArtScale(width, height)
+  const center = { x: width / 2, y: height / 2 }
+  const place = (offset: Offset): Offset => ({
+    x: center.x + offset.x * scale,
+    y: center.y + offset.y * scale,
+  })
+  const home = place(attackerOffset(side))
+  const defend = place(defenderOffset(side))
+  const travel = lungeOffset(side) * scale
   const rotate = side === 'player' ? -18 : 18
 
   // Out fast, back to rest: peaks on the impact frame, home again a few frames later.
@@ -111,10 +128,10 @@ export function AttackAnimation({
         style={{
           background: `radial-gradient(circle, ${hit ? '#ff6b4a55' : '#6b628833'} 0%, transparent 70%)`,
           borderRadius: '50%',
-          height: 560,
+          height: 560 * scale,
           position: 'absolute',
           transform: `scale(${0.75 + flash * 0.5})`,
-          width: 560,
+          width: 560 * scale,
         }}
       />
 
@@ -127,17 +144,17 @@ export function AttackAnimation({
         }}
       >
         <div style={{ filter: flash > 0 ? `drop-shadow(0 0 ${30 * flash}px #ff6b4a)` : 'none' }}>
-          <Figure icon={defenderIcon} artPath={defenderArtPath} />
+          <Figure icon={defenderIcon} artPath={defenderArtPath} scale={scale} />
         </div>
       </div>
 
       {flash > 0 ? (
         <div
           style={{
-            left: ATTACK_LAYOUT.center.x,
+            left: center.x,
             opacity: flash,
             position: 'absolute',
-            top: ATTACK_LAYOUT.center.y,
+            top: center.y,
             transform: 'translate(-50%, -50%)',
           }}
         >
@@ -145,12 +162,12 @@ export function AttackAnimation({
             style={{
               background: 'radial-gradient(circle, #fff4b0dd 0%, #ff6b4a88 42%, transparent 72%)',
               borderRadius: '50%',
-              height: 300 * flash,
+              height: 300 * flash * scale,
               left: '50%',
               position: 'absolute',
               top: '50%',
               transform: 'translate(-50%, -50%)',
-              width: 300 * flash,
+              width: 300 * flash * scale,
             }}
           />
           {[0, 1, 2].map((index) => (
@@ -166,7 +183,7 @@ export function AttackAnimation({
                 top: '50%',
                 transform: `translate(-50%, -50%) rotate(${index * 60}deg) scaleX(${flash})`,
                 transformOrigin: 'center',
-                width: 240,
+                width: 240 * scale,
               }}
             />
           ))}
@@ -181,23 +198,23 @@ export function AttackAnimation({
           transform: `translate(-50%, -50%) translateY(${travel * lunge}px) rotate(${rotate * lunge}deg)`,
         }}
       >
-        <Figure icon={attackerIcon} artPath={attackerArtPath} />
+        <Figure icon={attackerIcon} artPath={attackerArtPath} scale={scale} />
       </div>
 
       {miss > 0 ? (
         <div
           style={{
-            left: ATTACK_LAYOUT.center.x,
+            left: center.x,
             opacity: miss,
             position: 'absolute',
-            top: ATTACK_LAYOUT.center.y,
+            top: center.y,
             transform: `translate(-50%, -50%) scale(${0.85 + miss * 0.15})`,
           }}
         >
           <span
             style={{
               color: '#ff6b4a',
-              fontSize: 36,
+              fontSize: 36 * scale,
               fontWeight: 700,
               letterSpacing: 4,
               textShadow: '0 0 22px #000',

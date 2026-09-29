@@ -1,7 +1,7 @@
-import { Player, type PlayerRef } from '@remotion/player'
-import { useEffect, useMemo, useRef } from 'react'
+import type { PlayerRef } from '@remotion/player'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { REVEAL_PLAYER_STAGE } from '@/features/chests/unlockVisuals'
+import { FillPlayer } from '@/components/FillPlayer'
 import { materialLabel } from '@/features/dungeons/format'
 import { RunVictoryAnimation, type VictoryPartyCard } from '@/features/dungeons/RunVictoryAnimation'
 import { RUN_VICTORY_DURATION, victoryRewards } from '@/features/dungeons/runVictoryVisuals'
@@ -29,6 +29,7 @@ export function QuestVictoryOverlay({
   onClose: () => void
 }) {
   const playerRef = useRef<PlayerRef>(null)
+  const [stageReady, setStageReady] = useState(false)
   const { data: materials } = useMaterialCatalog()
 
   // The reward rows are the only thing here that needs the catalog; a missing entry just falls
@@ -50,7 +51,7 @@ export function QuestVictoryOverlay({
 
   useEffect(() => {
     const player = playerRef.current
-    if (!player) return
+    if (!stageReady || !player) return
 
     let hasStarted = false
     const handlePlay = () => {
@@ -71,29 +72,31 @@ export function QuestVictoryOverlay({
       player.removeEventListener('ended', handleEnded)
       player.pause()
     }
-  }, [onClose])
+  }, [onClose, stageReady])
 
   return (
     <div
       aria-label={`${quest.name} cleared`}
       aria-modal="true"
-      className="fixed inset-0 z-50 grid place-items-center bg-ink-950"
+      className="fixed inset-0 z-50 bg-ink-950"
       role="dialog"
     >
-      <Player
-        ref={playerRef}
-        component={RunVictoryAnimation}
-        durationInFrames={RUN_VICTORY_DURATION}
-        inputProps={{
-          dungeonName: quest.name,
-          title: 'QUEST CLEARED',
-          multiplier: null,
-          party,
-          partyName,
-          rewards,
-        }}
-        {...REVEAL_PLAYER_STAGE}
-      />
+      <div className="relative mx-auto h-full w-full max-w-md">
+        <FillPlayer
+          playerRef={playerRef}
+          component={RunVictoryAnimation}
+          durationInFrames={RUN_VICTORY_DURATION}
+          inputProps={{
+            dungeonName: quest.name,
+            title: 'QUEST CLEARED',
+            multiplier: null,
+            party,
+            partyName,
+            rewards,
+          }}
+          onReady={() => setStageReady(true)}
+        />
+      </div>
       <button
         type="button"
         aria-label="Skip victory animation"

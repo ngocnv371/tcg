@@ -26,7 +26,7 @@ export function QuestResultOverlay({
   const materials = clear ? Object.entries(clear.rewards.materials) : []
 
   return (
-    <div className="fixed inset-0 z-40 grid place-items-end bg-ink-950/95 px-4 py-4 backdrop-blur-sm sm:place-items-center">
+    <div className="fixed inset-0 z-40 grid items-end justify-items-center bg-ink-950/95 px-4 py-4 backdrop-blur-sm sm:place-items-center">
       <section className="w-full max-w-sm rounded-card border border-ink-700 bg-ink-900 p-5 text-center shadow-lg">
         <p aria-hidden className="text-5xl">
           {won ? '🏆' : '💀'}

@@ -1,8 +1,7 @@
-import { Player } from '@remotion/player'
 import { X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { REVEAL_PLAYER_STAGE } from '@/features/chests/unlockVisuals'
+import { FillPlayer } from '@/components/FillPlayer'
 import { RANK_BORDER, RANK_TEXT } from '@/features/cards/rankFrame'
 import { AttackAnimation } from '@/features/quests/AttackAnimation'
 import { BattleArena } from '@/features/quests/BattleArena'
@@ -221,7 +220,9 @@ export function QuestBattle({
   const players = state.combatants.filter((combatant) => combatant.side === 'player')
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-ink-950">
+    // A centred phone-width stage, like every screen in the app: the arena, the board and the
+    // prompt then line up at any window size instead of stretching into a letterboxed strip.
+    <div className="fixed inset-0 z-40 mx-auto flex w-full max-w-md flex-col overflow-hidden border-ink-800/60 bg-ink-950 sm:border-x">
       <BattleArena />
 
       <header className="relative z-10 flex items-center justify-between gap-3 border-b border-ink-800/70 px-4 py-3">
@@ -238,8 +239,8 @@ export function QuestBattle({
       </header>
 
       {/* The board keeps the whole height: the prompt below is a floating sheet, so the card rows
-          never have to reserve room for it. */}
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-between gap-3 px-4 pb-28 pt-4">
+          never have to reserve room for it. It scrolls if a short window cannot fit both rows. */}
+      <div className="scrollbar-slim relative z-10 flex min-h-0 flex-1 flex-col items-center justify-between gap-3 overflow-y-auto px-4 pb-28 pt-4">
         <div className="flex shrink-0 flex-wrap justify-center gap-2">
           {enemies.map((combatant) => (
             <CombatantCard
@@ -288,11 +289,11 @@ export function QuestBattle({
       </div>
 
       {strike ? (
-        // Opaque takeover: the battlefield is hidden for the beat of the attack, which is what
-        // gives the clash the whole screen and lets it use full-size figures.
-        <div className="pointer-events-none fixed inset-0 z-[45] grid place-items-center bg-ink-950">
-          <Player
-            key={strike.key}
+        // Opaque takeover: the battlefield is hidden for the beat of the attack. It covers the whole
+        // viewport — the clash is a full-screen cut, never a letterboxed strip.
+        <div className="pointer-events-none fixed inset-0 z-[45] bg-ink-950">
+          <FillPlayer
+            playerKey={strike.key}
             component={AttackAnimation}
             durationInFrames={strike.durationInFrames}
             inputProps={{
@@ -303,27 +304,21 @@ export function QuestBattle({
               side: strike.side,
               hit: strike.hit,
             }}
-            autoPlay
-            {...REVEAL_PLAYER_STAGE}
           />
         </div>
       ) : null}
 
       {!introDone ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink-950">
-          <div className="pointer-events-none">
-            <Player
-              component={CombatIntroAnimation}
-              durationInFrames={COMBAT_INTRO_DURATION}
-              inputProps={{ questName: quest.name, enemies, party: players }}
-              autoPlay
-              {...REVEAL_PLAYER_STAGE}
-            />
-          </div>
+        <div className="fixed inset-0 z-50 bg-ink-950">
+          <FillPlayer
+            component={CombatIntroAnimation}
+            durationInFrames={COMBAT_INTRO_DURATION}
+            inputProps={{ questName: quest.name, enemies, party: players }}
+          />
           <button
             type="button"
             onClick={() => setIntroDone(true)}
-            className="absolute bottom-8 rounded-card border border-ink-700 bg-ink-900/80 px-4 py-2 text-xs text-ink-200"
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 rounded-card border border-ink-700 bg-ink-900/80 px-4 py-2 text-xs text-ink-200"
           >
             Begin ▸
           </button>

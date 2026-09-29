@@ -1,10 +1,12 @@
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion'
 
+import { STAGE_SIZE } from '@/features/chests/unlockLayout'
 import { rankColor, UNLOCK_STAGE_STYLE } from '@/features/chests/unlockVisuals'
 import { beatProgress } from '@/features/dungeons/runVictoryVisuals'
 import {
   COMBAT_INTRO_DURATION,
   combatantPlacements,
+  combatArtScale,
   INTRO_BEATS,
   INTRO_ENEMY_STAGGER,
   INTRO_LAYOUT,
@@ -32,7 +34,7 @@ const TITLE_SPRING = { damping: 16, mass: 0.8, stiffness: 90 }
 const CARD_SPRING = { damping: 12, mass: 0.7, stiffness: 150 }
 
 const CARD_WIDTH = INTRO_TILE_SIZE.width
-const CARD_HEIGHT = 120
+const CARD_HEIGHT = 140
 
 /** One card face: the art in a rank frame with its name and star, same as the library tile. */
 function CardFace({ combatant }: { combatant: CombatIntroCombatant }) {
@@ -40,7 +42,7 @@ function CardFace({ combatant }: { combatant: CombatIntroCombatant }) {
   const artSrc = resolveArtSrc(combatant.artPath)
 
   return (
-    <div style={{ textAlign: 'center', width: INTRO_TILE_SIZE.width }}>
+    <div style={{ textAlign: 'center', width: CARD_WIDTH }}>
       <div
         style={{
           background: `linear-gradient(150deg, ${color} 0%, #141020 40%, #090811 100%)`,
@@ -65,7 +67,7 @@ function CardFace({ combatant }: { combatant: CombatIntroCombatant }) {
             style={{
               alignItems: 'center',
               display: 'flex',
-              fontSize: 40,
+              fontSize: 48,
               height: '100%',
               justifyContent: 'center',
             }}
@@ -79,7 +81,7 @@ function CardFace({ combatant }: { combatant: CombatIntroCombatant }) {
             border: `1px solid ${color}`,
             borderRadius: 8,
             color: '#fff4b0',
-            fontSize: 10,
+            fontSize: 11,
             padding: '1px 5px',
             position: 'absolute',
             right: 4,
@@ -92,7 +94,7 @@ function CardFace({ combatant }: { combatant: CombatIntroCombatant }) {
       <div
         style={{
           color: '#f2f0f8',
-          fontSize: 10.5,
+          fontSize: 11,
           marginTop: 6,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -108,22 +110,25 @@ function CardFace({ combatant }: { combatant: CombatIntroCombatant }) {
 
 /**
  * One side of the curtain: its cards slam in one after another, staggered left to right. The
- * block is zero-size, so its top-left corner is the origin every placement measures from.
+ * block is zero-size, so its top-left corner is the origin every placement measures from. `scale`
+ * is `combatArtScale`, which spreads the row across the real screen width.
  */
 function CombatantRow({
   combatants,
   top,
   startFrame,
   stagger,
+  scale,
 }: {
   combatants: CombatIntroCombatant[]
   top: number
   startFrame: number
   stagger: number
+  scale: number
 }) {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
-  const spots = combatantPlacements(combatants.length)
+  const spots = combatantPlacements(combatants.length, scale)
 
   return (
     <div style={{ left: '50%', position: 'absolute', top }}>
@@ -143,10 +148,16 @@ function CombatantRow({
               opacity: appear,
               position: 'absolute',
               top: 0,
-              transform: `translate(-50%, -50%) translate(${spot.x}px, ${spot.y}px) scale(${0.55 + appear * 0.45})`,
+              transform: `translate(-50%, -50%) translate(${spot.x}px, ${spot.y}px)`,
             }}
           >
-            <CardFace combatant={combatant} />
+            {/* Scaled about its own centre, so the row fills the screen width without the cards
+                drifting off the placement points. */}
+            <div style={{ transform: `scale(${scale})`, transformOrigin: '50% 50%' }}>
+              <div style={{ transform: `scale(${0.55 + appear * 0.45})` }}>
+                <CardFace combatant={combatant} />
+              </div>
+            </div>
           </div>
         )
       })}
@@ -161,7 +172,12 @@ function CombatantRow({
  */
 export function CombatIntroAnimation({ questName, enemies, party }: CombatIntroAnimationProps) {
   const frame = useCurrentFrame()
-  const { fps } = useVideoConfig()
+  const { fps, height, width } = useVideoConfig()
+  // Vertical anchors are authored against the 844px stage, so stretch them onto the real screen
+  // height; the art grows with `combatArtScale` (bounded by the height too, so it cannot overflow).
+  // Together they make the curtain fill the screen top to bottom and edge to edge on a phone.
+  const scale = combatArtScale(width, height)
+  const anchor = (value: number) => value * (height / STAGE_SIZE.height)
   const titleIn = spring({ config: TITLE_SPRING, fps, frame })
   const versus = beatProgress(frame, INTRO_BEATS.versus)
   const fadeOut = interpolate(frame, [COMBAT_INTRO_DURATION - 8, COMBAT_INTRO_DURATION], [1, 0], {
@@ -190,28 +206,29 @@ export function CombatIntroAnimation({ questName, enemies, party }: CombatIntroA
           position: 'absolute',
           right: 0,
           textAlign: 'center',
-          top: INTRO_LAYOUT.titleTop,
+          top: anchor(INTRO_LAYOUT.titleTop),
           transform: `translateY(${(1 - titleIn) * -14}px)`,
         }}
       >
         <div
           style={{
             color: '#ffb4a2',
-            fontSize: 22,
+            fontSize: 22 * scale,
             letterSpacing: 4,
             textShadow: '0 0 22px #ff6b4a99',
           }}
         >
           ENEMY APPROACHES
         </div>
-        <div style={{ color: '#a9a4c2', fontSize: 12, marginTop: 8 }}>{questName}</div>
+        <div style={{ color: '#a9a4c2', fontSize: 12 * scale, marginTop: 8 }}>{questName}</div>
       </div>
 
       <CombatantRow
         combatants={enemies}
-        top={INTRO_LAYOUT.enemyTop}
+        top={anchor(INTRO_LAYOUT.enemyTop)}
         startFrame={INTRO_BEATS.enemies[0]}
         stagger={INTRO_ENEMY_STAGGER}
+        scale={scale}
       />
 
       <div
@@ -221,14 +238,14 @@ export function CombatIntroAnimation({ questName, enemies, party }: CombatIntroA
           position: 'absolute',
           right: 0,
           textAlign: 'center',
-          top: INTRO_LAYOUT.versusTop,
+          top: anchor(INTRO_LAYOUT.versusTop),
           transform: `translateY(-50%) scale(${0.7 + versus * 0.3})`,
         }}
       >
         <span
           style={{
             color: '#ff6b4a',
-            fontSize: 44,
+            fontSize: 44 * scale,
             letterSpacing: 4,
             textShadow: '0 0 28px #ff6b4aaa',
           }}
@@ -239,14 +256,15 @@ export function CombatIntroAnimation({ questName, enemies, party }: CombatIntroA
 
       <CombatantRow
         combatants={party}
-        top={INTRO_LAYOUT.partyTop}
+        top={anchor(INTRO_LAYOUT.partyTop)}
         startFrame={INTRO_BEATS.party[0]}
         stagger={INTRO_PARTY_STAGGER}
+        scale={scale}
       />
 
       <div
         style={{
-          bottom: 28,
+          bottom: anchor(INTRO_LAYOUT.partyLabelBottom),
           left: 0,
           opacity: versus,
           position: 'absolute',
@@ -254,7 +272,9 @@ export function CombatIntroAnimation({ questName, enemies, party }: CombatIntroA
           textAlign: 'center',
         }}
       >
-        <span style={{ color: '#a9a4c2', fontSize: 11, letterSpacing: 3 }}>YOUR PARTY</span>
+        <span style={{ color: '#a9a4c2', fontSize: 11 * scale, letterSpacing: 3 }}>
+          YOUR PARTY
+        </span>
       </div>
     </AbsoluteFill>
   )

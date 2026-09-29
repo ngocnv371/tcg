@@ -107,12 +107,11 @@ export function partyPlacements(count: number): Offset[] {
 }
 
 /** Reward slots, row-major with the short last row centred, as a grid of tile centres. */
-export function rewardGridPlacements(count: number): Offset[] {
+export function rewardGridPlacements(count: number, stageWidth: number = STAGE_SIZE.width): Offset[] {
   if (count <= 0) return []
   const columns = rewardColumns(count)
   const rows = Math.ceil(count / columns)
-  const cellWidth =
-    (STAGE_SIZE.width - 2 * REWARD_SIDE_PADDING - (columns - 1) * REWARD_GAP) / columns
+  const cellWidth = (stageWidth - 2 * REWARD_SIDE_PADDING - (columns - 1) * REWARD_GAP) / columns
   return Array.from({ length: count }, (_, index) => {
     const row = Math.floor(index / columns)
     const column = index % columns

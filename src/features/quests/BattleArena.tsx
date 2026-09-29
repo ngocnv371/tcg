@@ -1,6 +1,4 @@
-import { Player } from '@remotion/player'
-
-import { STAGE_FPS, STAGE_SIZE } from '@/features/chests/unlockLayout'
+import { FillPlayer } from '@/components/FillPlayer'
 import {
   ARENA_LOOP_FRAMES,
   ArenaBackdropAnimation,
@@ -69,20 +67,12 @@ export function BattleArena() {
       />
 
       {/* Backstage lighting: a looping Remotion layer, transparent so the scene above shows through. */}
-      <div className="absolute inset-0 grid place-items-center">
-        <Player
-          component={ArenaBackdropAnimation}
-          durationInFrames={ARENA_LOOP_FRAMES}
-          fps={STAGE_FPS}
-          compositionWidth={STAGE_SIZE.width}
-          compositionHeight={STAGE_SIZE.height}
-          autoPlay
-          loop
-          controls={false}
-          clickToPlay={false}
-          style={{ height: '100%', width: '100%' }}
-        />
-      </div>
+      <FillPlayer
+        component={ArenaBackdropAnimation}
+        durationInFrames={ARENA_LOOP_FRAMES}
+        inputProps={{}}
+        loop
+      />
 
       {/* Vignette: keeps the middle of the stage the brightest part of the screen. */}
       <div

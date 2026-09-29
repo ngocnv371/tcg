@@ -123,7 +123,7 @@ export function StartRunModal({
 
   return (
     <div
-      className="fixed inset-0 z-30 grid place-items-end bg-ink-950/90 px-4 py-3 backdrop-blur-sm sm:place-items-center"
+      className="fixed inset-0 z-30 grid items-end justify-items-center bg-ink-950/90 px-4 py-3 backdrop-blur-sm sm:place-items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="start-run-title"
