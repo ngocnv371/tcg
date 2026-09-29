@@ -1,0 +1,6 @@
+# Runewatch — https://runewatch.app/
+# TODO: confirm the production origin and update the Sitemap line below.
+User-agent: *
+Allow: /
+
+Sitemap: https://runewatch.app/sitemap.xml

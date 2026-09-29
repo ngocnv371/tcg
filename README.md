@@ -1,7 +1,7 @@
-# TCG 2
+# Runewatch
 
-Idle collection RPG: collect cards → open chests → build parties → send on timed dungeon runs →
-gather materials → level and rank up cards → run harder dungeons.
+Idle collection RPG: collect elemental beast cards → open chests → build parties → send on timed
+dungeon runs → gather Cores → rank up cards → run harder dungeons.
 
 This is the **vertical-slice** stage of the build: full loop, 30 cards, no payments, a handful of
 testers.

@@ -65,7 +65,7 @@ export function AppShell() {
     <div className="app-shell flex flex-col bg-ink-950">
       <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-ink-800/70 bg-ink-900/95 px-4 py-2.5 backdrop-blur">
         <NavLink to="/profile" className="font-display text-sm tracking-wide text-gold-300">
-          TCG 2
+          Runewatch
         </NavLink>
         <div className="flex items-center gap-1.5">
           {HEADER_NAV.map(({ to, label, icon: Icon }) => (

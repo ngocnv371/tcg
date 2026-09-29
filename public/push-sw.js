@@ -18,7 +18,7 @@ self.addEventListener('push', (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(payload.title || 'TCG 2', {
+    self.registration.showNotification(payload.title || 'Runewatch', {
       body: payload.body || 'A run has finished.',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',

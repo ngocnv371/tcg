@@ -1,4 +1,4 @@
-# AGENTS.md — TCG 2
+# AGENTS.md — Runewatch
 
 Context for AI coding agents (Claude Code, Codex, others) working in this repo.
 
