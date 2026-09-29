@@ -1,9 +1,9 @@
 import { useSearchParams } from 'react-router-dom'
 
 import { Screen } from '@/components/Screen'
+import { Tabs } from '@/components/Tabs'
 import { VaultChests } from '@/features/chests/ChestOpenScreen'
 import { VaultResources } from '@/features/inventory/InventoryScreen'
-import { cn } from '@/lib/utils'
 
 /**
  * Resources and Chests both lived in the bottom bar; folding them into one Vault screen keeps
@@ -33,27 +33,7 @@ export function VaultScreen() {
 
   return (
     <Screen title="Vault" hint={HINTS[tab]}>
-      <div
-        role="tablist"
-        aria-label="Vault sections"
-        className="mb-3 grid grid-cols-2 gap-1 rounded-card border border-ink-800 bg-ink-900/70 p-1"
-      >
-        {TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            onClick={() => selectTab(id)}
-            className={cn(
-              'rounded-card py-2 text-sm font-medium transition-colors',
-              tab === id ? 'bg-ink-700 text-gold-300' : 'text-ink-400 hover:text-ink-100',
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs ariaLabel="Vault sections" tabs={TABS} value={tab} onChange={selectTab} />
       {tab === 'resources' ? <VaultResources /> : <VaultChests />}
     </Screen>
   )

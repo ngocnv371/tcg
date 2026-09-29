@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useSearchParams } from 'react-router-dom'
 
 import { Panel, Screen } from '@/components/Screen'
+import { Tabs } from '@/components/Tabs'
 import { useCardCatalog, useCollection } from '@/features/cards/api'
 import { materialLabel } from '@/features/dungeons/format'
 import type { VictoryPartyCard } from '@/features/dungeons/RunVictoryAnimation'
@@ -17,6 +18,9 @@ import type { Quest } from '@/types/db'
 
 /** The journey one quest takes: context → party → fight → (win) celebration → outro → payout. */
 type Phase = 'intro' | 'party' | 'battle' | 'victory' | 'outro' | 'result'
+
+/** Unfinished quests lead the screen so the next challenge is on top; clears move to their own tab. */
+type QuestTab = 'new' | 'cleared'
 
 /**
  * Quests: story encounters with a manual, turn-based fight — the hands-on counterpart to the
@@ -41,6 +45,21 @@ export function QuestListScreen() {
 
   const completionByQuest = new Map((completions ?? []).map((row) => [row.quest_id, row]))
   const clearedCount = (questId: string) => completionByQuest.get(questId)
+
+  const [params, setParams] = useSearchParams()
+  const tab: QuestTab = params.get('tab') === 'cleared' ? 'cleared' : 'new'
+  const selectTab = (next: QuestTab) =>
+    setParams(next === 'new' ? {} : { tab: next }, { replace: true })
+
+  const questsList = quests ?? []
+  // "Next best on top": easiest recommended power first, catalog order breaking ties.
+  const fresh = questsList
+    .filter((entry) => !completionByQuest.has(entry.id))
+    .sort((a, b) => a.req_power - b.req_power || a.sort_order - b.sort_order)
+  const clearedSorted = questsList
+    .filter((entry) => completionByQuest.has(entry.id))
+    .sort((a, b) => a.sort_order - b.sort_order)
+  const visible = tab === 'cleared' ? clearedSorted : fresh
 
   // The lineup the celebration animates — built from the same party the fight used.
   const victoryParty = useMemo<VictoryPartyCard[]>(() => {
@@ -120,67 +139,87 @@ export function QuestListScreen() {
         </Panel>
       ) : null}
 
-      <ul className="space-y-2.5">
-        {(quests ?? []).map((entry) => {
-          const completion = clearedCount(entry.id)
-          return (
-            <li key={entry.id}>
-              <Panel>
-                <div className="flex items-baseline justify-between gap-2">
-                  <h2 className="text-sm text-ink-100">{entry.name}</h2>
-                  <span className="text-[11px] uppercase tracking-wide text-ink-400">
-                    {completion ? `Cleared ×${completion.clears}` : 'New'}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-ink-400">
-                  Recommended power {entry.req_power.toLocaleString('en-US')}
-                </p>
+      <Tabs
+        ariaLabel="Quest lists"
+        tabs={[
+          { id: 'new', label: `New (${fresh.length})` },
+          { id: 'cleared', label: `Cleared (${clearedSorted.length})` },
+        ]}
+        value={tab}
+        onChange={selectTab}
+      />
 
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {entry.enemies.map((enemy) => (
-                    <span
-                      key={enemy.id}
-                      className="rounded-card bg-ink-850 px-2 py-0.5 text-[11px] text-ink-300"
-                    >
-                      <span aria-hidden>{enemy.icon}</span> {enemy.name}
+      {visible.length ? (
+        <ul className="space-y-2.5">
+          {visible.map((entry) => {
+            const completion = clearedCount(entry.id)
+            return (
+              <li key={entry.id}>
+                <Panel>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <h2 className="text-sm text-ink-100">{entry.name}</h2>
+                    <span className="text-[11px] uppercase tracking-wide text-ink-400">
+                      {completion ? `Cleared ×${completion.clears}` : 'New'}
                     </span>
-                  ))}
-                </div>
+                  </div>
+                  <p className="mt-1 text-xs text-ink-400">
+                    Recommended power {entry.req_power.toLocaleString('en-US')}
+                  </p>
 
-                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-                  <span className="text-gold-300">
-                    💰 {entry.gold.toLocaleString('en-US')} gold
-                  </span>
-                  {Object.entries(entry.materials).map(([materialId, qty]) => (
-                    <span key={materialId} className="text-ink-300">
-                      {materialLabel(materialId)} ×{qty}
-                    </span>
-                  ))}
-                </div>
-                {!completion ? (
-                  <p className="mt-1 text-[11px] text-ink-400">
-                    First clear: +{entry.first_clear_gold.toLocaleString('en-US')} gold
-                    {Object.entries(entry.first_clear_materials).map(([materialId, qty]) => (
-                      <span key={materialId}>
-                        {' '}
-                        · {materialLabel(materialId)} ×{qty}
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {entry.enemies.map((enemy) => (
+                      <span
+                        key={enemy.id}
+                        className="rounded-card bg-ink-850 px-2 py-0.5 text-[11px] text-ink-300"
+                      >
+                        <span aria-hidden>{enemy.icon}</span> {enemy.name}
                       </span>
                     ))}
-                  </p>
-                ) : null}
+                  </div>
 
-                <button
-                  type="button"
-                  className="mt-3 w-full rounded-card border border-gold-600 px-3 py-2 text-xs text-gold-300 hover:border-gold-500"
-                  onClick={() => begin(entry)}
-                >
-                  Embark
-                </button>
-              </Panel>
-            </li>
-          )
-        })}
-      </ul>
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                    <span className="text-gold-300">
+                      💰 {entry.gold.toLocaleString('en-US')} gold
+                    </span>
+                    {Object.entries(entry.materials).map(([materialId, qty]) => (
+                      <span key={materialId} className="text-ink-300">
+                        {materialLabel(materialId)} ×{qty}
+                      </span>
+                    ))}
+                  </div>
+                  {!completion ? (
+                    <p className="mt-1 text-[11px] text-ink-400">
+                      First clear: +{entry.first_clear_gold.toLocaleString('en-US')} gold
+                      {Object.entries(entry.first_clear_materials).map(([materialId, qty]) => (
+                        <span key={materialId}>
+                          {' '}
+                          · {materialLabel(materialId)} ×{qty}
+                        </span>
+                      ))}
+                    </p>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    className="mt-3 w-full rounded-card border border-gold-600 px-3 py-2 text-xs text-gold-300 hover:border-gold-500"
+                    onClick={() => begin(entry)}
+                  >
+                    {completion ? 'Re-run' : 'Embark'}
+                  </button>
+                </Panel>
+              </li>
+            )
+          })}
+        </ul>
+      ) : questsList.length ? (
+        <Panel>
+          <p className="text-sm text-ink-400">
+            {tab === 'cleared'
+              ? 'No cleared quests yet — win a battle to bank it here.'
+              : 'Every quest is cleared. Pick one from Cleared to run it again.'}
+          </p>
+        </Panel>
+      ) : null}
 
       {quest && phase === 'intro' ? (
         <QuestDialogue title={quest.name} lines={quest.intro} onDone={() => setPhase('party')} />
