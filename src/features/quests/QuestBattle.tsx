@@ -282,7 +282,8 @@ export function QuestBattle({
           </p>
         ) : activeActor?.side === 'player' ? (
           <div className="pointer-events-auto w-full max-w-md">
-            <QuizPanel key={questionIndex} question={question} onAnswer={answer} />
+            {/* `activeActor` is narrowed to a player card by the branch guard above. */}
+            <QuizPanel key={questionIndex} question={question} actor={activeActor} onAnswer={answer} />
           </div>
         ) : (
           <p className="animate-pulse text-center text-sm text-ink-400">
