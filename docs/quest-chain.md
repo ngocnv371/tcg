@@ -12,10 +12,10 @@ Design reference for the 100-quest story chain that replaces the current three s
 
 - **Rewards are Cores only.** Every material id must come from `allCoreIds()` in `src/game/formulas.ts`
   (`tagCoreId(tag, variant)`), because `quests.test.ts` asserts it and the rank-up economy is built on Cores.
-- **Enemies are their own creatures.** Each has a unique `id` that doubles as its future art key; none
-  borrows a catalog card. Stats are authored here, so difficulty is tuned deliberately and never drifts
-  when the catalog changes. Art is produced later from the lore (e.g. `data/enemies/<id>.png`, mirroring
-  the card/material pipeline); until it exists, the `icon` emoji is the fallback.
+- **Enemies are catalog cards.** Each enemy's `id` is a card id and its art is its own (produced from the
+  lore), so the creature can later be acquired as a card — but no enemy *borrows* an existing card's art.
+  The encounter's `hp/atk/def/spd` stay authored here, so difficulty is tuned deliberately and never
+  drifts when the catalog changes.
 - **1–5 enemies per quest**, unique enemy ids within a quest, `hp > 0`, `atk > 0`, `def >= 0`, `spd > 0`
   (all asserted by `quests.test.ts`).
 - **Every quest needs non-empty `intro` and `outro`** (`QuestLine[]`). The `Hook` line below is the
@@ -1675,13 +1675,17 @@ The citadel opens its gates and dares you in. Through the ash courtyard, the hal
 ## Implementation notes
 
 - Copy each act into `QUESTS` in `src/game/quests.ts` in order (`order` = the number above). Enemies map
-  to `QuestEnemy`; give each an `icon` emoji now and its own art later. Today that type resolves art from a
-  catalog `cardId` (and `quests.test.ts` asserts it) — because these enemies are bespoke, that field should
-  become an enemy art key/resolver instead, and the test's `cardId` check replaced with an `id` check.
+  to `QuestEnemy`: set `cardId` to the enemy `id` (its catalog card), keep the authored stats, and pick an
+  `icon` emoji as the pre-import fallback. `quests.test.ts`'s truthy-`cardId` check already covers this.
 - Author `intro` / `outro` `QuestLine[]` per quest. The **Hook** line is the opening beat; write the
   outro to pay it off. Boss quests (10, 20, … 100) should carry the biggest scripts.
 - Run `npm run seed:build` after editing, then `npm test` (the content test) and `bash scripts/verify-db.sh`.
-- Enemy art is its own task: one image per enemy `id`, generated from the lore. It can join the existing
-  asset pipeline as a fourth `type` (`enemy`) in `data/assets.csv` with its own folder and render step, or
-  ship through a dedicated importer — either way the enemy `id` in this doc is the key to build against.
+- **Enemies are already in the catalog.** Every distinct enemy above (269 of them, after collapsing the
+  per-quest duplicates) is a `type=card` row in `data/assets.csv`, one per `id`, with its own `design`
+  prompt and its element in `tags`. They render and import through the normal card pipeline
+  (`data/cards/<id>.png`, `npm run assets:render`, then `npm run cards:4:import` → the `cards` table and
+  the shared `card-art` bucket) — no separate type or bucket. So an enemy met in a quest is, once its art
+  is rendered, acquirable as a card of the same name and art.
+- **`QuestEnemy.cardId` is that card id.** The quest enemy still carries its own authored battle stats and
+  a fallback `name`/`icon`; the card supplies the art (and the display name once imported).
 
