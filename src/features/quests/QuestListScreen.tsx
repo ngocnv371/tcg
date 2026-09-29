@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { NavLink } from 'react-router-dom'
 
 import { Panel, Screen } from '@/components/Screen'
 import { useCardCatalog, useCollection } from '@/features/cards/api'
@@ -101,6 +102,16 @@ export function QuestListScreen() {
 
   return (
     <Screen title="Quests" hint="Hands-on battles — answer the times tables to land your hits.">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-card border border-ink-800 bg-ink-900/70 px-3 py-2">
+        <p className="text-xs text-ink-300">Not strong enough? Train in the Dungeons.</p>
+        <NavLink
+          to="/dungeons"
+          className="rounded-card border border-gold-600 px-3 py-1.5 text-xs text-gold-300 hover:bg-ink-850"
+        >
+          Dungeons
+        </NavLink>
+      </div>
+
       {error ? (
         <Panel>
           <p className="text-sm text-faction-ember">
