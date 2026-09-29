@@ -35,6 +35,7 @@ import {
   tagLabel,
   tutorialReward,
 } from '../src/game/formulas.ts'
+import { QUESTS } from '../src/game/quests.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -219,16 +220,37 @@ push(
   '',
 )
 
+// Quests are authored story content (src/game/quests.ts), but the SERVER pays a clear, so the
+// reward the client previews and the reward `complete_quest` reads must be one row. Seeding
+// them here keeps that single source instead of a second copy in the migration.
+push(
+  '-- quests (manual combat; content authored in src/game/quests.ts)',
+  'insert into public.quests (id, name, sort_order, req_power, enemies, gold, materials, first_clear_gold, first_clear_materials, intro, outro) values',
+  QUESTS.map(
+    (quest) =>
+      `  (${sql(quest.id)}, ${sql(quest.name)}, ${quest.order}, ${quest.reqPower}, ` +
+      `${sqlJson(quest.enemies)}, ${quest.gold}, ${sqlJson(quest.materials)}, ` +
+      `${quest.firstClearGold}, ${sqlJson(quest.firstClearMaterials)}, ` +
+      `${sqlJson(quest.intro)}, ${sqlJson(quest.outro)})`,
+  ).join(',\n'),
+  'on conflict (id) do update set',
+  '  name = excluded.name, sort_order = excluded.sort_order, req_power = excluded.req_power,',
+  '  enemies = excluded.enemies, gold = excluded.gold, materials = excluded.materials,',
+  '  first_clear_gold = excluded.first_clear_gold, first_clear_materials = excluded.first_clear_materials,',
+  '  intro = excluded.intro, outro = excluded.outro;',
+  '',
+)
+
 push('commit;', '')
 push(
   "-- local development account's starter cards and party",
   "select public.provision_starter_loadout('00000000-0000-0000-0000-000000000002'::uuid);",
   '',
-  `-- summary: ${MATERIALS.length} materials, ${CHESTS.length} chests, ${oddRows.length} chest odds rows, ${RUN_SLOT_UNLOCKS.length} run-slot rows, 1 tutorial dungeon`,
+  `-- summary: ${MATERIALS.length} materials, ${CHESTS.length} chests, ${oddRows.length} chest odds rows, ${RUN_SLOT_UNLOCKS.length} run-slot rows, 1 tutorial dungeon, ${QUESTS.length} quests`,
   '-- no cards and no catalog dungeons: content ships via npm run cards:4:import / dungeons:1:import',
 )
 
 writeFileSync(join(root, 'supabase/seed.sql'), `${lines.join('\n')}\n`)
 console.log(
-  `seed.sql written — ${MATERIALS.length} materials, ${CHESTS.length} chests, ${oddRows.length} odds rows, 1 tutorial dungeon (no cards, no catalog dungeons)`,
+  `seed.sql written — ${MATERIALS.length} materials, ${CHESTS.length} chests, ${oddRows.length} odds rows, 1 tutorial dungeon, ${QUESTS.length} quests (no cards, no catalog dungeons)`,
 )

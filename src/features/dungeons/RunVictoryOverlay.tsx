@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react'
-import { Player, type PlayerRef } from '@remotion/player'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { PlayerRef } from '@remotion/player'
 
+import { FillPlayer } from '@/components/FillPlayer'
 import { useCardCatalog, useCollection } from '@/features/cards/api'
-import { REVEAL_PLAYER_STAGE } from '@/features/chests/unlockVisuals'
 import { RunVictoryAnimation, type VictoryPartyCard } from '@/features/dungeons/RunVictoryAnimation'
 import { materialLabel } from '@/features/dungeons/format'
 import { RUN_VICTORY_DURATION, victoryRewards } from '@/features/dungeons/runVictoryVisuals'
@@ -76,9 +76,10 @@ export function RunVictoryOverlay({ victory, onClose }: { victory: RunVictory; o
   // Starting the Player before the party resolves would animate an empty stage: the animation
   // is driven by its own frame number, so late-arriving cards never get their entrance.
   const partyReady = Boolean(parties && collection && catalog)
+  const [stageReady, setStageReady] = useState(false)
 
   useEffect(() => {
-    if (!partyReady) return
+    if (!partyReady || !stageReady) return
     const player = playerRef.current
     if (!player) return
 
@@ -101,36 +102,35 @@ export function RunVictoryOverlay({ victory, onClose }: { victory: RunVictory; o
       player.removeEventListener('ended', handleEnded)
       player.pause()
     }
-  }, [onClose, partyReady])
+  }, [onClose, partyReady, stageReady])
 
   return (
     <div
       aria-label={`${victory.dungeon.name} cleared`}
       aria-modal="true"
-      className="fixed inset-0 z-50 grid place-items-center bg-ink-950"
+      className="fixed inset-0 z-50 bg-ink-950"
       role="dialog"
     >
-      {partyReady ? (
-        <Player
-          key={victory.key}
-          ref={playerRef}
-          component={RunVictoryAnimation}
-          durationInFrames={RUN_VICTORY_DURATION}
-          inputProps={{
-            dungeonName: victory.dungeon.name,
-            multiplier: victory.claim.rewards?.multiplier ?? null,
-            party,
-            partyName: loadout?.party.name ?? null,
-            rewards,
-          }}
-          {...REVEAL_PLAYER_STAGE}
-        />
-      ) : (
-        <div
-          aria-hidden="true"
-          style={{ ...STAGE_BACKDROP_STYLE, ...REVEAL_PLAYER_STAGE.style }}
-        />
-      )}
+      <div className="relative mx-auto h-full w-full max-w-md">
+        {partyReady ? (
+          <FillPlayer
+            playerKey={victory.key}
+            playerRef={playerRef}
+            component={RunVictoryAnimation}
+            durationInFrames={RUN_VICTORY_DURATION}
+            inputProps={{
+              dungeonName: victory.dungeon.name,
+              multiplier: victory.claim.rewards?.multiplier ?? null,
+              party,
+              partyName: loadout?.party.name ?? null,
+              rewards,
+            }}
+            onReady={() => setStageReady(true)}
+          />
+        ) : (
+          <div aria-hidden="true" className="absolute inset-0" style={STAGE_BACKDROP_STYLE} />
+        )}
+      </div>
       <button
         type="button"
         aria-label="Skip victory animation"

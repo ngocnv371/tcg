@@ -105,7 +105,7 @@ export function buildOnboardingSteps(input: {
       hint: 'The first one is on the house.',
       cta: 'Open chests',
       done: input.chests.some((chest) => chest.opened_at),
-      to: '/chests',
+      to: '/inventory?tab=chests',
     },
     {
       id: 'build-party',
@@ -143,6 +143,6 @@ export function buildOnboardingSteps(input: {
 }
 
 /** The checklist is presentation only, so its dismissal is a browser concern, not a DB one. */
-export const ONBOARDING_DISMISS_KEY = 'tcg2:home:checklist-dismissed'
+export const ONBOARDING_DISMISS_KEY = 'tcg:home:checklist-dismissed'
 /** The first-session wizard is dismissed separately, so the checklist can still take over. */
-export const ONBOARDING_WIZARD_DISMISS_KEY = 'tcg2:onboarding:wizard-dismissed'
+export const ONBOARDING_WIZARD_DISMISS_KEY = 'tcg:onboarding:wizard-dismissed'

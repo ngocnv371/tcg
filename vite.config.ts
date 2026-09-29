@@ -13,9 +13,12 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: {
-        name: 'TCG 2',
-        short_name: 'TCG2',
-        description: 'Idle collection RPG — collect cards, run dungeons, rank up.',
+        name: 'Runewatch',
+        short_name: 'Runewatch',
+        description:
+          'An idle collection RPG: collect elemental beast cards, run dungeons and rank up.',
+        lang: 'en',
+        categories: ['games', 'entertainment'],
         theme_color: '#0b0a12',
         background_color: '#0b0a12',
         display: 'standalone',

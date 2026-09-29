@@ -171,7 +171,7 @@ export function HomeScreen() {
                   detail={`${unopened.length} chest${unopened.length === 1 ? '' : 's'} in the vault.`}
                   label="Open your chests"
                 >
-                  <ActionLink to="/chests">Open</ActionLink>
+                  <ActionLink to="/inventory?tab=chests">Open</ActionLink>
                 </ReadyRow>
               ) : null}
 

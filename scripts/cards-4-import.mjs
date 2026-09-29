@@ -52,7 +52,7 @@ const DEFAULT_ART_FOLDER = join(root, 'data/cards')
 // requiring it to be exported in the shell first.
 if (existsSync(join(root, '.env.local'))) process.loadEnvFile(join(root, '.env.local'))
 
-import { RANK_META, cardAtk, cardDef, rankUpCost } from '../src/game/formulas.ts'
+import { RANK_META, cardAtk, cardDef, rankUpCost, rollCardSpeed } from '../src/game/formulas.ts'
 
 // --- content tables (edit here, not per-card, to keep cards consistent) -----
 
@@ -251,6 +251,9 @@ export function buildCardRecord(row, { index = 0, existingIds = new Set() } = {}
     passive_text: (row.passive_text ?? '').trim() || passive.text,
     lore: (row.lore ?? '').trim(),
     tags,
+    // Quest turn-order stat (src/game/battle.ts). Derived from the id, not the CSV, so a
+    // re-import never churns a card's speed — and the catalog has no second balance table.
+    speed: rollCardSpeed(id),
     // Only --stage-art produces this local path; --upload-art replaces it with the public URL.
     art_path: `art/cards/${id}.webp`,
     sort_order: index,

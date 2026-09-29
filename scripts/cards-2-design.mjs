@@ -56,7 +56,7 @@ const MAX_ATTEMPTS = 3
 const MIN_DESIGN_LENGTH = 20
 
 const SYSTEM_PROMPT = [
-  'You are the art director for TCG, a collection RPG about fantastical creatures.',
+  'You are the art director for Runewatch, a collection RPG about fantastical creatures.',
   "For each card you write ONE image-generation prompt describing that card's concept art.",
   '',
   'House style — every prompt must END with this clause, word for word:',

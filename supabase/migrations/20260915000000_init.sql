@@ -1,4 +1,4 @@
--- TCG 2 — schema v1 (squashed baseline).
+-- Runewatch — schema v1 (squashed baseline).
 --
 -- This is the only starting point for the database. The 18 migrations that grew the
 -- vertical slice were rolled into this set of topical files; apply order is the file
