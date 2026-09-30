@@ -235,9 +235,7 @@ The caves under the village are full of edible mushrooms, and that is where our 
 - **Enemies:**
   - **Capfather** `capfather` *(elite)* — hp 216 / atk 52 / def 20 / spd 7
     - *The warren's ancient heart: a mushroom the size of a barn that walks on roots like legs and calls its children with a hum you feel in your teeth.*
-  - **Rootling I** `rootling_i` — hp 120 / atk 42 / def 15 / spd 8
-    - *A sprout of the Capfather, half his size and twice as eager.*
-  - **Rootling II** `rootling_ii` — hp 120 / atk 42 / def 15 / spd 11
+  - 2x **Rootling** `rootling` — hp 120 / atk 42 / def 15 / spd 8
     - *A sprout of the Capfather, half his size and twice as eager.*
 - **Reward (per clear):** 1,120 gold · Lesser Grass Core ×1
 - **First clear:** +1,400 gold · Greater Grass Core ×1
@@ -303,9 +301,7 @@ The caves under the village are full of edible mushrooms, and that is where our 
 - **Enemies:**
   - **Mycelarch** `mycelarch` *(elite)* — hp 452 / atk 138 / def 52 / spd 7
     - *The mother of every mushroom in the hill, a vast pale crown of a creature that speaks through its children's minds and has already decided what you will become.*
-  - **Spore Sentinel I** `spore_sentinel_i` — hp 251 / atk 111 / def 40 / spd 9
-    - *A bodyguard woven from the Mycelarch's own threads.*
-  - **Spore Sentinel II** `spore_sentinel_ii` — hp 251 / atk 111 / def 40 / spd 12
+  - 2x **Spore Sentinel** `spore_sentinel` — hp 251 / atk 111 / def 40 / spd 9
     - *A bodyguard woven from the Mycelarch's own threads.*
   - **Rot Herald** `rot_herald` — hp 251 / atk 111 / def 40 / spd 10
     - *The throne's speaker, whose hiss carries the Mycelarch's will down the hall.*
@@ -377,9 +373,7 @@ Above the caves, the surface is wrong: the valley has grown over the roads in a 
 - **Enemies:**
   - **Thicket Tyrant** `thicket_tyrant` *(elite)* — hp 1008 / atk 244 / def 92 / spd 7
     - *A boar gone feral and green, its tusks wound through with thorn-vines, charging down anything that crosses its clearing.*
-  - **Thorn Guard I** `thorn_guard_i` — hp 560 / atk 195 / def 71 / spd 16
-    - *A brute of the thicket that fights on its knuckles and settles every argument with the nearest tree.*
-  - **Thorn Guard II** `thorn_guard_ii` — hp 560 / atk 195 / def 71 / spd 9
+  - 2x **Thorn Guard** `thorn_guard` — hp 560 / atk 195 / def 71 / spd 16
     - *A brute of the thicket that fights on its knuckles and settles every argument with the nearest tree.*
 - **Reward (per clear):** 4,430 gold · Lesser Grass Core ×1
 - **First clear:** +5,540 gold · Greater Grass Core ×1
@@ -417,9 +411,7 @@ Above the caves, the surface is wrong: the valley has grown over the roads in a 
 - **Enemies:**
   - **Antlered Huntsman** `antlered_huntsman` — hp 915 / atk 252 / def 92 / spd 10
     - *The stag's herald, a crowned beast that runs its prey to exhaustion and is never once out of breath.*
-  - **Pack Thorn I** `pack_thorn_i` — hp 915 / atk 252 / def 92 / spd 10
-    - *A hound of the hunt, quick through the brush and quicker to call the others.*
-  - **Pack Thorn II** `pack_thorn_ii` — hp 915 / atk 252 / def 92 / spd 13
+  - 2x **Pack Thorn** `pack_thorn` — hp 915 / atk 252 / def 92 / spd 10
     - *A hound of the hunt, quick through the brush and quicker to call the others.*
 - **Reward (per clear):** 5,560 gold · Lesser Grass Core ×1
 - **First clear:** +6,950 gold · Greater Grass Core ×1
@@ -445,9 +437,7 @@ Above the caves, the surface is wrong: the valley has grown over the roads in a 
 - **Enemies:**
   - **Verdant Sovereign** `verdant_sovereign` *(elite)* — hp 988 / atk 365 / def 138 / spd 9
     - *The crowned spirit of the overgrowth, a lion of leaf and bloom that speaks for every root in the valley and buries its enemies to feed them.*
-  - **Court of Thorns I** `court_of_thorns_i` — hp 549 / atk 292 / def 106 / spd 12
-    - *A rank of briars that closes like a door when the Sovereign commands.*
-  - **Court of Thorns II** `court_of_thorns_ii` — hp 549 / atk 292 / def 106 / spd 15
+  - 2x **Court of Thorns** `court_of_thorns` — hp 549 / atk 292 / def 106 / spd 12
     - *A rank of briars that closes like a door when the Sovereign commands.*
   - **Sovereign's Herald** `sovereigns_herald` — hp 549 / atk 292 / def 106 / spd 11
     - *The court's crier, whose song is the sentence and whose bite is the sentence carried out.*
@@ -521,9 +511,7 @@ The valley road reaches the sea, and the sea has been coming up: the causeway is
 - **Enemies:**
   - **Keeper of the Kelp** `keeper_of_the_kelp` *(elite)* — hp 2061 / atk 498 / def 189 / spd 7
     - *An ancient tortoise that tends the kelp like a garden and strangles intruders like weeds.*
-  - **Kelp Shade I** `kelp_shade_i` — hp 1145 / atk 399 / def 145 / spd 15
-    - *A drifting guardian that floats between the stalks where nothing should be able to see it.*
-  - **Kelp Shade II** `kelp_shade_ii` — hp 1145 / atk 399 / def 145 / spd 8
+  - 2x **Kelp Shade** `kelp_shade` — hp 1145 / atk 399 / def 145 / spd 15
     - *A drifting guardian that floats between the stalks where nothing should be able to see it.*
 - **Reward (per clear):** 8,390 gold · Greater Water Core ×1
 - **First clear:** +10,490 gold · Mythic Water Core ×1
@@ -563,9 +551,7 @@ The valley road reaches the sea, and the sea has been coming up: the causeway is
 - **Enemies:**
   - **Deepseeker** `deepseeker` — hp 1699 / atk 467 / def 170 / spd 8
     - *A jellyfish that scatters lights like coins across the surface, patient as a fisherman and just as fond of hooks.*
-  - **Hook-Mouth I** `hook_mouth_i` — hp 1699 / atk 467 / def 170 / spd 13
-    - *A hunter that waits beneath the lights for whatever comes to gawk.*
-  - **Hook-Mouth II** `hook_mouth_ii` — hp 1699 / atk 467 / def 170 / spd 16
+  - 2x **Hook-Mouth** `hook_mouth` — hp 1699 / atk 467 / def 170 / spd 13
     - *A hunter that waits beneath the lights for whatever comes to gawk.*
 - **Reward (per clear):** 9,660 gold · Greater Water Core ×2
 - **First clear:** +12,080 gold · Mythic Water Core ×1
@@ -577,9 +563,7 @@ The valley road reaches the sea, and the sea has been coming up: the causeway is
 - **Enemies:**
   - **Bell-Ringer** `bell_ringer` — hp 1338 / atk 491 / def 178 / spd 10
     - *A drowned thing that rings the sunken bell, and every toll calls another of its kind.*
-  - **Drowned Acolyte I** `drowned_acolyte_i` — hp 1338 / atk 491 / def 178 / spd 8
-    - *A worshipper who never left the pews, still kneeling in the green dark.*
-  - **Drowned Acolyte II** `drowned_acolyte_ii` — hp 1338 / atk 491 / def 178 / spd 11
+  - 2x **Drowned Acolyte** `drowned_acolyte` — hp 1338 / atk 491 / def 178 / spd 8
     - *A worshipper who never left the pews, still kneeling in the green dark.*
   - **Nave Guardian** `nave_guardian` — hp 1338 / atk 491 / def 178 / spd 14
     - *The chapel's old guardian, whose shell has become part of the altar.*
@@ -595,9 +579,7 @@ The valley road reaches the sea, and the sea has been coming up: the causeway is
     - *An ancient serpent-turtle of the deep shelf that has sunk fleets for their glitter and holds the whole coastline in its slow patience.*
   - **Tide Herald** `tide_herald` — hp 968 / atk 515 / def 187 / spd 11
     - *The Leviathan's herald, whose wake is the signal to flee.*
-  - **Reef Horror I** `reef_horror_i` — hp 968 / atk 515 / def 187 / spd 16
-    - *A light that has drifted up from the deep trench, cold and wrong and enormous.*
-  - **Reef Horror II** `reef_horror_ii` — hp 968 / atk 515 / def 187 / spd 9
+  - 2x **Reef Horror** `reef_horror` — hp 968 / atk 515 / def 187 / spd 16
     - *A light that has drifted up from the deep trench, cold and wrong and enormous.*
   - **Drowned Choir** `drowned_choir` — hp 968 / atk 515 / def 187 / spd 13
     - *A chorus of the drowned, singing the Leviathan's coming.*
@@ -669,9 +651,7 @@ The road turns north into a winter that never ended. The pass is closed by ice t
 - **Enemies:**
   - **Ice-Warden** `ice_warden` *(elite)* — hp 3300 / atk 798 / def 302 / spd 14
     - *A colossus of blue ice that carries the pass on its shoulders and crushes trespassers down into the permafrost.*
-  - **Warden's Hound I** `wardens_hound_i` — hp 1833 / atk 639 / def 232 / spd 7
-    - *A spider of the Warden's leash, skating out to meet anything that moves.*
-  - **Warden's Hound II** `wardens_hound_ii` — hp 1833 / atk 639 / def 232 / spd 10
+  - 2x **Warden's Hound** `wardens_hound` — hp 1833 / atk 639 / def 232 / spd 7
     - *A spider of the Warden's leash, skating out to meet anything that moves.*
 - **Reward (per clear):** 12,770 gold · Greater Ice Core ×2
 - **First clear:** +15,960 gold · Mythic Ice Core ×1
@@ -697,9 +677,7 @@ The road turns north into a winter that never ended. The pass is closed by ice t
 - **Enemies:**
   - **Glacier Howler** `glacier_howler` — hp 2510 / atk 690 / def 251 / spd 9
     - *A wolf of the ice that howls down through the glacier's cracks and is answered by the whole mountain.*
-  - **Frozen Pack I** `frozen_pack_i` — hp 2510 / atk 690 / def 251 / spd 15
-    - *The pack's cousins, walking the white emptiness where the sun is only a rumor.*
-  - **Frozen Pack II** `frozen_pack_ii` — hp 2510 / atk 690 / def 251 / spd 8
+  - 2x **Frozen Pack** `frozen_pack` — hp 2510 / atk 690 / def 251 / spd 15
     - *The pack's cousins, walking the white emptiness where the sun is only a rumor.*
 - **Reward (per clear):** 13,690 gold · Greater Ice Core ×2
 - **First clear:** +17,110 gold · Mythic Ice Core ×1
@@ -711,9 +689,7 @@ The road turns north into a winter that never ended. The pass is closed by ice t
 - **Enemies:**
   - **Frozen Falcon** `frozen_falcon` — hp 1954 / atk 716 / def 261 / spd 12
     - *A bird that has hung in the ice for a century and is not, despite appearances, dead.*
-  - **Icicle Chicken I** `icicle_chicken_i` — hp 1954 / atk 716 / def 261 / spd 12
-    - *A bird that lays frozen eggs and defends them with a comb of spikes.*
-  - **Icicle Chicken II** `icicle_chicken_ii` — hp 1954 / atk 716 / def 261 / spd 15
+  - 2x **Icicle Chicken** `icicle_chicken` — hp 1954 / atk 716 / def 261 / spd 12
     - *A bird that lays frozen eggs and defends them with a comb of spikes.*
   - **Cave Hermit** `cave_hermit` — hp 1954 / atk 716 / def 261 / spd 9
     - *A bear that slept through the freeze and woke up considerably grumpier than it went to sleep.*
@@ -741,9 +717,7 @@ The road turns north into a winter that never ended. The pass is closed by ice t
 - **Enemies:**
   - **Hoarfrost Queen** `hoarfrost_queen` *(elite)* — hp 2606 / atk 962 / def 364 / spd 11
     - *The crowned sovereign of the eternal winter, whose displeasure is measured in blizzards and whose mercy is measured in none.*
-  - **Queen's Guard I** `queens_guard_i` — hp 1448 / atk 770 / def 280 / spd 7
-    - *A colossus of the Queen's own cold, standing where she will not be touched.*
-  - **Queen's Guard II** `queens_guard_ii` — hp 1448 / atk 770 / def 280 / spd 10
+  - 2x **Queen's Guard** `queens_guard` — hp 1448 / atk 770 / def 280 / spd 7
     - *A colossus of the Queen's own cold, standing where she will not be touched.*
   - **Crown Herald** `crown_herald` — hp 1448 / atk 770 / def 280 / spd 12
     - *The Queen's voice, sharp enough to freeze a word in the air.*
@@ -819,9 +793,7 @@ South of the ice, the land turns to ash and cinder: a forest that burned a decad
 - **Enemies:**
   - **Forgebeast** `forgebeast` *(elite)* — hp 4691 / atk 1135 / def 429 / spd 13
     - *A ram whose fleece is molten and whose horns are forge-hot; it feeds the mountain's fires and charges anything that interrupts the smithing.*
-  - **Bellows Fiend I** `bellows_fiend_i` — hp 2606 / atk 908 / def 330 / spd 8
-    - *A monkey that works the great bellows and throws the coals it can't use.*
-  - **Bellows Fiend II** `bellows_fiend_ii` — hp 2606 / atk 908 / def 330 / spd 11
+  - 2x **Bellows Fiend** `bellows_fiend` — hp 2606 / atk 908 / def 330 / spd 8
     - *A monkey that works the great bellows and throws the coals it can't use.*
 - **Reward (per clear):** 17,480 gold · Mythic Fire Core ×2
 - **First clear:** +21,850 gold · Legendary Fire Core ×1
@@ -891,9 +863,7 @@ South of the ice, the land turns to ash and cinder: a forest that burned a decad
     - *The living core of the volcano, a beast of magma and cinder that is the mountain's temper made flesh; when it wakes, the sky rains glass.*
   - **Caldera Guard** `caldera_guard` — hp 1978 / atk 1052 / def 383 / spd 12
     - *A crocodile grown in the caldera, armored in the mountain's own cooling skin.*
-  - **Ember Ape I** `ember_ape_i` — hp 1978 / atk 1052 / def 383 / spd 13
-    - *A troop-ape that followed the heat down and never came back up.*
-  - **Ember Ape II** `ember_ape_ii` — hp 1978 / atk 1052 / def 383 / spd 16
+  - 2x **Ember Ape** `ember_ape` — hp 1978 / atk 1052 / def 383 / spd 13
     - *A troop-ape that followed the heat down and never came back up.*
   - **Magma Herald** `magma_herald` — hp 1978 / atk 1052 / def 383 / spd 14
     - *The heart's herald, whose shell cracks wider with every beat.*
@@ -941,9 +911,7 @@ The road climbs into a range where the storms never break. Every step throws a s
 - **Enemies:**
   - **Herd Bull** `herd_bull` — hp 4151 / atk 1142 / def 415 / spd 15
     - *The herd's enforcer, a stallion of forked lightning that runs the meadow's edge and turns trespassers back with their fur smoking.*
-  - **Volt Doe I** `volt_doe_i` — hp 4151 / atk 1142 / def 415 / spd 15
-    - *A doe whose antlers hum, one of a hundred that move as one.*
-  - **Volt Doe II** `volt_doe_ii` — hp 4151 / atk 1142 / def 415 / spd 8
+  - 2x **Volt Doe** `volt_doe` — hp 4151 / atk 1142 / def 415 / spd 15
     - *A doe whose antlers hum, one of a hundred that move as one.*
 - **Reward (per clear):** 21,450 gold · Mythic Electric Core ×3
 - **First clear:** +26,810 gold · Legendary Electric Core ×1
@@ -969,9 +937,7 @@ The road climbs into a range where the storms never break. Every step throws a s
 - **Enemies:**
   - **Stormherd Alpha** `stormherd_alpha` *(elite)* — hp 6211 / atk 1503 / def 568 / spd 7
     - *The first of the storm-herd, a stallion born of a lightning strike that leads the herd and the weather both.*
-  - **Herd Runner I** `herd_runner_i` — hp 3451 / atk 1202 / def 437 / spd 15
-    - *The alpha's outriders, moving as one animal at the herd's flanks.*
-  - **Herd Runner II** `herd_runner_ii` — hp 3451 / atk 1202 / def 437 / spd 8
+  - 2x **Herd Runner** `herd_runner` — hp 3451 / atk 1202 / def 437 / spd 15
     - *The alpha's outriders, moving as one animal at the herd's flanks.*
 - **Reward (per clear):** 22,470 gold · Mythic Electric Core ×3
 - **First clear:** +28,090 gold · Legendary Electric Core ×1
@@ -997,9 +963,7 @@ The road climbs into a range where the storms never break. Every step throws a s
 - **Enemies:**
   - **Beacon Thief** `beacon_thief` — hp 3447 / atk 1264 / def 460 / spd 9
     - *A wolf that swallowed the tower's light and glows with the stolen flame, more beacon than beast.*
-  - **Tower Wretch I** `tower_wretch_i` — hp 3447 / atk 1264 / def 460 / spd 14
-    - *A swarm that moved into the dark tower and made it their nest.*
-  - **Tower Wretch II** `tower_wretch_ii` — hp 3447 / atk 1264 / def 460 / spd 7
+  - 2x **Tower Wretch** `tower_wretch` — hp 3447 / atk 1264 / def 460 / spd 14
     - *A swarm that moved into the dark tower and made it their nest.*
   - **Warden of Currents** `warden_of_currents` — hp 3447 / atk 1264 / def 460 / spd 7
     - *The tower's old warden, still drawing power from a beacon that is no longer there.*
@@ -1027,9 +991,7 @@ The road climbs into a range where the storms never break. Every step throws a s
 - **Enemies:**
   - **Conduit Warden** `conduit_warden` — hp 3617 / atk 1326 / def 482 / spd 14
     - *A warden grown into the spire's conduits, its body a living coil that discharges when disturbed.*
-  - **Arc Servant I** `arc_servant_i` — hp 3617 / atk 1326 / def 482 / spd 11
-    - *A servant of the spire, running its charge from room to room.*
-  - **Arc Servant II** `arc_servant_ii` — hp 3617 / atk 1326 / def 482 / spd 14
+  - 2x **Arc Servant** `arc_servant` — hp 3617 / atk 1326 / def 482 / spd 11
     - *A servant of the spire, running its charge from room to room.*
   - **Spire Howler** `spire_howler` — hp 3617 / atk 1326 / def 482 / spd 9
     - *A howler that can hear the charged air thin before the spire releases.*
@@ -1043,9 +1005,7 @@ The road climbs into a range where the storms never break. Every step throws a s
 - **Enemies:**
   - **Skybreaker** `skybreaker` *(elite)* — hp 4597 / atk 1697 / def 642 / spd 10
     - *The crowned keeper of the peak's eternal storm, a stallion wreathed in silent lightning that splits the sky when it displeases him.*
-  - **Crown Guard I** `crown_guard_i` — hp 2554 / atk 1358 / def 494 / spd 14
-    - *A guard of frost and charge, standing where the crown will not be touched.*
-  - **Crown Guard II** `crown_guard_ii` — hp 2554 / atk 1358 / def 494 / spd 7
+  - 2x **Crown Guard** `crown_guard` — hp 2554 / atk 1358 / def 494 / spd 14
     - *A guard of frost and charge, standing where the crown will not be touched.*
   - **Thunder Herald** `thunder_herald` — hp 2554 / atk 1358 / def 494 / spd 11
     - *The crown's herald, running the storm's edge to call the strike in.*
@@ -1121,9 +1081,7 @@ Beneath the peaks lies the old quarry country: galleries that chew themselves wi
 - **Enemies:**
   - **Quarry Tyrant** `quarry_tyrant` *(elite)* — hp 7848 / atk 1899 / def 718 / spd 15
     - *The foreman of a quarry abandoned a century ago, still shouting orders at a crew of one.*
-  - **Slate Brute I** `slate_brute_i` — hp 4360 / atk 1519 / def 552 / spd 13
-    - *A boulder-picker the Tyrant set to guard the shaft mouth.*
-  - **Slate Brute II** `slate_brute_ii` — hp 4360 / atk 1519 / def 552 / spd 16
+  - 2x **Slate Brute** `slate_brute` — hp 4360 / atk 1519 / def 552 / spd 13
     - *A boulder-picker the Tyrant set to guard the shaft mouth.*
 - **Reward (per clear):** 27,680 gold · Mythic Earth Core ×3
 - **First clear:** +34,600 gold · Legendary Earth Core ×1
@@ -1149,9 +1107,7 @@ Beneath the peaks lies the old quarry country: galleries that chew themselves wi
 - **Enemies:**
   - **Standing Stone** `standing_stone` — hp 5763 / atk 1585 / def 576 / spd 14
     - *A monolith that has stood for an age and, this evening, decided to walk.*
-  - **Circle Warden I** `circle_warden_i` — hp 5763 / atk 1585 / def 576 / spd 7
-    - *A warden of the circle that has counted the stones every night and found the count wrong.*
-  - **Circle Warden II** `circle_warden_ii` — hp 5763 / atk 1585 / def 576 / spd 10
+  - 2x **Circle Warden** `circle_warden` — hp 5763 / atk 1585 / def 576 / spd 7
     - *A warden of the circle that has counted the stones every night and found the count wrong.*
 - **Reward (per clear):** 28,750 gold · Mythic Earth Core ×3
 - **First clear:** +35,940 gold · Legendary Earth Core ×1
@@ -1269,9 +1225,7 @@ The road turns toward the citadel through land that has already fallen: a grave-
 - **Enemies:**
   - **Pale Rider** `pale_rider` *(elite)* — hp 9589 / atk 2320 / def 877 / spd 7
     - *A riderless horror of the marches that has broken a hundred horses and is now shopping for a new one.*
-  - **Rider's Hound I** `riders_hound_i` — hp 5327 / atk 1856 / def 675 / spd 10
-    - *A hound of the Rider's hunt, running the march's edge.*
-  - **Rider's Hound II** `riders_hound_ii` — hp 5327 / atk 1856 / def 675 / spd 13
+  - 2x **Rider's Hound** `riders_hound` — hp 5327 / atk 1856 / def 675 / spd 10
     - *A hound of the Rider's hunt, running the march's edge.*
 - **Reward (per clear):** 33,110 gold · Legendary Dark Core ×3
 - **First clear:** +41,390 gold · Legendary Dark Core ×1
@@ -1297,9 +1251,7 @@ The road turns toward the citadel through land that has already fallen: a grave-
 - **Enemies:**
   - **The Widow** `the_widow` — hp 5252 / atk 1926 / def 700 / spd 10
     - *The pale lady of the marches, whose veil is smoke and whose court is whoever was too slow to leave.*
-  - **Veiled Attendant I** `veiled_attendant_i` — hp 5252 / atk 1926 / def 700 / spd 16
-    - *A courtier who attends the Widow still, long after the attending stopped mattering.*
-  - **Veiled Attendant II** `veiled_attendant_ii` — hp 5252 / atk 1926 / def 700 / spd 9
+  - 2x **Veiled Attendant** `veiled_attendant` — hp 5252 / atk 1926 / def 700 / spd 16
     - *A courtier who attends the Widow still, long after the attending stopped mattering.*
   - **Court Shade** `court_shade` — hp 5252 / atk 1926 / def 700 / spd 9
     - *The court's enforcer, which has no shape but a great deal of intent.*
@@ -1345,9 +1297,7 @@ The road turns toward the citadel through land that has already fallen: a grave-
     - *The shadow sovereign of the marches, a lion of black smoke and silent lightning whose mane is a standing storm and whose reign is measured in graves.*
   - **Shadow Herald** `shadow_herald` — hp 3821 / atk 2031 / def 739 / spd 15
     - *The sovereign's herald, whose pounce is the herald's only announcement.*
-  - **Court of Ash I** `court_of_ash_i` — hp 3821 / atk 2031 / def 739 / spd 8
-    - *The sovereign's court, still bowing, still marching.*
-  - **Court of Ash II** `court_of_ash_ii` — hp 3821 / atk 2031 / def 739 / spd 11
+  - 2x **Court of Ash** `court_of_ash` — hp 3821 / atk 2031 / def 739 / spd 8
     - *The sovereign's court, still bowing, still marching.*
   - **Legion Shade** `legion_shade` — hp 3821 / atk 2031 / def 739 / spd 10
     - *A legion of the sovereign's risen, strutting in the sovereign's shadow.*
@@ -1407,9 +1357,7 @@ The last road to the citadel is not a road at all: it is the fossilized spine of
 - **Enemies:**
   - **Bloodfen Wyrm** `bloodfen_wyrm` — hp 7909 / atk 2175 / def 791 / spd 9
     - *A crocodile-wyrm fattened on the fen's old blood, sluggish and enormous and immortal.*
-  - **Fen Hatchling I** `fen_hatchling_i` — hp 7909 / atk 2175 / def 791 / spd 9
-    - *A hatchling that has never left the fen and thinks it is the whole world.*
-  - **Fen Hatchling II** `fen_hatchling_ii` — hp 7909 / atk 2175 / def 791 / spd 12
+  - 2x **Fen Hatchling** `fen_hatchling` — hp 7909 / atk 2175 / def 791 / spd 9
     - *A hatchling that has never left the fen and thinks it is the whole world.*
 - **Reward (per clear):** 38,150 gold · Legendary Dragon Core ×4
 - **First clear:** +47,690 gold · Legendary Dragon Core ×1
@@ -1421,9 +1369,7 @@ The last road to the citadel is not a road at all: it is the fossilized spine of
 - **Enemies:**
   - **Broodmother** `broodmother` *(elite)* — hp 11427 / atk 2764 / def 1045 / spd 14
     - *The broodmother of the wyrms, a tiger-drake whose molten stripes mark each egg she guards and each foe she has buried.*
-  - **Wyrmling I** `wyrmling_i` — hp 6348 / atk 2211 / def 804 / spd 9
-    - *A new-hatched drake, hungry and already armored.*
-  - **Wyrmling II** `wyrmling_ii` — hp 6348 / atk 2211 / def 804 / spd 12
+  - 2x **Wyrmling** `wyrmling` — hp 6348 / atk 2211 / def 804 / spd 9
     - *A new-hatched drake, hungry and already armored.*
 - **Reward (per clear):** 38,710 gold · Legendary Dragon Core ×4
 - **First clear:** +48,390 gold · Legendary Dragon Core ×1
@@ -1449,9 +1395,7 @@ The last road to the citadel is not a road at all: it is the fossilized spine of
 - **Enemies:**
   - **Sky Warden** `sky_warden` — hp 6230 / atk 2284 / def 831 / spd 9
     - *A guardian of storm and shadow that catches the falling sky and hurls it back.*
-  - **Temple Coil I** `temple_coil_i` — hp 6230 / atk 2284 / def 831 / spd 10
-    - *A coil that has wrapped the temple's broken pillars and never let go.*
-  - **Temple Coil II** `temple_coil_ii` — hp 6230 / atk 2284 / def 831 / spd 13
+  - 2x **Temple Coil** `temple_coil` — hp 6230 / atk 2284 / def 831 / spd 10
     - *A coil that has wrapped the temple's broken pillars and never let go.*
   - **Ruin Drake** `ruin_drake` — hp 6230 / atk 2284 / def 831 / spd 10
     - *A drake that took the temple as its den and the falling sky as its weather.*
@@ -1479,9 +1423,7 @@ The last road to the citadel is not a road at all: it is the fossilized spine of
 - **Enemies:**
   - **Egg Guardian** `egg_guardian` — hp 6432 / atk 2358 / def 858 / spd 15
     - *The last guardian of the last egg, holding the line with storm in its mane and shadow at its heels.*
-  - **Clutch Thief I** `clutch_thief_i` — hp 6432 / atk 2358 / def 858 / spd 11
-    - *A drake that has been trying to steal the last egg since it was laid.*
-  - **Clutch Thief II** `clutch_thief_ii` — hp 6432 / atk 2358 / def 858 / spd 14
+  - 2x **Clutch Thief** `clutch_thief` — hp 6432 / atk 2358 / def 858 / spd 11
     - *A drake that has been trying to steal the last egg since it was laid.*
   - **Spine Wyrm** `spine_wyrm` — hp 6432 / atk 2358 / def 858 / spd 11
     - *The spine's own wyrm, woken by the warmth of the last egg.*
@@ -1497,9 +1439,7 @@ The last road to the citadel is not a road at all: it is the fossilized spine of
     - *The great drake whose spine is the road you walked, woken at last; its stripes are lava veins and its roar cracks the citadel's walls.*
   - **Spine Herald** `spine_herald` — hp 4506 / atk 2396 / def 871 / spd 12
     - *The drake's herald, carrying its roar down the ridge.*
-  - **Wyrm Guard I** `wyrm_guard_i` — hp 4506 / atk 2396 / def 871 / spd 14
-    - *A guard of storm and shadow, standing where the drake will not be touched.*
-  - **Wyrm Guard II** `wyrm_guard_ii` — hp 4506 / atk 2396 / def 871 / spd 7
+  - 2x **Wyrm Guard** `wyrm_guard` — hp 4506 / atk 2396 / def 871 / spd 14
     - *A guard of storm and shadow, standing where the drake will not be touched.*
   - **Drake Choir** `drake_choir` — hp 4506 / atk 2396 / def 871 / spd 7
     - *The dragon's chorus, humming the note that wakes the mountain.*
@@ -1521,9 +1461,7 @@ The citadel opens its gates and dares you in. Through the ash courtyard, the hal
 - **Enemies:**
   - **Gate Warden** `gate_warden` — hp 8847 / atk 2433 / def 885 / spd 13
     - *The citadel's gate warden, a lion of storm and shadow that has never once let anyone leave.*
-  - **Gate Hound I** `gate_hound_i` — hp 8847 / atk 2433 / def 885 / spd 9
-    - *A hound of the gate that keeps a ledger of arrivals and a shorter list of departures.*
-  - **Gate Hound II** `gate_hound_ii` — hp 8847 / atk 2433 / def 885 / spd 12
+  - 2x **Gate Hound** `gate_hound` — hp 8847 / atk 2433 / def 885 / spd 9
     - *A hound of the gate that keeps a ledger of arrivals and a shorter list of departures.*
 - **Reward (per clear):** 42,160 gold · Legendary Dark Core ×4
 - **First clear:** +52,700 gold · Legendary Dark Core ×1
@@ -1563,9 +1501,7 @@ The citadel opens its gates and dares you in. Through the ash courtyard, the hal
 - **Enemies:**
   - **Gallery Shade** `gallery_shade` — hp 6944 / atk 2546 / def 926 / spd 14
     - *A portrait that left its frame and has been looking for a body ever since.*
-  - **Screaming Coil I** `screaming_coil_i` — hp 6944 / atk 2546 / def 926 / spd 16
-    - *A coil of the gallery that screams in a voice the paintings all borrowed.*
-  - **Screaming Coil II** `screaming_coil_ii` — hp 6944 / atk 2546 / def 926 / spd 9
+  - 2x **Screaming Coil** `screaming_coil` — hp 6944 / atk 2546 / def 926 / spd 16
     - *A coil of the gallery that screams in a voice the paintings all borrowed.*
   - **Framed Horror** `framed_horror` — hp 6944 / atk 2546 / def 926 / spd 16
     - *A light that escaped a canvas and drifts the gallery's dark, looking for a way back in.*
@@ -1579,9 +1515,7 @@ The citadel opens its gates and dares you in. Through the ash courtyard, the hal
 - **Enemies:**
   - **Warden of Nine Locks** `warden_of_nine_locks` *(elite)* — hp 13352 / atk 3230 / def 1221 / spd 7
     - *The citadel's jailer, a beast of nine chains, one for each lock it has never let anyone pass.*
-  - **Lock Hound I** `lock_hound_i` — hp 7418 / atk 2584 / def 940 / spd 7
-    - *A hound on the Warden's chain, one of nine.*
-  - **Lock Hound II** `lock_hound_ii` — hp 7418 / atk 2584 / def 940 / spd 10
+  - 2x **Lock Hound** `lock_hound` — hp 7418 / atk 2584 / def 940 / spd 7
     - *A hound on the Warden's chain, one of nine.*
 - **Reward (per clear):** 44,490 gold · Legendary Dark Core ×4
 - **First clear:** +55,610 gold · Legendary Dark Core ×1
@@ -1595,9 +1529,7 @@ The citadel opens its gates and dares you in. Through the ash courtyard, the hal
     - *A guard of shadow that has stood so long it has forgotten what it guards, only that it does.*
   - **Throne Herald** `throne_herald` — hp 7151 / atk 2622 / def 954 / spd 15
     - *The throne's herald, whose bow is the last courtesy you will be shown.*
-  - **Court Revenant I** `court_revenant_i` — hp 7151 / atk 2622 / def 954 / spd 14
-    - *A revenant of the court, still dressed for a session that ended long ago.*
-  - **Court Revenant II** `court_revenant_ii` — hp 7151 / atk 2622 / def 954 / spd 7
+  - 2x **Court Revenant** `court_revenant` — hp 7151 / atk 2622 / def 954 / spd 14
     - *A revenant of the court, still dressed for a session that ended long ago.*
 - **Reward (per clear):** 45,070 gold · Legendary Dark Core ×4
 - **First clear:** +56,340 gold · Legendary Dark Core ×1
@@ -1625,9 +1557,7 @@ The citadel opens its gates and dares you in. Through the ash courtyard, the hal
 - **Enemies:**
   - **Hollow Chancellor** `hollow_chancellor` *(elite)* — hp 11041 / atk 3374 / def 1276 / spd 7
     - *The dark lord's chancellor, a voice with no body and a crown with no king, ruling the court while its master watches.*
-  - **Chancellor's Guard I** `chancellors_guard_i` — hp 6134 / atk 2699 / def 981 / spd 16
-    - *A guard of the chancellor's court, standing nearer the throne than anything should.*
-  - **Chancellor's Guard II** `chancellors_guard_ii` — hp 6134 / atk 2699 / def 981 / spd 9
+  - 2x **Chancellor's Guard** `chancellors_guard` — hp 6134 / atk 2699 / def 981 / spd 16
     - *A guard of the chancellor's court, standing nearer the throne than anything should.*
   - **Hollow Herald** `hollow_herald` — hp 6134 / atk 2699 / def 981 / spd 10
     - *The chancellor's herald, made of the same emptiness as its master.*
@@ -1641,11 +1571,7 @@ The citadel opens its gates and dares you in. Through the ash courtyard, the hal
 - **Enemies:**
   - **The Dark Lord's Shadow** `the_dark_lords_shadow` *(elite)* — hp 9268 / atk 3422 / def 1294 / spd 7
     - *The shadow the dark lord casts, cut loose and grown vast, holding the inner chamber until its master is ready.*
-  - **Shadow Legion I** `shadow_legion_i` — hp 5149 / atk 2737 / def 995 / spd 14
-    - *A legion of the shadow's making, each one a lesser dark lord.*
-  - **Shadow Legion II** `shadow_legion_ii` — hp 5149 / atk 2737 / def 995 / spd 7
-    - *A legion of the shadow's making, each one a lesser dark lord.*
-  - **Shadow Legion III** `shadow_legion_iii` — hp 5149 / atk 2737 / def 995 / spd 10
+  - 3x **Shadow Legion** `shadow_legion` — hp 5149 / atk 2737 / def 995 / spd 14
     - *A legion of the shadow's making, each one a lesser dark lord.*
   - **Wing of Ash** `wing_of_ash` — hp 5149 / atk 2737 / def 995 / spd 13
     - *The shadow's eye, circling the chamber and reporting your every breath.*
@@ -1661,9 +1587,7 @@ The citadel opens its gates and dares you in. Through the ash courtyard, the hal
     - *The master of the citadel and the shadow over every road you walked: a lord of storm, shadow, and dragonfire who does not intend to lose the last room.*
   - **Dragonfire Herald** `dragonfire_herald` — hp 5222 / atk 2776 / def 1010 / spd 16
     - *The dark lord's herald, whose stripes are the drake-fire of the spine road.*
-  - **Shadow Legion I** `shadow_legion_i` — hp 5222 / atk 2776 / def 1010 / spd 14
-    - *The last of the shadow's legion, risen for the final session.*
-  - **Shadow Legion II** `shadow_legion_ii` — hp 5222 / atk 2776 / def 1010 / spd 7
+  - 2x **Shadow Legion** `shadow_legion` — hp 5222 / atk 2776 / def 1010 / spd 14
     - *The last of the shadow's legion, risen for the final session.*
   - **Bloodsworn Guard** `bloodsworn_guard` — hp 5222 / atk 2776 / def 1010 / spd 13
     - *A guard sworn in dragon's blood and armored in the mountain's own skin.*
