@@ -228,21 +228,19 @@ export type QuestEnemy = {
   /** Catalog card whose art (and display name) this opponent wears. */
   cardId: string
   name: string
-  icon: string
   hp: number
   atk: number
   def: number
   spd: number
 }
 
-/** One visual-novel beat (speaker + avatar + line). */
+/** One visual-novel beat (who says it, and the line). */
 export type QuestLine = {
   speaker: string
-  avatar: string
   text: string
 }
 
-/** An authored quest encounter. Seeded from `src/game/quests.ts`. */
+/** An authored quest encounter, imported from `src/game/quests.ts`. */
 export type Quest = {
   id: string
   name: string

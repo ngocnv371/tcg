@@ -50,9 +50,9 @@ export function playerCombatants(members: PartyMember[]): Combatant[] {
 }
 
 /**
- * Enemy combatants. Each opponent is a catalog card for its art and name; its battle stats stay
- * the authored ones, so a quest's difficulty is tuned independently of the catalog. Falls back to
- * the emoji avatar when the card is not in the catalog (a database without the content import).
+ * Enemy combatants. Each opponent is a catalog card for its art and name; its battle stats come
+ * from the bestiary, scaled by the encounter, so a quest's difficulty is tuned independently of
+ * the catalog.
  */
 export function enemyCombatants(enemies: QuestEnemy[], cardById: Map<string, Card>): Combatant[] {
   return enemies.map((enemy) => {
@@ -61,7 +61,9 @@ export function enemyCombatants(enemies: QuestEnemy[], cardById: Map<string, Car
       id: enemy.id,
       side: 'enemy',
       name: card?.name ?? enemy.name,
-      icon: enemy.icon,
+      // An opponent is always drawn as its card, so this emoji is only the last-ditch fallback for
+      // a database whose catalog has not been imported: `Combatant.icon` is not optional.
+      icon: '❔',
       artPath: card?.art_path ?? null,
       rank: card?.rank ?? 1,
       hp: enemy.hp,

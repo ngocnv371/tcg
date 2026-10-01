@@ -4,8 +4,11 @@ import { NavLink, useSearchParams } from 'react-router-dom'
 import { Panel, Screen } from '@/components/Screen'
 import { Tabs } from '@/components/Tabs'
 import { useCardCatalog, useCollection } from '@/features/cards/api'
+import { RANK_BORDER } from '@/features/cards/rankFrame'
 import { materialLabel } from '@/features/dungeons/format'
 import type { VictoryPartyCard } from '@/features/dungeons/RunVictoryAnimation'
+import { useMaterialCatalog } from '@/features/inventory/api'
+import { MaterialIcon } from '@/features/inventory/MaterialIcon'
 import { useParties, type PartyLoadout } from '@/features/party/api'
 import { QuestBattle, type BattleResult } from '@/features/quests/QuestBattle'
 import { QuestDialogue } from '@/features/quests/QuestDialogue'
@@ -14,7 +17,9 @@ import { QuestResultOverlay } from '@/features/quests/QuestResultOverlay'
 import { QuestVictoryOverlay } from '@/features/quests/QuestVictoryOverlay'
 import { useCompleteQuest, useQuestCompletions, useQuests, type QuestClear } from '@/features/quests/api'
 import { partyMembers } from '@/features/quests/combat'
-import type { Quest } from '@/types/db'
+import { resolveArtSrc } from '@/lib/art'
+import { cn } from '@/lib/utils'
+import type { Card, Material, Quest, QuestEnemy } from '@/types/db'
 
 /** The journey one quest takes: context → party → fight → (win) celebration → outro → payout. */
 type Phase = 'intro' | 'party' | 'battle' | 'victory' | 'outro' | 'result'
@@ -32,7 +37,16 @@ export function QuestListScreen() {
   const { data: parties } = useParties()
   const { data: collection } = useCollection()
   const { data: catalog } = useCardCatalog()
+  const { data: materials } = useMaterialCatalog()
   const completeQuest = useCompleteQuest()
+
+  // An enemy wears a catalog card's art and rank, and a reward shows the material's uploaded
+  // icon, so both lists resolve through a lookup rather than a restated label.
+  const cardById = useMemo(() => new Map((catalog ?? []).map((card) => [card.id, card])), [catalog])
+  const materialById = useMemo(
+    () => new Map((materials ?? []).map((material) => [material.id, material])),
+    [materials],
+  )
 
   const [quest, setQuest] = useState<Quest | null>(null)
   const [phase, setPhase] = useState<Phase>('intro')
@@ -166,35 +180,31 @@ export function QuestListScreen() {
                     Recommended power {entry.req_power.toLocaleString('en-US')}
                   </p>
 
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {entry.enemies.map((enemy) => (
-                      <span
-                        key={enemy.id}
-                        className="rounded-card bg-ink-850 px-2 py-0.5 text-[11px] text-ink-300"
-                      >
-                        <span aria-hidden>{enemy.icon}</span> {enemy.name}
-                      </span>
-                    ))}
-                  </div>
+                  <EnemyCardRow enemies={entry.enemies} cardById={cardById} />
 
-                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
                     <span className="text-gold-300">
                       💰 {entry.gold.toLocaleString('en-US')} gold
                     </span>
                     {Object.entries(entry.materials).map(([materialId, qty]) => (
-                      <span key={materialId} className="text-ink-300">
-                        {materialLabel(materialId)} ×{qty}
-                      </span>
+                      <MaterialReward
+                        key={materialId}
+                        id={materialId}
+                        qty={qty}
+                        materialById={materialById}
+                      />
                     ))}
                   </div>
                   {!completion ? (
-                    <p className="mt-1 text-[11px] text-ink-400">
-                      First clear: +{entry.first_clear_gold.toLocaleString('en-US')} gold
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-400">
+                      <span>First clear: +{entry.first_clear_gold.toLocaleString('en-US')} gold</span>
                       {Object.entries(entry.first_clear_materials).map(([materialId, qty]) => (
-                        <span key={materialId}>
-                          {' '}
-                          · {materialLabel(materialId)} ×{qty}
-                        </span>
+                        <MaterialReward
+                          key={materialId}
+                          id={materialId}
+                          qty={qty}
+                          materialById={materialById}
+                        />
                       ))}
                     </p>
                   ) : null}
@@ -275,5 +285,90 @@ export function QuestListScreen() {
         />
       ) : null}
     </Screen>
+  )
+}
+
+/**
+ * The line-up a quest fields, as small card faces: one tile per distinct opponent wearing its
+ * catalog card's art and rank frame — the same vocabulary as the battle board — with a ×N badge
+ * when the fight lines up more than one copy. A database whose catalog has not been imported yet
+ * falls back to a neutral glyph rather than a broken image.
+ */
+function EnemyCardRow({ enemies, cardById }: { enemies: QuestEnemy[]; cardById: Map<string, Card> }) {
+  const groups = new Map<string, { name: string; count: number }>()
+  for (const enemy of enemies) {
+    const name = cardById.get(enemy.cardId)?.name ?? enemy.name
+    const existing = groups.get(enemy.cardId)
+    if (existing) existing.count += 1
+    else groups.set(enemy.cardId, { name, count: 1 })
+  }
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {[...groups].map(([cardId, { name, count }]) => {
+        const card = cardById.get(cardId)
+        const artSrc = resolveArtSrc(card?.art_path ?? null)
+        const rank = card?.rank ?? 1
+        return (
+          <div key={cardId} className="w-12" title={name}>
+            <div
+              className={cn(
+                'relative aspect-[2/3] w-full overflow-hidden rounded-[8px] border-2 bg-ink-900',
+                RANK_BORDER[rank],
+              )}
+            >
+              {artSrc ? (
+                <img
+                  src={artSrc}
+                  alt={name}
+                  loading="lazy"
+                  className="absolute inset-0 size-full object-cover"
+                />
+              ) : (
+                <span
+                  aria-hidden
+                  className="absolute inset-0 grid place-items-center text-lg text-ink-600"
+                >
+                  ❔
+                </span>
+              )}
+              {count > 1 ? (
+                <span className="absolute bottom-0.5 right-0.5 rounded bg-ink-950/85 px-1 text-[9px] tabular-nums text-ink-100 backdrop-blur-sm">
+                  ×{count}
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-0.5 truncate text-center text-[9px] leading-tight text-ink-400">
+              {name}
+            </p>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/**
+ * A material reward as its uploaded icon — or the neutral crate when the catalog has no art for
+ * it — beside "Name ×qty". The same `materials.icon` lookup the dungeon reward modals use, so a
+ * quest payout reads like any other.
+ */
+function MaterialReward({
+  id,
+  qty,
+  materialById,
+}: {
+  id: string
+  qty: number
+  materialById: Map<string, Material>
+}) {
+  const material = materialById.get(id)
+  return (
+    <span className="inline-flex items-center gap-1 text-ink-300">
+      <MaterialIcon material={material} size={16} />
+      <span>
+        {material?.name ?? materialLabel(id)} ×{qty}
+      </span>
+    </span>
   )
 }

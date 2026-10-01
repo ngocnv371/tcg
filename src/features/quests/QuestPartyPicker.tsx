@@ -84,7 +84,7 @@ export function QuestPartyPicker({
               Choose your party
             </h2>
             <p className="mt-0.5 truncate text-sm text-ink-400">
-              {quest.enemies.map((enemy) => enemy.icon).join(' ')} · recommended{' '}
+              {quest.enemies.map((enemy) => enemy.name).join(', ')} · recommended{' '}
               {quest.req_power.toLocaleString('en-US')} power
             </p>
           </div>

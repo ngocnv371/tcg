@@ -104,6 +104,42 @@ export function coreVariantForRank(rank: number): CoreVariant {
   return CORE_VARIANTS[index - 1]
 }
 
+/** The four numbers a battle needs from an enemy, before and after threat scaling. */
+export type EnemyStats = {
+  hp: number
+  atk: number
+  def: number
+  spd: number
+}
+
+/** The threat a line falls back to: a bestiary row as written. */
+export const DEFAULT_THREAT = 1
+
+/**
+ * One encounter's copy of a bestiary monster: the base stats multiplied by the encounter's
+ * threat rating.
+ *
+ * The bestiary owns a monster's numbers and never changes them, so a monster re-used by a
+ * later quest needs no second stat line — the encounter tunes `threat` instead. That also
+ * keeps a quest's difficulty off the card catalog: `data/enemies.csv` is not `data/assets.csv`.
+ *
+ * SPD is deliberately left alone. It is a turn *rate* against `SPEED_FULL`, so scaling it would
+ * make a threat-3 enemy act nine times as often per player turn instead of hitting three times
+ * as hard. Everything else scales linearly, which keeps `attackDamage`'s ATK-minus-DEF spread
+ * proportional to the fight's size.
+ */
+export function scaleEnemyStats(base: EnemyStats, threat: number = DEFAULT_THREAT): EnemyStats {
+  // Always rebuild exactly these four keys, and always as whole numbers: the caller may hand us a
+  // bestiary row (which carries `id`/`name`/`tags` too, and spreading those into a combatant would
+  // clobber its derived ones), and a rebased bestiary line is itself a fraction until it is scaled.
+  return {
+    hp: Math.max(1, Math.round(base.hp * threat)),
+    atk: Math.max(1, Math.round(base.atk * threat)),
+    def: Math.max(0, Math.round(base.def * threat)),
+    spd: base.spd,
+  }
+}
+
 export type RankUpStep = {
   gold: number
   /** Fixed materials for the step; the card's tag Cores are added on top by `rankUpCost`. */
@@ -351,7 +387,7 @@ export function pickRank(
  * Quest battles need one stat the idle dungeon runs never did: SPD, which decides how often
  * a combatant acts. It is a per-card value (baseline 10 — a card with 20 acts twice as often
  * as a card with 10), stored on the card row so the server never derives it twice.
- * `rollCardSpeed` is what `scripts/cards-4-import.mjs` stamps onto `cards.speed`.
+ * `rollCardSpeed` is what `scripts/assets-import.mjs` stamps onto `cards.speed`.
  */
 export const CARD_SPEED_BASE = 10
 export const CARD_SPEED_MIN = 7

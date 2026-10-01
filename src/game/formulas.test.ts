@@ -7,6 +7,7 @@ import {
   CHEST_ODDS,
   CORE_TAGS,
   CORE_VARIANTS,
+  DEFAULT_THREAT,
   RANK_META,
   RANK_UP_LADDER,
   TUTORIAL_DUNGEON_ID,
@@ -29,6 +30,7 @@ import {
   runMultiplier,
   runSlotsForLevel,
   rushCost,
+  scaleEnemyStats,
   tagCoreId,
   tagLabel,
   tutorialReward,
@@ -262,5 +264,29 @@ describe('rush cost', () => {
     expect(rushCost(1)).toBe(2)
     expect(rushCost(0)).toBe(1)
     expect(rushCost(-5)).toBe(1)
+  })
+})
+
+describe('enemy threat scaling', () => {
+  // the Capfather, as the bestiary authors it
+  const base = { hp: 216, atk: 52, def: 20, spd: 7 }
+
+  it('leaves the bestiary numbers alone at the default threat', () => {
+    expect(scaleEnemyStats(base)).toEqual(base)
+    expect(scaleEnemyStats(base, DEFAULT_THREAT)).toEqual(base)
+  })
+
+  it('scales every stat but SPD, which is a turn rate, not a size', () => {
+    expect(scaleEnemyStats(base, 2)).toEqual({ hp: 432, atk: 104, def: 40, spd: 7 })
+    expect(scaleEnemyStats(base, 1.8)).toEqual({ hp: 389, atk: 94, def: 36, spd: 7 })
+  })
+
+  it('never rounds a live enemy down to nothing', () => {
+    expect(scaleEnemyStats({ hp: 1, atk: 1, def: 0, spd: 5 }, 0.1)).toEqual({
+      hp: 1,
+      atk: 1,
+      def: 0,
+      spd: 5,
+    })
   })
 })

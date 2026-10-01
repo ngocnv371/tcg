@@ -3,6 +3,12 @@ import { useState } from 'react'
 import type { QuestLine } from '@/types/db'
 
 /**
+ * One stand-in avatar for every speaker until speakers get their own portraits, which is why a
+ * quest line carries no avatar of its own.
+ */
+const SPEAKER_AVATAR = '💬'
+
+/**
  * A visual-novel beat: a speaker avatar with a text panel, tapped to advance. Used for both
  * a quest's `intro` (the context before the fight) and its `outro` (after a win).
  */
@@ -51,7 +57,7 @@ export function QuestDialogue({
             className="leading-none drop-shadow-[0_0_24px_rgba(224,169,41,0.25)]"
             style={{ fontSize: 'clamp(3rem, 16vh, 6rem)' }}
           >
-            {line.avatar}
+            {SPEAKER_AVATAR}
           </span>
         </div>
 
