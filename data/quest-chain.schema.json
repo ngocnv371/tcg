@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runewatch.local/schemas/quest-chain.json",
+  "title": "Runewatch quest chain",
+  "description": "Authored quest encounters. An opponent is named by its bestiary id and never restates its stats: those live once in data/enemies.csv and are scaled per encounter by a threat rating. Loaded by src/game/quests.ts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "quests"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1 },
+    "bestiary": {
+      "type": "string",
+      "description": "The bestiary in data/ this file's opponents come from, e.g. 'the-long-dark.enemies.csv'. Defaults to 'enemies.csv'."
+    },
+    "acts": {
+      "type": "array",
+      "description": "Chapter metadata, mirroring the design doc's 'acts at a glance'. Optional, and only present once the chain itself is authored; a quest's `act` must name one of these ids.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "tags", "coreGrade"],
+        "properties": {
+          "id": { "$ref": "#/$defs/slug" },
+          "name": { "type": "string", "minLength": 1 },
+          "tags": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/coreTag" }
+          },
+          "coreGrade": { "$ref": "#/$defs/coreVariant" }
+        }
+      }
+    },
+    "quests": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/quest" }
+    }
+  },
+  "$defs": {
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+    },
+    "coreTag": {
+      "enum": ["physical", "fire", "water", "electric", "grass", "earth", "ice", "dragon", "dark"]
+    },
+    "coreVariant": {
+      "enum": ["lesser", "greater", "mythic", "legendary"]
+    },
+    "materials": {
+      "type": "object",
+      "description": "Core material id (see tagCoreId in src/game/formulas.ts) to quantity. Cores only: quests.test.ts asserts every id comes from allCoreIds().",
+      "minProperties": 1,
+      "additionalProperties": { "type": "integer", "minimum": 1 }
+    },
+    "reward": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gold", "materials"],
+      "properties": {
+        "gold": { "type": "integer", "minimum": 1 },
+        "materials": { "$ref": "#/$defs/materials" }
+      }
+    },
+    "line": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["speaker", "text"],
+      "properties": {
+        "speaker": { "type": "string", "minLength": 1 },
+        "text": { "type": "string", "minLength": 1 }
+      }
+    },
+    "enemy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cardId"],
+      "properties": {
+        "cardId": {
+          "description": "Bestiary id in data/enemies.csv. It supplies the base stats, the display name and the art.",
+          "$ref": "#/$defs/slug"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "default": 1,
+          "description": "How many identical copies stand in the encounter (the design doc's '2x'). All copies share one stat line."
+        },
+        "elite": {
+          "type": "boolean",
+          "default": false,
+          "description": "Authoring flag for the design doc's '*(elite)*' marker. The loader ignores it; it marks the monsters meant to be tougher, which the balance pass turns into a `threat`."
+        },
+        "threat": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Multiplies this line's bestiary stats, for the rare encounter that wants to sit off the row. Omitted in almost every line: a monster's numbers come from the bestiary."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Presentation override for the enemy line; defaults to the bestiary's name."
+        }
+      }
+    },
+    "quest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "order", "name", "power", "enemies", "reward", "firstClear"],
+      "properties": {
+        "id": { "$ref": "#/$defs/slug" },
+        "order": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "act": {
+          "description": "Id of an entry in `acts`. Omitted for a quest that is not part of a numbered act (the starter quests).",
+          "$ref": "#/$defs/slug"
+        },
+        "boss": {
+          "type": "boolean",
+          "default": false,
+          "description": "Authoring flag for the act-finale quests. Presentation only."
+        },
+        "power": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Advisory recommended power, shown on the quest card. The server never gates a clear on it."
+        },
+        "hook": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The design doc's one-line Hook: the seed the `intro` grows from. Narrative only — nothing reads it at runtime."
+        },
+        "enemies": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "description": "Authored enemy LINES, not combatants: `count` is expanded by the loader, so the expanded roster must still be 1..5 (asserted by quests.test.ts).",
+          "items": { "$ref": "#/$defs/enemy" }
+        },
+        "reward": {
+          "description": "Repeating reward, paid on every clear.",
+          "$ref": "#/$defs/reward"
+        },
+        "firstClear": {
+          "description": "One-time bonus, paid only on the first clear (`first_cleared_at` is never rewritten, so it cannot be farmed).",
+          "$ref": "#/$defs/reward"
+        },
+        "intro": {
+          "type": "array",
+          "default": [],
+          "description": "The visual-novel beats before the fight. Optional while a quest's script is still a Hook line in the design doc.",
+          "items": { "$ref": "#/$defs/line" }
+        },
+        "outro": {
+          "type": "array",
+          "default": [],
+          "description": "The visual-novel beats after a win. Optional for the same reason as `intro`.",
+          "items": { "$ref": "#/$defs/line" }
+        }
+      }
+    }
+  }
+}

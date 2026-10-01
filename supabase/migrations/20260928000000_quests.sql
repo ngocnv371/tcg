@@ -32,7 +32,7 @@ create table if not exists public.quests (
   -- Advisory "recommended power" for the card; the server does not gate a clear on it.
   req_power integer not null default 0 check (req_power >= 0),
   -- [{ "id", "name", "icon", "hp", "atk", "def", "spd" }, ...] — 1..5 members, authored in
-  -- src/game/quests.ts and seeded by scripts/build-seed.mjs.
+  -- src/game/quests.ts and written by the quest importer (they are catalog content, not seeded).
   enemies jsonb not null
     check (jsonb_typeof(enemies) = 'array' and jsonb_array_length(enemies) between 1 and 5),
   -- Repeating reward, paid every clear.
@@ -47,7 +47,7 @@ create table if not exists public.quests (
 );
 
 comment on table public.quests is
-  'Authored quest encounters. Seeded from src/game/quests.ts by npm run seed:build.';
+  'Authored quest encounters, imported from src/game/quests.ts by the quest importer.';
 
 -- ---------------------------------------------------------------------------
 -- Player state: how often a quest has been cleared

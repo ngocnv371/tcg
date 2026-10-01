@@ -1,0 +1,3193 @@
+{
+  "$schema": "./quest-chain.schema.json",
+  "version": 1,
+  "bestiary": "the-long-dark.enemies.csv",
+  "acts": [
+    {
+      "id": "roots_and_rot",
+      "name": "Roots and Rot",
+      "tags": [
+        "grass",
+        "earth"
+      ],
+      "coreGrade": "lesser"
+    },
+    {
+      "id": "the_overgrown_wilds",
+      "name": "The Overgrown Wilds",
+      "tags": [
+        "grass",
+        "dark"
+      ],
+      "coreGrade": "lesser"
+    },
+    {
+      "id": "the_sunken_coast",
+      "name": "The Sunken Coast",
+      "tags": [
+        "water",
+        "grass"
+      ],
+      "coreGrade": "greater"
+    },
+    {
+      "id": "the_frozen_reaches",
+      "name": "The Frozen Reaches",
+      "tags": [
+        "ice"
+      ],
+      "coreGrade": "greater"
+    },
+    {
+      "id": "the_emberwilds",
+      "name": "The Emberwilds",
+      "tags": [
+        "fire",
+        "earth"
+      ],
+      "coreGrade": "mythic"
+    },
+    {
+      "id": "the_storm_peaks",
+      "name": "The Storm Peaks",
+      "tags": [
+        "electric"
+      ],
+      "coreGrade": "mythic"
+    },
+    {
+      "id": "the_underearth",
+      "name": "The Underearth",
+      "tags": [
+        "earth"
+      ],
+      "coreGrade": "mythic"
+    },
+    {
+      "id": "the_shadowed_marches",
+      "name": "The Shadowed Marches",
+      "tags": [
+        "dark"
+      ],
+      "coreGrade": "legendary"
+    },
+    {
+      "id": "the_dragons_spine",
+      "name": "The Dragon's Spine",
+      "tags": [
+        "dragon",
+        "fire"
+      ],
+      "coreGrade": "legendary"
+    },
+    {
+      "id": "the_dark_lords_citadel",
+      "name": "The Dark Lord's Citadel",
+      "tags": [
+        "dark",
+        "dragon"
+      ],
+      "coreGrade": "legendary"
+    }
+  ],
+  "quests": [
+    {
+      "id": "mushroom_picking",
+      "order": 1,
+      "name": "Mushroom Picking",
+      "act": "roots_and_rot",
+      "power": 80,
+      "hook": "Gather a basket of mushrooms from the cave mouth before supper. What could possibly go wrong?",
+      "enemies": [
+        {
+          "cardId": "sporeling"
+        },
+        {
+          "cardId": "cave_roach"
+        }
+      ],
+      "reward": {
+        "gold": 150,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 190,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_whispering_shaft",
+      "order": 2,
+      "name": "The Whispering Shaft",
+      "act": "roots_and_rot",
+      "power": 210,
+      "hook": "The shaft exhales a sound like whispered names. You go down to find out whose.",
+      "enemies": [
+        {
+          "cardId": "whisper_bat"
+        },
+        {
+          "cardId": "dust_skitter"
+        }
+      ],
+      "reward": {
+        "gold": 360,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 450,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "gloomcap_hollow",
+      "order": 3,
+      "name": "Gloomcap Hollow",
+      "act": "roots_and_rot",
+      "power": 370,
+      "hook": "Where the light fails, the mushrooms glow — and so do the eyes watching them.",
+      "enemies": [
+        {
+          "cardId": "gloomcap_sentinel"
+        },
+        {
+          "cardId": "pale_grub"
+        }
+      ],
+      "reward": {
+        "gold": 590,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 740,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_mycelium_warren",
+      "order": 4,
+      "name": "The Mycelium Warren",
+      "act": "roots_and_rot",
+      "power": 555,
+      "hook": "The tunnel walls are threaded with white filaments — and the filaments are listening.",
+      "enemies": [
+        {
+          "cardId": "mycelium_weaver"
+        },
+        {
+          "cardId": "spore_spitter"
+        },
+        {
+          "cardId": "rotling"
+        }
+      ],
+      "reward": {
+        "gold": 850,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 1060,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_capfather",
+      "order": 5,
+      "name": "The Capfather",
+      "act": "roots_and_rot",
+      "power": 760,
+      "hook": "Something enormous stirs where the warren turns deepest. The mushrooms were only its fingers.",
+      "enemies": [
+        {
+          "cardId": "capfather",
+          "elite": true
+        },
+        {
+          "cardId": "rootling",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 1120,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 1400,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "down_the_rootwell",
+      "order": 6,
+      "name": "Down the Rootwell",
+      "act": "roots_and_rot",
+      "power": 985,
+      "hook": "The cave's roots drop away into black water. You climb down anyway.",
+      "enemies": [
+        {
+          "cardId": "root_gnawer"
+        },
+        {
+          "cardId": "blind_mole"
+        }
+      ],
+      "reward": {
+        "gold": 1410,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 1760,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_blindstream",
+      "order": 7,
+      "name": "The Blindstream",
+      "act": "roots_and_rot",
+      "power": 1220,
+      "hook": "A river runs under the hill, and it runs the wrong way.",
+      "enemies": [
+        {
+          "cardId": "pale_crawfish"
+        },
+        {
+          "cardId": "silt_crawler"
+        },
+        {
+          "cardId": "drownmoss"
+        }
+      ],
+      "reward": {
+        "gold": 1710,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 2140,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "lantern_moss_grotto",
+      "order": 8,
+      "name": "Lantern Moss Grotto",
+      "act": "roots_and_rot",
+      "power": 1470,
+      "hook": "The grotto glows with fireflies that should not exist this far underground.",
+      "enemies": [
+        {
+          "cardId": "cinderlantern_swarm"
+        },
+        {
+          "cardId": "moss_lantern"
+        },
+        {
+          "cardId": "grotto_crawler"
+        }
+      ],
+      "reward": {
+        "gold": 2020,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 2530,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_fungal_throne",
+      "order": 9,
+      "name": "The Fungal Throne",
+      "act": "roots_and_rot",
+      "power": 1735,
+      "hook": "The warren widens into a hall, and at its end sits a throne that was grown, not built.",
+      "enemies": [
+        {
+          "cardId": "sporeguard"
+        },
+        {
+          "cardId": "cap_knight"
+        },
+        {
+          "cardId": "mycelium_priest"
+        }
+      ],
+      "reward": {
+        "gold": 2340,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 2930,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "mycelarch_the_rot_beneath",
+      "order": 10,
+      "name": "Mycelarch, the Rot Beneath",
+      "act": "roots_and_rot",
+      "power": 2010,
+      "boss": true,
+      "hook": "The throne is occupied. The thing on it has been waiting for someone to reach it.",
+      "enemies": [
+        {
+          "cardId": "mycelarch",
+          "elite": true
+        },
+        {
+          "cardId": "spore_sentinel",
+          "count": 2
+        },
+        {
+          "cardId": "rot_herald"
+        }
+      ],
+      "reward": {
+        "gold": 2670,
+        "materials": {
+          "lesser_grass_core": 1,
+          "lesser_earth_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 4010,
+        "materials": {
+          "greater_grass_core": 2,
+          "greater_earth_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_bramblegate",
+      "order": 11,
+      "name": "The Bramblegate",
+      "act": "the_overgrown_wilds",
+      "power": 2295,
+      "hook": "The road out of the valley is a wall of thorns now, and the thorns are moving.",
+      "enemies": [
+        {
+          "cardId": "bramble_hound"
+        },
+        {
+          "cardId": "thornling"
+        }
+      ],
+      "reward": {
+        "gold": 3000,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 3750,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "wolf_of_the_green_trail",
+      "order": 12,
+      "name": "Wolf of the Green Trail",
+      "act": "the_overgrown_wilds",
+      "power": 2595,
+      "hook": "Something has been eating the woodcutters' dogs, and it is not a dog.",
+      "enemies": [
+        {
+          "cardId": "greenpelt_wolf"
+        },
+        {
+          "cardId": "yearling"
+        }
+      ],
+      "reward": {
+        "gold": 3350,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 4190,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_thornsingers_grove",
+      "order": 13,
+      "name": "The Thornsinger's Grove",
+      "act": "the_overgrown_wilds",
+      "power": 2900,
+      "hook": "The grove hums, and every branch leans toward you like an ear.",
+      "enemies": [
+        {
+          "cardId": "thornsinger"
+        },
+        {
+          "cardId": "chorus_vine"
+        },
+        {
+          "cardId": "grove_stalker"
+        }
+      ],
+      "reward": {
+        "gold": 3700,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 4630,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "hornets_of_the_high_meadow",
+      "order": 14,
+      "name": "Hornets of the High Meadow",
+      "act": "the_overgrown_wilds",
+      "power": 3220,
+      "hook": "The meadow's hornets have grown, and they have started keeping prisoners.",
+      "enemies": [
+        {
+          "cardId": "meadow_hornet"
+        },
+        {
+          "cardId": "paper_warden"
+        }
+      ],
+      "reward": {
+        "gold": 4060,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 5080,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_thicket_tyrant",
+      "order": 15,
+      "name": "The Thicket Tyrant",
+      "act": "the_overgrown_wilds",
+      "power": 3545,
+      "hook": "The thicket has a master. You can hear it breathing from the road.",
+      "enemies": [
+        {
+          "cardId": "thicket_tyrant",
+          "elite": true
+        },
+        {
+          "cardId": "thorn_guard",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 4430,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 5540,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_petrified_orchard",
+      "order": 16,
+      "name": "The Petrified Orchard",
+      "act": "the_overgrown_wilds",
+      "power": 3880,
+      "hook": "The orchard's trees turned to stone overnight. One thing in it didn't.",
+      "enemies": [
+        {
+          "cardId": "orchard_sentinel"
+        },
+        {
+          "cardId": "fruit_wasp"
+        }
+      ],
+      "reward": {
+        "gold": 4800,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 6000,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "grove_of_the_hollow_stag",
+      "order": 17,
+      "name": "Grove of the Hollow Stag",
+      "act": "the_overgrown_wilds",
+      "power": 4225,
+      "hook": "The stag's antlers are full of eyes, and every one is looking at you.",
+      "enemies": [
+        {
+          "cardId": "hollow_stag"
+        },
+        {
+          "cardId": "eye_bloom"
+        },
+        {
+          "cardId": "shadow_fawn"
+        }
+      ],
+      "reward": {
+        "gold": 5180,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 6480,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_antlered_kings_hunt",
+      "order": 18,
+      "name": "The Antlered King's Hunt",
+      "act": "the_overgrown_wilds",
+      "power": 4575,
+      "hook": "You are the quarry now, and the hunt has already begun.",
+      "enemies": [
+        {
+          "cardId": "antlered_huntsman"
+        },
+        {
+          "cardId": "pack_thorn",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 5560,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 6950,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_withering_bloom",
+      "order": 19,
+      "name": "The Withering Bloom",
+      "act": "the_overgrown_wilds",
+      "power": 4935,
+      "hook": "Where the bloom passes, the green goes grey.",
+      "enemies": [
+        {
+          "cardId": "witherbloom"
+        },
+        {
+          "cardId": "blight_crawler"
+        },
+        {
+          "cardId": "grey_gardener"
+        }
+      ],
+      "reward": {
+        "gold": 5950,
+        "materials": {
+          "lesser_grass_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 7440,
+        "materials": {
+          "greater_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_verdant_sovereign",
+      "order": 20,
+      "name": "The Verdant Sovereign",
+      "act": "the_overgrown_wilds",
+      "power": 5305,
+      "boss": true,
+      "hook": "The wilds have a king, and he does not want subjects. He wants soil.",
+      "enemies": [
+        {
+          "cardId": "verdant_sovereign",
+          "elite": true
+        },
+        {
+          "cardId": "court_of_thorns",
+          "count": 2
+        },
+        {
+          "cardId": "sovereigns_herald"
+        },
+        {
+          "cardId": "bloomguard"
+        }
+      ],
+      "reward": {
+        "gold": 6340,
+        "materials": {
+          "lesser_grass_core": 1,
+          "lesser_dark_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 9510,
+        "materials": {
+          "greater_grass_core": 2,
+          "greater_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_drowned_causeway",
+      "order": 21,
+      "name": "The Drowned Causeway",
+      "act": "the_sunken_coast",
+      "power": 5680,
+      "hook": "The old coast road is underwater now. So are the things that walk it.",
+      "enemies": [
+        {
+          "cardId": "mudback_crab"
+        },
+        {
+          "cardId": "drown_walker"
+        }
+      ],
+      "reward": {
+        "gold": 6740,
+        "materials": {
+          "greater_water_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 8430,
+        "materials": {
+          "mythic_water_core": 1
+        }
+      }
+    },
+    {
+      "id": "saltmarsh_stalker",
+      "order": 22,
+      "name": "Saltmarsh Stalker",
+      "act": "the_sunken_coast",
+      "power": 6060,
+      "hook": "The reeds move against the wind.",
+      "enemies": [
+        {
+          "cardId": "saltmarsh_stalker"
+        },
+        {
+          "cardId": "reed_lurker"
+        }
+      ],
+      "reward": {
+        "gold": 7150,
+        "materials": {
+          "greater_water_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 8940,
+        "materials": {
+          "mythic_water_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_gilded_reef",
+      "order": 23,
+      "name": "The Gilded Reef",
+      "act": "the_sunken_coast",
+      "power": 6450,
+      "hook": "A reef of treasure and teeth, and the tide is going out.",
+      "enemies": [
+        {
+          "cardId": "reef_warden"
+        },
+        {
+          "cardId": "gilded_eel"
+        },
+        {
+          "cardId": "coral_crab"
+        }
+      ],
+      "reward": {
+        "gold": 7560,
+        "materials": {
+          "greater_water_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 9450,
+        "materials": {
+          "mythic_water_core": 1
+        }
+      }
+    },
+    {
+      "id": "tidehollow_grotto",
+      "order": 24,
+      "name": "Tidehollow Grotto",
+      "act": "the_sunken_coast",
+      "power": 6845,
+      "hook": "The cave fills with the tide. You have until it does.",
+      "enemies": [
+        {
+          "cardId": "tidehollow_horror"
+        },
+        {
+          "cardId": "grotto_newt"
+        }
+      ],
+      "reward": {
+        "gold": 7970,
+        "materials": {
+          "greater_water_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 9960,
+        "materials": {
+          "mythic_water_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_keeper_of_the_kelp",
+      "order": 25,
+      "name": "The Keeper of the Kelp",
+      "act": "the_sunken_coast",
+      "power": 7250,
+      "hook": "The kelp forest has a keeper, and it is very old.",
+      "enemies": [
+        {
+          "cardId": "keeper_of_the_kelp",
+          "elite": true
+        },
+        {
+          "cardId": "kelp_shade",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 8390,
+        "materials": {
+          "greater_water_core": 1
+        }
+      },
+      "firstClear": {
+        "gold": 10490,
+        "materials": {
+          "mythic_water_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_sinking_village",
+      "order": 26,
+      "name": "The Sinking Village",
+      "act": "the_sunken_coast",
+      "power": 7655,
+      "hook": "The village is going under, one house at a time.",
+      "enemies": [
+        {
+          "cardId": "flooded_villager"
+        },
+        {
+          "cardId": "waterlogged_hound"
+        },
+        {
+          "cardId": "silt_wretch"
+        }
+      ],
+      "reward": {
+        "gold": 8810,
+        "materials": {
+          "greater_water_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 11010,
+        "materials": {
+          "mythic_water_core": 1
+        }
+      }
+    },
+    {
+      "id": "blackwater_fen",
+      "order": 27,
+      "name": "Blackwater Fen",
+      "act": "the_sunken_coast",
+      "power": 8070,
+      "hook": "The fen water is black and does not reflect you. That should worry you.",
+      "enemies": [
+        {
+          "cardId": "blackwater_lurker"
+        },
+        {
+          "cardId": "fen_wisp"
+        },
+        {
+          "cardId": "mire_crawler"
+        }
+      ],
+      "reward": {
+        "gold": 9230,
+        "materials": {
+          "greater_water_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 11540,
+        "materials": {
+          "mythic_water_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_lure_lights",
+      "order": 28,
+      "name": "The Lure-Lights",
+      "act": "the_sunken_coast",
+      "power": 8495,
+      "hook": "The lights on the water are beautiful. They are also a trap.",
+      "enemies": [
+        {
+          "cardId": "deepseeker"
+        },
+        {
+          "cardId": "hook_mouth",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 9660,
+        "materials": {
+          "greater_water_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 12080,
+        "materials": {
+          "mythic_water_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_sunken_chapel",
+      "order": 29,
+      "name": "The Sunken Chapel",
+      "act": "the_sunken_coast",
+      "power": 8920,
+      "hook": "A chapel sank with its congregation. The bells still ring.",
+      "enemies": [
+        {
+          "cardId": "bell_ringer"
+        },
+        {
+          "cardId": "drowned_acolyte",
+          "count": 2
+        },
+        {
+          "cardId": "nave_guardian"
+        }
+      ],
+      "reward": {
+        "gold": 10090,
+        "materials": {
+          "greater_water_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 12610,
+        "materials": {
+          "mythic_water_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_leviathan_of_the_deep",
+      "order": 30,
+      "name": "The Leviathan of the Deep",
+      "act": "the_sunken_coast",
+      "power": 9355,
+      "boss": true,
+      "hook": "The coast has one master, and the tide goes where it is told.",
+      "enemies": [
+        {
+          "cardId": "leviathan",
+          "elite": true
+        },
+        {
+          "cardId": "tide_herald"
+        },
+        {
+          "cardId": "reef_horror",
+          "count": 2
+        },
+        {
+          "cardId": "drowned_choir"
+        }
+      ],
+      "reward": {
+        "gold": 10530,
+        "materials": {
+          "greater_water_core": 2,
+          "greater_grass_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 15800,
+        "materials": {
+          "mythic_water_core": 2,
+          "mythic_grass_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_frostgate",
+      "order": 31,
+      "name": "The Frostgate",
+      "act": "the_frozen_reaches",
+      "power": 9795,
+      "hook": "The pass is closed by ice that grows while you watch.",
+      "enemies": [
+        {
+          "cardId": "frostguard"
+        },
+        {
+          "cardId": "frostplume_sentry"
+        }
+      ],
+      "reward": {
+        "gold": 10970,
+        "materials": {
+          "greater_ice_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 13710,
+        "materials": {
+          "mythic_ice_core": 1
+        }
+      }
+    },
+    {
+      "id": "whiteout_pass",
+      "order": 32,
+      "name": "Whiteout Pass",
+      "act": "the_frozen_reaches",
+      "power": 10240,
+      "hook": "In the whiteout you will meet yourself. Do not trust it.",
+      "enemies": [
+        {
+          "cardId": "whiteout_shade"
+        },
+        {
+          "cardId": "rime_crawler"
+        }
+      ],
+      "reward": {
+        "gold": 11420,
+        "materials": {
+          "greater_ice_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 14280,
+        "materials": {
+          "mythic_ice_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_frozen_lake",
+      "order": 33,
+      "name": "The Frozen Lake",
+      "act": "the_frozen_reaches",
+      "power": 10690,
+      "hook": "The lake is solid. Something big is sleeping underneath it.",
+      "enemies": [
+        {
+          "cardId": "lake_wyrm"
+        },
+        {
+          "cardId": "ice_skater"
+        },
+        {
+          "cardId": "frozen_herd"
+        }
+      ],
+      "reward": {
+        "gold": 11860,
+        "materials": {
+          "greater_ice_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 14830,
+        "materials": {
+          "mythic_ice_core": 1
+        }
+      }
+    },
+    {
+      "id": "rime_hollow",
+      "order": 34,
+      "name": "Rime Hollow",
+      "act": "the_frozen_reaches",
+      "power": 11145,
+      "hook": "Every breath hangs in the air here, frozen mid-cloud.",
+      "enemies": [
+        {
+          "cardId": "rime_wretch"
+        },
+        {
+          "cardId": "hollow_stag_of_ice"
+        }
+      ],
+      "reward": {
+        "gold": 12320,
+        "materials": {
+          "greater_ice_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 15400,
+        "materials": {
+          "mythic_ice_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_ice_warden",
+      "order": 35,
+      "name": "The Ice-Warden",
+      "act": "the_frozen_reaches",
+      "power": 11610,
+      "hook": "The Warden keeps the cold in — or keeps something else in with it.",
+      "enemies": [
+        {
+          "cardId": "ice_warden",
+          "elite": true
+        },
+        {
+          "cardId": "wardens_hound",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 12770,
+        "materials": {
+          "greater_ice_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 15960,
+        "materials": {
+          "mythic_ice_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_glasswood",
+      "order": 36,
+      "name": "The Glasswood",
+      "act": "the_frozen_reaches",
+      "power": 12075,
+      "hook": "The trees are glass, and they are full of trapped things.",
+      "enemies": [
+        {
+          "cardId": "glasswood_stalker"
+        },
+        {
+          "cardId": "shard_beaver"
+        },
+        {
+          "cardId": "prism_wasp"
+        }
+      ],
+      "reward": {
+        "gold": 13230,
+        "materials": {
+          "greater_ice_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 16540,
+        "materials": {
+          "mythic_ice_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_howling_glacier",
+      "order": 37,
+      "name": "The Howling Glacier",
+      "act": "the_frozen_reaches",
+      "power": 12550,
+      "hook": "The glacier howls, and the howl is getting closer.",
+      "enemies": [
+        {
+          "cardId": "glacier_howler"
+        },
+        {
+          "cardId": "frozen_pack",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 13690,
+        "materials": {
+          "greater_ice_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 17110,
+        "materials": {
+          "mythic_ice_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_cave_of_frozen_birds",
+      "order": 38,
+      "name": "The Cave of Frozen Birds",
+      "act": "the_frozen_reaches",
+      "power": 13025,
+      "hook": "Hundreds of birds hang frozen in the cave, and one of them just blinked.",
+      "enemies": [
+        {
+          "cardId": "frozen_falcon"
+        },
+        {
+          "cardId": "icicle_chicken",
+          "count": 2
+        },
+        {
+          "cardId": "cave_hermit"
+        }
+      ],
+      "reward": {
+        "gold": 14150,
+        "materials": {
+          "greater_ice_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 17690,
+        "materials": {
+          "mythic_ice_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_wintering_court",
+      "order": 39,
+      "name": "The Wintering Court",
+      "act": "the_frozen_reaches",
+      "power": 13510,
+      "hook": "The frozen court holds session, and the courtiers have been waiting a very long time.",
+      "enemies": [
+        {
+          "cardId": "courtier_of_rime"
+        },
+        {
+          "cardId": "frozen_herald"
+        },
+        {
+          "cardId": "statue_guard"
+        }
+      ],
+      "reward": {
+        "gold": 14620,
+        "materials": {
+          "greater_ice_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 18280,
+        "materials": {
+          "mythic_ice_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_hoarfrost_queen",
+      "order": 40,
+      "name": "The Hoarfrost Queen",
+      "act": "the_frozen_reaches",
+      "power": 13995,
+      "boss": true,
+      "hook": "Winter is not a season here. It is a ruler, and she has noticed you.",
+      "enemies": [
+        {
+          "cardId": "hoarfrost_queen",
+          "elite": true
+        },
+        {
+          "cardId": "queens_guard",
+          "count": 2
+        },
+        {
+          "cardId": "crown_herald"
+        },
+        {
+          "cardId": "winter_shade"
+        }
+      ],
+      "reward": {
+        "gold": 15090,
+        "materials": {
+          "greater_ice_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 22640,
+        "materials": {
+          "mythic_ice_core": 2
+        }
+      }
+    },
+    {
+      "id": "ashfall_field",
+      "order": 41,
+      "name": "Ashfall Field",
+      "act": "the_emberwilds",
+      "power": 14485,
+      "hook": "Ash falls like grey snow, and beneath it the ground is warm.",
+      "enemies": [
+        {
+          "cardId": "ash_hound"
+        },
+        {
+          "cardId": "cinder_flea"
+        }
+      ],
+      "reward": {
+        "gold": 15560,
+        "materials": {
+          "mythic_fire_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 19450,
+        "materials": {
+          "legendary_fire_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_cinder_wood",
+      "order": 42,
+      "name": "The Cinder Wood",
+      "act": "the_emberwilds",
+      "power": 14985,
+      "hook": "The forest burned years ago and simply never stopped.",
+      "enemies": [
+        {
+          "cardId": "emberpelt_prowler"
+        },
+        {
+          "cardId": "smoldering_snag"
+        },
+        {
+          "cardId": "ash_crawler"
+        }
+      ],
+      "reward": {
+        "gold": 16040,
+        "materials": {
+          "mythic_fire_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 20050,
+        "materials": {
+          "legendary_fire_core": 1
+        }
+      }
+    },
+    {
+      "id": "magma_shallows",
+      "order": 43,
+      "name": "Magma Shallows",
+      "act": "the_emberwilds",
+      "power": 15485,
+      "hook": "The shallow water is boiling, and something is swimming in it.",
+      "enemies": [
+        {
+          "cardId": "magma_pup"
+        },
+        {
+          "cardId": "scald_newt"
+        },
+        {
+          "cardId": "boil_hound"
+        }
+      ],
+      "reward": {
+        "gold": 16520,
+        "materials": {
+          "mythic_fire_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 20650,
+        "materials": {
+          "legendary_fire_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_boiling_spring",
+      "order": 44,
+      "name": "The Boiling Spring",
+      "act": "the_emberwilds",
+      "power": 15995,
+      "hook": "The spring runs hot enough to strip bone, and something lives in it happily.",
+      "enemies": [
+        {
+          "cardId": "spring_horror"
+        },
+        {
+          "cardId": "scalded_wretch"
+        }
+      ],
+      "reward": {
+        "gold": 17000,
+        "materials": {
+          "mythic_fire_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 21250,
+        "materials": {
+          "legendary_fire_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_forgebeast",
+      "order": 45,
+      "name": "The Forgebeast",
+      "act": "the_emberwilds",
+      "power": 16505,
+      "hook": "The forge never stopped, and neither did what feeds it.",
+      "enemies": [
+        {
+          "cardId": "forgebeast",
+          "elite": true
+        },
+        {
+          "cardId": "bellows_fiend",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 17480,
+        "materials": {
+          "mythic_fire_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 21850,
+        "materials": {
+          "legendary_fire_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_obsidian_stair",
+      "order": 46,
+      "name": "The Obsidian Stair",
+      "act": "the_emberwilds",
+      "power": 17020,
+      "hook": "A stair of black glass climbs into the smoke, and something is climbing down.",
+      "enemies": [
+        {
+          "cardId": "obsidian_stalker"
+        },
+        {
+          "cardId": "stair_wisp"
+        },
+        {
+          "cardId": "shard_ram"
+        }
+      ],
+      "reward": {
+        "gold": 17970,
+        "materials": {
+          "mythic_fire_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 22460,
+        "materials": {
+          "legendary_fire_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_ember_monkeys",
+      "order": 47,
+      "name": "The Ember Monkeys",
+      "act": "the_emberwilds",
+      "power": 17540,
+      "hook": "The ember monkeys stole your supplies and are laughing about it.",
+      "enemies": [
+        {
+          "cardId": "ember_monkey"
+        },
+        {
+          "cardId": "tallow_ape"
+        },
+        {
+          "cardId": "sparrowcinder"
+        }
+      ],
+      "reward": {
+        "gold": 18460,
+        "materials": {
+          "mythic_fire_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 23080,
+        "materials": {
+          "legendary_fire_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_cinder_carnival",
+      "order": 48,
+      "name": "The Cinder Carnival",
+      "act": "the_emberwilds",
+      "power": 18065,
+      "hook": "Someone built a carnival in the lava fields, and the rides are still running.",
+      "enemies": [
+        {
+          "cardId": "ringmaster_of_sparks"
+        },
+        {
+          "cardId": "cannon_chicken"
+        },
+        {
+          "cardId": "puppet_of_ash"
+        }
+      ],
+      "reward": {
+        "gold": 18950,
+        "materials": {
+          "mythic_fire_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 23690,
+        "materials": {
+          "legendary_fire_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_caldera_rim",
+      "order": 49,
+      "name": "The Caldera Rim",
+      "act": "the_emberwilds",
+      "power": 18595,
+      "hook": "The rim is the only solid ground for miles, and it is cracking.",
+      "enemies": [
+        {
+          "cardId": "caldera_sentinel"
+        },
+        {
+          "cardId": "rim_crawler"
+        },
+        {
+          "cardId": "eruption_hound"
+        }
+      ],
+      "reward": {
+        "gold": 19450,
+        "materials": {
+          "mythic_fire_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 24310,
+        "materials": {
+          "legendary_fire_core": 1
+        }
+      }
+    },
+    {
+      "id": "pyroclast_the_mountains_heart",
+      "order": 50,
+      "name": "Pyroclast, the Mountain's Heart",
+      "act": "the_emberwilds",
+      "power": 19125,
+      "boss": true,
+      "hook": "The mountain has a heart, and it has been beating for a thousand years. Tonight it wakes.",
+      "enemies": [
+        {
+          "cardId": "pyroclast",
+          "elite": true
+        },
+        {
+          "cardId": "caldera_guard"
+        },
+        {
+          "cardId": "ember_ape",
+          "count": 2
+        },
+        {
+          "cardId": "magma_herald"
+        }
+      ],
+      "reward": {
+        "gold": 19940,
+        "materials": {
+          "mythic_fire_core": 2,
+          "mythic_earth_core": 2
+        }
+      },
+      "firstClear": {
+        "gold": 29910,
+        "materials": {
+          "legendary_fire_core": 2,
+          "legendary_earth_core": 1
+        }
+      }
+    },
+    {
+      "id": "thunderclap_ridge",
+      "order": 51,
+      "name": "Thunderclap Ridge",
+      "act": "the_storm_peaks",
+      "power": 19665,
+      "hook": "Every step on the ridge throws a spark, and something is walking the same path.",
+      "enemies": [
+        {
+          "cardId": "spark_hound"
+        },
+        {
+          "cardId": "ridge_gnat"
+        }
+      ],
+      "reward": {
+        "gold": 20440,
+        "materials": {
+          "mythic_electric_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 25550,
+        "materials": {
+          "legendary_electric_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_static_meadow",
+      "order": 52,
+      "name": "The Static Meadow",
+      "act": "the_storm_peaks",
+      "power": 20205,
+      "hook": "The grass stands on end, and it stands on end because something is near.",
+      "enemies": [
+        {
+          "cardId": "static_stag"
+        },
+        {
+          "cardId": "charge_hare"
+        },
+        {
+          "cardId": "field_mouse"
+        }
+      ],
+      "reward": {
+        "gold": 20950,
+        "materials": {
+          "mythic_electric_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 26190,
+        "materials": {
+          "legendary_electric_core": 1
+        }
+      }
+    },
+    {
+      "id": "voltstags_herd",
+      "order": 53,
+      "name": "Voltstag's Herd",
+      "act": "the_storm_peaks",
+      "power": 20755,
+      "hook": "The herd moves as one animal, and one animal is looking at you.",
+      "enemies": [
+        {
+          "cardId": "herd_bull"
+        },
+        {
+          "cardId": "volt_doe",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 21450,
+        "materials": {
+          "mythic_electric_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 26810,
+        "materials": {
+          "legendary_electric_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_charged_chasm",
+      "order": 54,
+      "name": "The Charged Chasm",
+      "act": "the_storm_peaks",
+      "power": 21305,
+      "hook": "The chasm hums with current, and the bridge across it is a single copper wire.",
+      "enemies": [
+        {
+          "cardId": "chasm_weaver"
+        },
+        {
+          "cardId": "arc_crawler"
+        },
+        {
+          "cardId": "wire_hound"
+        }
+      ],
+      "reward": {
+        "gold": 21960,
+        "materials": {
+          "mythic_electric_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 27450,
+        "materials": {
+          "legendary_electric_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_stormherd_alpha",
+      "order": 55,
+      "name": "The Stormherd Alpha",
+      "act": "the_storm_peaks",
+      "power": 21855,
+      "hook": "The herd has an alpha, and it has been saving the charge for you.",
+      "enemies": [
+        {
+          "cardId": "stormherd_alpha",
+          "elite": true
+        },
+        {
+          "cardId": "herd_runner",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 22470,
+        "materials": {
+          "mythic_electric_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 28090,
+        "materials": {
+          "legendary_electric_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_lightning_stair",
+      "order": 56,
+      "name": "The Lightning Stair",
+      "act": "the_storm_peaks",
+      "power": 22415,
+      "hook": "A stair of frozen bolts climbs into the clouds, and it does not look safe.",
+      "enemies": [
+        {
+          "cardId": "bolt_sentinel"
+        },
+        {
+          "cardId": "climb_crawler"
+        },
+        {
+          "cardId": "thunder_wisp"
+        }
+      ],
+      "reward": {
+        "gold": 22980,
+        "materials": {
+          "mythic_electric_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 28730,
+        "materials": {
+          "legendary_electric_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_besieged_beacon_tower",
+      "order": 57,
+      "name": "The Besieged Beacon Tower",
+      "act": "the_storm_peaks",
+      "power": 22980,
+      "hook": "The tower's beacon has been dark for days. Someone took it, and someone is holding it.",
+      "enemies": [
+        {
+          "cardId": "beacon_thief"
+        },
+        {
+          "cardId": "tower_wretch",
+          "count": 2
+        },
+        {
+          "cardId": "warden_of_currents"
+        }
+      ],
+      "reward": {
+        "gold": 23490,
+        "materials": {
+          "mythic_electric_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 29360,
+        "materials": {
+          "legendary_electric_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_copper_aviary",
+      "order": 58,
+      "name": "The Copper Aviary",
+      "act": "the_storm_peaks",
+      "power": 23545,
+      "hook": "A cage of copper wire hangs from the peak, and inside it, birds of lightning.",
+      "enemies": [
+        {
+          "cardId": "copper_falcon"
+        },
+        {
+          "cardId": "voltaic_hen"
+        },
+        {
+          "cardId": "wire_weaver"
+        }
+      ],
+      "reward": {
+        "gold": 24010,
+        "materials": {
+          "mythic_electric_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 30010,
+        "materials": {
+          "legendary_electric_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_conduit_spire",
+      "order": 59,
+      "name": "The Conduit Spire",
+      "act": "the_storm_peaks",
+      "power": 24115,
+      "hook": "The spire drinks the storm and stores it. There's a sound like a held breath.",
+      "enemies": [
+        {
+          "cardId": "conduit_warden"
+        },
+        {
+          "cardId": "arc_servant",
+          "count": 2
+        },
+        {
+          "cardId": "spire_howler"
+        }
+      ],
+      "reward": {
+        "gold": 24530,
+        "materials": {
+          "mythic_electric_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 30660,
+        "materials": {
+          "legendary_electric_core": 1
+        }
+      }
+    },
+    {
+      "id": "skybreaker_the_storms_crown",
+      "order": 60,
+      "name": "Skybreaker, the Storm's Crown",
+      "act": "the_storm_peaks",
+      "power": 24690,
+      "boss": true,
+      "hook": "The storm has a crown, and the crown has a keeper. The keeper is coming down.",
+      "enemies": [
+        {
+          "cardId": "skybreaker",
+          "elite": true
+        },
+        {
+          "cardId": "crown_guard",
+          "count": 2
+        },
+        {
+          "cardId": "thunder_herald"
+        },
+        {
+          "cardId": "arc_choir"
+        }
+      ],
+      "reward": {
+        "gold": 25050,
+        "materials": {
+          "mythic_electric_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 37580,
+        "materials": {
+          "legendary_electric_core": 2
+        }
+      }
+    },
+    {
+      "id": "the_quarry_gate",
+      "order": 61,
+      "name": "The Quarry Gate",
+      "act": "the_underearth",
+      "power": 25265,
+      "hook": "The quarry closed decades ago. Today the gate is open.",
+      "enemies": [
+        {
+          "cardId": "quarry_guard"
+        },
+        {
+          "cardId": "grit_hound"
+        }
+      ],
+      "reward": {
+        "gold": 25570,
+        "materials": {
+          "mythic_earth_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 31960,
+        "materials": {
+          "legendary_earth_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_stonefall_gallery",
+      "order": 62,
+      "name": "The Stonefall Gallery",
+      "act": "the_underearth",
+      "power": 25850,
+      "hook": "The gallery ceilings shift every night, as if the mountain is chewing.",
+      "enemies": [
+        {
+          "cardId": "stonefall_stalker"
+        },
+        {
+          "cardId": "pit_wretch"
+        },
+        {
+          "cardId": "dust_mite"
+        }
+      ],
+      "reward": {
+        "gold": 26100,
+        "materials": {
+          "mythic_earth_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 32630,
+        "materials": {
+          "legendary_earth_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_boulder_run",
+      "order": 63,
+      "name": "The Boulder Run",
+      "act": "the_underearth",
+      "power": 26435,
+      "hook": "A rolling boulder has run this track for a century, and it has learned to aim.",
+      "enemies": [
+        {
+          "cardId": "boulder_run_runner"
+        },
+        {
+          "cardId": "pebbleback"
+        }
+      ],
+      "reward": {
+        "gold": 26620,
+        "materials": {
+          "mythic_earth_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 33280,
+        "materials": {
+          "legendary_earth_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_termite_halls",
+      "order": 64,
+      "name": "The Termite Halls",
+      "act": "the_underearth",
+      "power": 27025,
+      "hook": "The halls were carved by things with appetites bigger than their bodies.",
+      "enemies": [
+        {
+          "cardId": "hall_termite"
+        },
+        {
+          "cardId": "soldier_termite"
+        },
+        {
+          "cardId": "tunnel_grub"
+        }
+      ],
+      "reward": {
+        "gold": 27150,
+        "materials": {
+          "mythic_earth_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 33940,
+        "materials": {
+          "legendary_earth_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_quarry_tyrant",
+      "order": 65,
+      "name": "The Quarry Tyrant",
+      "act": "the_underearth",
+      "power": 27615,
+      "hook": "Something runs the quarry. The workers left in a hurry and never came back.",
+      "enemies": [
+        {
+          "cardId": "quarry_tyrant",
+          "elite": true
+        },
+        {
+          "cardId": "slate_brute",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 27680,
+        "materials": {
+          "mythic_earth_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 34600,
+        "materials": {
+          "legendary_earth_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_undergate_foundry",
+      "order": 66,
+      "name": "The Undergate Foundry",
+      "act": "the_underearth",
+      "power": 28215,
+      "hook": "Below the quarry is a foundry, and its furnaces are still warm.",
+      "enemies": [
+        {
+          "cardId": "foundry_golem"
+        },
+        {
+          "cardId": "slag_crawler"
+        },
+        {
+          "cardId": "anvil_ape"
+        }
+      ],
+      "reward": {
+        "gold": 28220,
+        "materials": {
+          "mythic_earth_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 35280,
+        "materials": {
+          "legendary_earth_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_court_of_standing_stones",
+      "order": 67,
+      "name": "The Court of Standing Stones",
+      "act": "the_underearth",
+      "power": 28815,
+      "hook": "The stones were set in a circle long ago. Tonight they have turned slightly.",
+      "enemies": [
+        {
+          "cardId": "standing_stone"
+        },
+        {
+          "cardId": "circle_warden",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 28750,
+        "materials": {
+          "mythic_earth_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 35940,
+        "materials": {
+          "legendary_earth_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_grinding_deep",
+      "order": 68,
+      "name": "The Grinding Deep",
+      "act": "the_underearth",
+      "power": 29415,
+      "hook": "The deep grinds its teeth, and the sound never stops.",
+      "enemies": [
+        {
+          "cardId": "grind_maw"
+        },
+        {
+          "cardId": "deep_crawler"
+        },
+        {
+          "cardId": "cave_brute"
+        }
+      ],
+      "reward": {
+        "gold": 29290,
+        "materials": {
+          "mythic_earth_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 36610,
+        "materials": {
+          "legendary_earth_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_earthheart_vault",
+      "order": 69,
+      "name": "The Earthheart Vault",
+      "act": "the_underearth",
+      "power": 30025,
+      "hook": "The vault door is a mountain's face, and the mountain is frowning.",
+      "enemies": [
+        {
+          "cardId": "vault_guardian"
+        },
+        {
+          "cardId": "vault_keeper"
+        },
+        {
+          "cardId": "geo_wasp"
+        }
+      ],
+      "reward": {
+        "gold": 29830,
+        "materials": {
+          "mythic_earth_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 37290,
+        "materials": {
+          "legendary_earth_core": 1
+        }
+      }
+    },
+    {
+      "id": "terravore_the_root_of_mountains",
+      "order": 70,
+      "name": "Terravore, the Root of Mountains",
+      "act": "the_underearth",
+      "power": 30635,
+      "boss": true,
+      "hook": "The mountain's roots have a heart. Break it, and the mountain falls.",
+      "enemies": [
+        {
+          "cardId": "terravore",
+          "elite": true
+        },
+        {
+          "cardId": "ore_hound"
+        },
+        {
+          "cardId": "stone_herald"
+        },
+        {
+          "cardId": "vault_shade"
+        },
+        {
+          "cardId": "grinding_deep"
+        }
+      ],
+      "reward": {
+        "gold": 30370,
+        "materials": {
+          "mythic_earth_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 45560,
+        "materials": {
+          "legendary_earth_core": 2
+        }
+      }
+    },
+    {
+      "id": "the_grave_road",
+      "order": 71,
+      "name": "The Grave Road",
+      "act": "the_shadowed_marches",
+      "power": 31250,
+      "hook": "The road to the citadel is lined with graves, and the graves are opening.",
+      "enemies": [
+        {
+          "cardId": "grave_hound"
+        },
+        {
+          "cardId": "riser"
+        }
+      ],
+      "reward": {
+        "gold": 30910,
+        "materials": {
+          "legendary_dark_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 38640,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_mist_of_the_marches",
+      "order": 72,
+      "name": "The Mist of the Marches",
+      "act": "the_shadowed_marches",
+      "power": 31870,
+      "hook": "The mist is thick enough to walk on. It is also walking.",
+      "enemies": [
+        {
+          "cardId": "mist_stalker"
+        },
+        {
+          "cardId": "fog_wretch"
+        }
+      ],
+      "reward": {
+        "gold": 31460,
+        "materials": {
+          "legendary_dark_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 39330,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_gallows_orchard",
+      "order": 73,
+      "name": "The Gallows Orchard",
+      "act": "the_shadowed_marches",
+      "power": 32490,
+      "hook": "The orchard's fruit hangs heavy, and none of it is fruit.",
+      "enemies": [
+        {
+          "cardId": "gallows_keeper"
+        },
+        {
+          "cardId": "carrion_crow"
+        },
+        {
+          "cardId": "bough_crawler"
+        }
+      ],
+      "reward": {
+        "gold": 32010,
+        "materials": {
+          "legendary_dark_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 40010,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_crypt_of_candles",
+      "order": 74,
+      "name": "The Crypt of Candles",
+      "act": "the_shadowed_marches",
+      "power": 33115,
+      "hook": "The crypt is lit by candles that gutter when you lie.",
+      "enemies": [
+        {
+          "cardId": "candle_wretch"
+        },
+        {
+          "cardId": "guttering_shade"
+        },
+        {
+          "cardId": "crypt_hound"
+        }
+      ],
+      "reward": {
+        "gold": 32560,
+        "materials": {
+          "legendary_dark_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 40700,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_pale_rider",
+      "order": 75,
+      "name": "The Pale Rider",
+      "act": "the_shadowed_marches",
+      "power": 33740,
+      "hook": "Something rides the march on a horse of smoke, and it is looking for a mount.",
+      "enemies": [
+        {
+          "cardId": "pale_rider",
+          "elite": true
+        },
+        {
+          "cardId": "riders_hound",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 33110,
+        "materials": {
+          "legendary_dark_core": 3
+        }
+      },
+      "firstClear": {
+        "gold": 41390,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_legion_of_the_hollow_choir",
+      "order": 76,
+      "name": "The Legion of the Hollow Choir",
+      "act": "the_shadowed_marches",
+      "power": 34375,
+      "hook": "You can hear them singing from a mile off. You should not be able to.",
+      "enemies": [
+        {
+          "cardId": "hollow_chorister"
+        },
+        {
+          "cardId": "choir_warden"
+        },
+        {
+          "cardId": "silent_brother"
+        }
+      ],
+      "reward": {
+        "gold": 33660,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 42080,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_widows_court",
+      "order": 77,
+      "name": "The Widow's Court",
+      "act": "the_shadowed_marches",
+      "power": 35010,
+      "hook": "The widow holds court in the dark, and her courtiers have all stopped moving.",
+      "enemies": [
+        {
+          "cardId": "the_widow"
+        },
+        {
+          "cardId": "veiled_attendant",
+          "count": 2
+        },
+        {
+          "cardId": "court_shade"
+        }
+      ],
+      "reward": {
+        "gold": 34210,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 42760,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_hunger_below",
+      "order": 78,
+      "name": "The Hunger Below",
+      "act": "the_shadowed_marches",
+      "power": 35645,
+      "hook": "Something under the march is always hungry, and it has smelled you for miles.",
+      "enemies": [
+        {
+          "cardId": "the_hunger"
+        },
+        {
+          "cardId": "ravenous_crawler"
+        },
+        {
+          "cardId": "gorge_wretch"
+        }
+      ],
+      "reward": {
+        "gold": 34770,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 43460,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_black_cathedral",
+      "order": 79,
+      "name": "The Black Cathedral",
+      "act": "the_shadowed_marches",
+      "power": 36290,
+      "hook": "The cathedral was built to something, and it is still open for worship.",
+      "enemies": [
+        {
+          "cardId": "black_choir"
+        },
+        {
+          "cardId": "cathedral_guardian"
+        },
+        {
+          "cardId": "bishop_of_ash"
+        },
+        {
+          "cardId": "nave_crawler"
+        }
+      ],
+      "reward": {
+        "gold": 35330,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 44160,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "umbragore_the_shadow_sovereign",
+      "order": 80,
+      "name": "Umbragore, the Shadow Sovereign",
+      "act": "the_shadowed_marches",
+      "power": 36935,
+      "boss": true,
+      "hook": "The marches have a sovereign, and he has been expecting you since the grave road.",
+      "enemies": [
+        {
+          "cardId": "umbragore",
+          "elite": true
+        },
+        {
+          "cardId": "shadow_herald"
+        },
+        {
+          "cardId": "court_of_ash",
+          "count": 2
+        },
+        {
+          "cardId": "legion_shade"
+        }
+      ],
+      "reward": {
+        "gold": 35890,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 53840,
+        "materials": {
+          "legendary_dark_core": 2
+        }
+      }
+    },
+    {
+      "id": "the_spine_road",
+      "order": 81,
+      "name": "The Spine Road",
+      "act": "the_dragons_spine",
+      "power": 37580,
+      "hook": "The road rides a dragon's spine, and the dragon is not as dead as it looks.",
+      "enemies": [
+        {
+          "cardId": "spine_crawler"
+        },
+        {
+          "cardId": "scale_hound"
+        }
+      ],
+      "reward": {
+        "gold": 36450,
+        "materials": {
+          "legendary_dragon_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 45560,
+        "materials": {
+          "legendary_dragon_core": 1
+        }
+      }
+    },
+    {
+      "id": "scales_on_the_ridge",
+      "order": 82,
+      "name": "Scales on the Ridge",
+      "act": "the_dragons_spine",
+      "power": 38230,
+      "hook": "The ridge sheds scales like leaves, and each one is bigger than a shield.",
+      "enemies": [
+        {
+          "cardId": "ridge_wyrm"
+        },
+        {
+          "cardId": "scale_hoarder"
+        }
+      ],
+      "reward": {
+        "gold": 37010,
+        "materials": {
+          "legendary_dragon_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 46260,
+        "materials": {
+          "legendary_dragon_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_hoard_of_names",
+      "order": 83,
+      "name": "The Hoard of Names",
+      "act": "the_dragons_spine",
+      "power": 38885,
+      "hook": "A hoard of coins, and every coin has a name on it. Yours is in there somewhere.",
+      "enemies": [
+        {
+          "cardId": "hoard_warden"
+        },
+        {
+          "cardId": "coin_mimic"
+        },
+        {
+          "cardId": "hoard_howler"
+        }
+      ],
+      "reward": {
+        "gold": 37580,
+        "materials": {
+          "legendary_dragon_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 46980,
+        "materials": {
+          "legendary_dragon_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_wyrmsblood_fen",
+      "order": 84,
+      "name": "The Wyrmsblood Fen",
+      "act": "the_dragons_spine",
+      "power": 39545,
+      "hook": "The fen runs red where the old wyrms bled, and it never dried.",
+      "enemies": [
+        {
+          "cardId": "bloodfen_wyrm"
+        },
+        {
+          "cardId": "fen_hatchling",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 38150,
+        "materials": {
+          "legendary_dragon_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 47690,
+        "materials": {
+          "legendary_dragon_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_wyrmling_broodmother",
+      "order": 85,
+      "name": "The Wyrmling Broodmother",
+      "act": "the_dragons_spine",
+      "power": 40205,
+      "hook": "The eggs are hatching, and the mother is right behind you.",
+      "enemies": [
+        {
+          "cardId": "broodmother",
+          "elite": true
+        },
+        {
+          "cardId": "wyrmling",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 38710,
+        "materials": {
+          "legendary_dragon_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 48390,
+        "materials": {
+          "legendary_dragon_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_cradle_of_coils",
+      "order": 86,
+      "name": "The Cradle of Coils",
+      "act": "the_dragons_spine",
+      "power": 40870,
+      "hook": "The cradle is a pit of coils, and they are all awake.",
+      "enemies": [
+        {
+          "cardId": "cradle_coil"
+        },
+        {
+          "cardId": "cradle_keeper"
+        },
+        {
+          "cardId": "shell_drake"
+        }
+      ],
+      "reward": {
+        "gold": 39280,
+        "materials": {
+          "legendary_dragon_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 49100,
+        "materials": {
+          "legendary_dragon_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_broken_sky_temple",
+      "order": 87,
+      "name": "The Broken Sky Temple",
+      "act": "the_dragons_spine",
+      "power": 41535,
+      "hook": "The temple was built to hold the sky up, its roof is gone, and the sky is falling.",
+      "enemies": [
+        {
+          "cardId": "sky_warden"
+        },
+        {
+          "cardId": "temple_coil",
+          "count": 2
+        },
+        {
+          "cardId": "ruin_drake"
+        }
+      ],
+      "reward": {
+        "gold": 39860,
+        "materials": {
+          "legendary_dragon_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 49830,
+        "materials": {
+          "legendary_dragon_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_elder_wyrms_court",
+      "order": 88,
+      "name": "The Elder Wyrm's Court",
+      "act": "the_dragons_spine",
+      "power": 42205,
+      "hook": "The elder wyrm holds court, and its courtiers are the bones of everyone who has ever visited.",
+      "enemies": [
+        {
+          "cardId": "elder_wyrm",
+          "elite": true
+        },
+        {
+          "cardId": "court_coil"
+        },
+        {
+          "cardId": "bone_herald"
+        }
+      ],
+      "reward": {
+        "gold": 40430,
+        "materials": {
+          "legendary_dragon_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 50540,
+        "materials": {
+          "legendary_dragon_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_last_egg",
+      "order": 89,
+      "name": "The Last Egg",
+      "act": "the_dragons_spine",
+      "power": 42880,
+      "hook": "One egg remains, and it is warm. Something wants it back.",
+      "enemies": [
+        {
+          "cardId": "egg_guardian"
+        },
+        {
+          "cardId": "clutch_thief",
+          "count": 2
+        },
+        {
+          "cardId": "spine_wyrm"
+        }
+      ],
+      "reward": {
+        "gold": 41000,
+        "materials": {
+          "legendary_dragon_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 51250,
+        "materials": {
+          "legendary_dragon_core": 1
+        }
+      }
+    },
+    {
+      "id": "voragrim_the_dragons_spine",
+      "order": 90,
+      "name": "Voragrim, the Dragon's Spine",
+      "act": "the_dragons_spine",
+      "power": 43555,
+      "boss": true,
+      "hook": "The spine is not a road. It is a dragon, and it has been waiting for the citadel's call.",
+      "enemies": [
+        {
+          "cardId": "voragrim",
+          "elite": true
+        },
+        {
+          "cardId": "spine_herald"
+        },
+        {
+          "cardId": "wyrm_guard",
+          "count": 2
+        },
+        {
+          "cardId": "drake_choir"
+        }
+      ],
+      "reward": {
+        "gold": 41580,
+        "materials": {
+          "legendary_dragon_core": 4,
+          "legendary_fire_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 62370,
+        "materials": {
+          "legendary_dragon_core": 2,
+          "legendary_fire_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_citadel_gates",
+      "order": 91,
+      "name": "The Citadel Gates",
+      "act": "the_dark_lords_citadel",
+      "power": 44235,
+      "hook": "The gates open as you approach. That is not a welcome; it is a dare.",
+      "enemies": [
+        {
+          "cardId": "gate_warden"
+        },
+        {
+          "cardId": "gate_hound",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 42160,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 52700,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_ash_courtyard",
+      "order": 92,
+      "name": "The Ash Courtyard",
+      "act": "the_dark_lords_citadel",
+      "power": 44915,
+      "hook": "The courtyard is ankle-deep in ash, and the ash remembers being people.",
+      "enemies": [
+        {
+          "cardId": "ash_revenant"
+        },
+        {
+          "cardId": "courtyard_crawler"
+        },
+        {
+          "cardId": "ash_hound"
+        }
+      ],
+      "reward": {
+        "gold": 42740,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 53430,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_hall_of_broken_oaths",
+      "order": 93,
+      "name": "The Hall of Broken Oaths",
+      "act": "the_dark_lords_citadel",
+      "power": 45600,
+      "hook": "Every oath sworn in this hall broke, and the hall kept the pieces.",
+      "enemies": [
+        {
+          "cardId": "oathbreaker"
+        },
+        {
+          "cardId": "broken_warden"
+        },
+        {
+          "cardId": "pledge_shade"
+        }
+      ],
+      "reward": {
+        "gold": 43320,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 54150,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_screaming_gallery",
+      "order": 94,
+      "name": "The Screaming Gallery",
+      "act": "the_dark_lords_citadel",
+      "power": 46290,
+      "hook": "The paintings scream. Do not look at them.",
+      "enemies": [
+        {
+          "cardId": "gallery_shade"
+        },
+        {
+          "cardId": "screaming_coil",
+          "count": 2
+        },
+        {
+          "cardId": "framed_horror"
+        }
+      ],
+      "reward": {
+        "gold": 43900,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 54880,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_warden_of_nine_locks",
+      "order": 95,
+      "name": "The Warden of Nine Locks",
+      "act": "the_dark_lords_citadel",
+      "power": 46980,
+      "hook": "Nine locks guard the inner keep. One warden guards the locks.",
+      "enemies": [
+        {
+          "cardId": "warden_of_nine_locks",
+          "elite": true
+        },
+        {
+          "cardId": "lock_hound",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 44490,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 55610,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_throne_antechamber",
+      "order": 96,
+      "name": "The Throne Antechamber",
+      "act": "the_dark_lords_citadel",
+      "power": 47675,
+      "hook": "The dark lord's throne is through the next door, and the antechamber is full of everyone who reached it first.",
+      "enemies": [
+        {
+          "cardId": "antechamber_guard"
+        },
+        {
+          "cardId": "throne_herald"
+        },
+        {
+          "cardId": "court_revenant",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "gold": 45070,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 56340,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_court_of_masks",
+      "order": 97,
+      "name": "The Court of Masks",
+      "act": "the_dark_lords_citadel",
+      "power": 48370,
+      "hook": "Everyone at court wears a mask, and none of the masks are empty.",
+      "enemies": [
+        {
+          "cardId": "masked_noble"
+        },
+        {
+          "cardId": "mask_bearer"
+        },
+        {
+          "cardId": "masquerade_shade"
+        },
+        {
+          "cardId": "court_coil"
+        }
+      ],
+      "reward": {
+        "gold": 45660,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 57080,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_hollow_chancellor",
+      "order": 98,
+      "name": "The Hollow Chancellor",
+      "act": "the_dark_lords_citadel",
+      "power": 49070,
+      "hook": "The dark lord's chancellor is a hollow suit of armor, and something is wearing it.",
+      "enemies": [
+        {
+          "cardId": "hollow_chancellor",
+          "elite": true
+        },
+        {
+          "cardId": "chancellors_guard",
+          "count": 2
+        },
+        {
+          "cardId": "hollow_herald"
+        }
+      ],
+      "reward": {
+        "gold": 46250,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 57810,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_dark_lords_shadow",
+      "order": 99,
+      "name": "The Dark Lord's Shadow",
+      "act": "the_dark_lords_citadel",
+      "power": 49770,
+      "hook": "The dark lord's shadow got here first, and it is bigger than he is.",
+      "enemies": [
+        {
+          "cardId": "the_dark_lords_shadow",
+          "elite": true
+        },
+        {
+          "cardId": "shadow_legion",
+          "count": 3
+        },
+        {
+          "cardId": "wing_of_ash"
+        }
+      ],
+      "reward": {
+        "gold": 46840,
+        "materials": {
+          "legendary_dark_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 58550,
+        "materials": {
+          "legendary_dark_core": 1
+        }
+      }
+    },
+    {
+      "id": "the_dark_lords_inner_chamber",
+      "order": 100,
+      "name": "The Dark Lord's Inner Chamber",
+      "act": "the_dark_lords_citadel",
+      "power": 50475,
+      "boss": true,
+      "hook": "The door closes behind you, the throne turns, and the dark lord has been waiting a very long time.",
+      "enemies": [
+        {
+          "cardId": "the_dark_lord",
+          "elite": true
+        },
+        {
+          "cardId": "dragonfire_herald"
+        },
+        {
+          "cardId": "shadow_legion",
+          "count": 2
+        },
+        {
+          "cardId": "bloodsworn_guard"
+        }
+      ],
+      "reward": {
+        "gold": 47430,
+        "materials": {
+          "legendary_dark_core": 4,
+          "legendary_dragon_core": 4
+        }
+      },
+      "firstClear": {
+        "gold": 71150,
+        "materials": {
+          "legendary_dark_core": 2,
+          "legendary_dragon_core": 1
+        }
+      }
+    }
+  ]
+}

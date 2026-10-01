@@ -117,21 +117,10 @@ on conflict (id) do update set
   tags = excluded.tags, duration_seconds = excluded.duration_seconds,
   gold_base = excluded.gold_base, materials = excluded.materials, is_tutorial = excluded.is_tutorial;
 
--- quests (manual combat; content authored in src/game/quests.ts)
-insert into public.quests (id, name, sort_order, req_power, enemies, gold, materials, first_clear_gold, first_clear_materials, intro, outro) values
-  ('the_kidnapped_chicken', 'The Kidnapped Chicken', 1, 80, '[{"id":"scruffy_wolf","cardId":"thunder-wolf","name":"Scruffy Wolf","icon":"🐺","hp":60,"atk":10,"def":2,"spd":12}]'::jsonb, 250, '{"lesser_physical_core":1}'::jsonb, 150, '{"lesser_earth_core":1}'::jsonb, '[{"speaker":"Pip the Farmer","avatar":"🧑‍🌾","text":"Oh no, a wolf has kidnapped my pet chicken!"},{"speaker":"Pip the Farmer","avatar":"🧑‍🌾","text":"Please — face it in battle and bring her home!"}]'::jsonb, '[{"speaker":"Pip the Farmer","avatar":"🧑‍🌾","text":"You did it! Cluckers is safe and sound. Thank you!"}]'::jsonb),
-  ('mushroom_menace', 'Mushroom Menace', 2, 150, '[{"id":"spore_cap","cardId":"mushroom-back-turtle","name":"Spore Cap","icon":"🍄","hp":45,"atk":12,"def":4,"spd":8},{"id":"razor_vine","cardId":"razor-leaf","name":"Razor Vine","icon":"🌿","hp":45,"atk":12,"def":4,"spd":8}]'::jsonb, 400, '{"lesser_grass_core":2}'::jsonb, 200, '{"greater_grass_core":1}'::jsonb, '[{"speaker":"Grimble the Guide","avatar":"🧙","text":"The old cellar has been overgrown for years — mushrooms and worse."},{"speaker":"Grimble the Guide","avatar":"🧙","text":"Two of them guard the grain. Clear them out — carefully!"}]'::jsonb, '[{"speaker":"Grimble the Guide","avatar":"🧙","text":"Not a single spore left. The harvest is saved!"}]'::jsonb),
-  ('bandits_at_the_bridge', 'Brutes at the Bridge', 3, 240, '[{"id":"bridge_troll","cardId":"rock-troll","name":"Bridge Troll","icon":"🧌","hp":50,"atk":14,"def":5,"spd":14},{"id":"brawler","cardId":"knuckle-monkey","name":"Brawler","icon":"🐒","hp":50,"atk":14,"def":5,"spd":14},{"id":"gnawer","cardId":"horned-beaver","name":"Gnawer","icon":"🦫","hp":50,"atk":14,"def":5,"spd":14}]'::jsonb, 700, '{"lesser_dark_core":2}'::jsonb, 300, '{"greater_dark_core":1}'::jsonb, '[{"speaker":"Captain Rook","avatar":"🛡️","text":"A troll and its cronies have barred the only bridge out of the valley."},{"speaker":"Captain Rook","avatar":"🛡️","text":"Three of them. Scatter them and the road is ours again."}]'::jsonb, '[{"speaker":"Captain Rook","avatar":"🛡️","text":"The bridge is open. The valley owes you a debt, champion."}]'::jsonb)
-on conflict (id) do update set
-  name = excluded.name, sort_order = excluded.sort_order, req_power = excluded.req_power,
-  enemies = excluded.enemies, gold = excluded.gold, materials = excluded.materials,
-  first_clear_gold = excluded.first_clear_gold, first_clear_materials = excluded.first_clear_materials,
-  intro = excluded.intro, outro = excluded.outro;
-
 commit;
 
 -- local development account's starter cards and party
 select public.provision_starter_loadout('00000000-0000-0000-0000-000000000002'::uuid);
 
--- summary: 41 materials, 5 chests, 19 chest odds rows, 3 run-slot rows, 1 tutorial dungeon, 3 quests
--- no cards and no catalog dungeons: content ships via npm run cards:4:import / dungeons:1:import
+-- summary: 41 materials, 5 chests, 19 chest odds rows, 3 run-slot rows, 1 tutorial dungeon
+-- no cards, no catalog dungeons and no quests: content ships via the importers

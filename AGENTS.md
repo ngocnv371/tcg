@@ -244,14 +244,21 @@ the id); on each of the player's cards' turns a multiple-choice times-table ques
 whether the attack lands. `battle.ts` is deterministic and unit tested. **An opponent is a real
 catalog card** (`QuestEnemy.cardId`) so it wears that card's art in a rank frame — the battle
 board, the intro curtain and the attack clash all render actual card art — while its battle
-stats stay authored in `quests.ts`, so difficulty is tuned independently of the catalog. The
-fight is simulated
+stats come from the bestiary, never from the card, so difficulty is tuned independently of the
+catalog. The fight is simulated
 on the CLIENT (there is no RNG and no timer — the only input is the quiz), and the SERVER owns
 the reward: `complete_quest(quest_id, party_id)` re-reads `quests` and pays gold + Cores,
 merging a one-time first-clear bonus exactly once (`first_cleared_at` is never rewritten, so
-it cannot be farmed). The quest catalog is authored in `src/game/quests.ts` and seeded by
-`npm run seed:build`, so the card preview and the payout read one row. Quests took the
-Dungeons bottom tab; Dungeons moved to the header nav.
+it cannot be farmed). **The quest catalog is authored as data, not code**: a quest file
+(`data/quest-chain.json`, the three starter quests) holds the encounters — validated by
+`data/quest-chain.schema.json` — and names each opponent by its `data/enemies.csv` bestiary id plus a
+`count`, and the build-time loader `src/game/quests.ts` joins the two — each quest file names its own
+bestiary. Quests are catalog content and are **NOT seeded**: `npm run seed:build` leaves
+`public.quests` empty, and the loader is the shape a quest importer writes to that table, so the card
+preview and the payout read one row. The 100-quest chain is a *pair* of its own, not-yet-imported files —
+`data/the-long-dark.quests.json` + `data/the-long-dark.enemies.csv`, both written from its design doc
+by `npm run quests:1:extract` and validated by the content test — still waiting on its
+`intro`/`outro` scripts. Quests took the Dungeons bottom tab; Dungeons moved to the header nav.
 
 Scope decisions, 2026-09-20 — do not re-add these without asking:
 

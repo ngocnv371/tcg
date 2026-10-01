@@ -4,9 +4,17 @@ Design reference for the 100-quest story chain that replaces the current three s
 (`src/game/quests.ts`). It runs from **gathering mushrooms in a cave** (quest 1) to the
 **Dark Lord's inner chamber** (quest 100), in ten acts of ten.
 
-> **Status: design only.** Nothing here is wired up yet. This document is the authored content:
-> quest ids, names, enemy rosters (name + lore), and reward scaffolding. When it is implemented,
-> it replaces `QUESTS` in `src/game/quests.ts`, and `npm run seed:build` re-seeds `quests` from it.
+> **Status: extracted, not yet importable.** `npm run quests:1:extract` writes this chain's two files from
+> this document — `data/the-long-dark.quests.json` (the encounters) and
+> `data/the-long-dark.enemies.csv` (its monsters), the second carrying **the exact hp/atk/def/spd
+> written below**. `quests.test.ts` checks both against `data/quest-chain.schema.json` and loads them
+> through `src/game/quests.ts`. `npm run quests:2:import` scans `data/` for `*.quests.json` and upserts
+> them into `public.quests` — but it skips any quest with an empty `intro`/`outro`, so this chain
+> imports nothing until the scripts below are written (`data/quest-chain.json` + `data/enemies.csv`,
+> the three starter quests and their six opponents, predate the `*.quests.json` convention and are not
+> picked up). This document is where the chain is *designed* — acts, hook lines, rosters, formulas —
+> and for the stat lines below it is also the source: the extractor copies them, it does not
+> re-derive them.
 
 ## Ground rules this chain obeys
 
@@ -1598,18 +1606,42 @@ The citadel opens its gates and dares you in. Through the ash courtyard, the hal
 
 ## Implementation notes
 
-- Copy each act into `QUESTS` in `src/game/quests.ts` in order (`order` = the number above). Enemies map
-  to `QuestEnemy`: set `cardId` to the enemy `id` (its catalog card), keep the authored stats, and pick an
-  `icon` emoji as the pre-import fallback. `quests.test.ts`'s truthy-`cardId` check already covers this.
-- Author `intro` / `outro` `QuestLine[]` per quest. The **Hook** line is the opening beat; write the
-  outro to pay it off. Boss quests (10, 20, … 100) should carry the biggest scripts.
-- Run `npm run seed:build` after editing, then `npm test` (the content test) and `bash scripts/verify-db.sh`.
-- **Enemies are already in the catalog.** Every distinct enemy above (269 of them, after collapsing the
-  per-quest duplicates) is a `type=card` row in `data/assets.csv`, one per `id`, with its own `design`
-  prompt and its element in `tags`. They render and import through the normal card pipeline
-  (`data/cards/<id>.png`, `npm run assets:render`, then `npm run cards:4:import` → the `cards` table and
-  the shared `card-art` bucket) — no separate type or bucket. So an enemy met in a quest is, once its art
-  is rendered, acquirable as a card of the same name and art.
-- **`QuestEnemy.cardId` is that card id.** The quest enemy still carries its own authored battle stats and
-  a fallback `name`/`icon`; the card supplies the art (and the display name once imported).
+- **This chain is two files, both written by `npm run quests:1:extract`.**
+  `data/the-long-dark.quests.json` holds the encounters — one object each: `id`, `order`, `name`,
+  `act`, `boss`, `power`, an enemy line-up, `reward` / `firstClear`, and the `intro` / `outro`
+  beats — and `data/the-long-dark.enemies.csv` holds the monsters. The script reads the act headers,
+  the quest headers, the rosters and the reward lines below, checks them, and writes both, so
+  change the *prose and the design* here and re-run it rather than hand-editing either file.
+  `data/quest-chain.schema.json` is the contract, and `quests.test.ts` re-checks the invariants on
+  every `npm test`. Each quest file names its own bestiary (`bestiary` in the JSON), which is how
+  the chain and the starter quests keep separate monster lists.
+- **The chain is not seeded yet.** `data/quest-chain.json` still holds the three starter quests, and
+  that is the file the loader seeds. Its `intro` / `outro` scripts are still Hook lines below, and
+  that is the only thing left standing between the chain and `npm run seed:build`.
+- **An enemy line names a bestiary id and counts its copies.** `{ "cardId": "rootling", "count": 2 }`
+  is the "2x Rootling" above — the copies are identical, so they share one line, and the loader gives
+  each a derived battle key (`rootling#1`, `rootling#2`) because `battle.ts` keys a combatant by id.
+- **Every stat line below is copied verbatim into the chain's bestiary.** One row per monster, the
+  numbers exactly as written here, taken from the first quest that fields it — so a monster re-used
+  by a later quest keeps one row, and the second encounter's numbers above are flavour rather than
+  data. Nothing scales or re-derives them. `tags` and `design` are not in this document, so they are
+  carried over from the bestiary file itself. A quest's `power` is advisory only (the
+  recommended-power figure on its card), and a line's `threat` is an optional multiplier for an
+  encounter that wants to sit off its row.
+- Each quest's **Hook** line is carried into the data as `hook` (the seed its `intro` grows from),
+  and the `intro` / `outro` beats are still written here, in prose, until they become scripts. Write
+  the outro to pay the hook off; boss quests (10, 20, … 100) should carry the biggest scripts.
+- After editing a roster or a reward, run `npm run quests:1:extract` and then `npm test` (the content
+  test). `npm run seed:build` and `bash scripts/verify-db.sh` apply once the chain is wired up.
+- **Enemies are already in the bestiary.** Every distinct enemy above (269 of them, after collapsing the
+  per-quest duplicates) is a row in `data/enemies.csv`, one per `id`, with its base stats, its element in
+  `tags` and its own `design` prompt. Its `type` column already marks it a card, so an enemy met in a
+  quest is, once its art is rendered, acquirable as a card of the same name and art. Note this is *not*
+  `data/assets.csv`, which carries no battle stats — the two are separate catalogs today, and the six
+  opponents of the starter quests were added to the bestiary so they resolve like any other enemy.
+- **`QuestEnemy.cardId` is that bestiary/card id.** The card supplies the art and the display name,
+  the bestiary supplies the stats, and a line's `name` is an optional override for the window before
+  the catalog is imported. There is no emoji fallback — an opponent is always drawn as its card — and
+  a dialogue line carries no avatar, because every speaker shares one stand-in until they get their
+  own portraits.
 

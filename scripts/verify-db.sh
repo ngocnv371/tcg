@@ -691,7 +691,7 @@ begin
     select gold into q_gold_before from public.profiles
       where id = '00000000-0000-0000-0000-000000000001';
 
-    if (select count(*) from public.quests) < 1 then raise exception 'no quests were seeded'; end if;
+    -- quests are catalog content and are not seeded; the test writes its own row below
 
     insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
                               passive_name, passive_text, lore, speed)
@@ -713,7 +713,7 @@ begin
     insert into public.quests (id, name, sort_order, req_power, enemies, gold, materials,
                                first_clear_gold, first_clear_materials, intro, outro)
       values (q_quest, 'Verify Quest', 99, 1,
-              '[{"id":"dummy","name":"Dummy","icon":"x","hp":1,"atk":1,"def":0,"spd":10}]'::jsonb,
+              '[{"id":"dummy","name":"Dummy","hp":1,"atk":1,"def":0,"spd":10}]'::jsonb,
               100, '{"lesser_fire_core": 1}'::jsonb,
               50, '{"lesser_fire_core": 2, "greater_fire_core": 1}'::jsonb,
               '[]'::jsonb, '[]'::jsonb);
