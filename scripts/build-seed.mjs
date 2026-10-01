@@ -4,7 +4,8 @@
  * The seed owns the *economy scaffolding* and nothing else: rank metadata, the material
  * catalog, chests, chest odds and run-slot pacing. It deliberately seeds NO cards, NO
  * dungeons and NO quests — those are catalog content, and they ship through the importers
- * (`npm run cards:4:import` reads data/assets.csv `type=card` rows + data/cards/<id>.png; dungeons:1:import reads
+ * (`npm run assets:import` reads data/assets.csv `type=card` rows *and* every `data/*enemies.csv`
+ * bestiary — an enemy row is a `type=card` row too — plus data/cards/<id>.png; dungeons:1:import reads
  * its own source folder; quests get their own importer). Two writers of the same rows would only
  * disagree about art paths and rank-up costs.
  *

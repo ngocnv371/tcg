@@ -6,7 +6,7 @@
 -- bucket per content pipeline so they never collide on object names and access rules can
 -- diverge later; chests and materials are the same flat icon pipeline, so they share
 -- `material-art` rather than getting a bucket of their own. Populated by
--- scripts/cards-4-import.mjs, scripts/dungeons-1-import.mjs, scripts/materials-4-import.mjs
+-- scripts/assets-import.mjs, scripts/dungeons-1-import.mjs, scripts/materials-4-import.mjs
 -- and scripts/chests-4-import.mjs; a row keeps a null art_path (or null icon) until its art
 -- lands.
 --

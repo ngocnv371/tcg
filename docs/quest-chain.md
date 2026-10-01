@@ -4,17 +4,18 @@ Design reference for the 100-quest story chain that replaces the current three s
 (`src/game/quests.ts`). It runs from **gathering mushrooms in a cave** (quest 1) to the
 **Dark Lord's inner chamber** (quest 100), in ten acts of ten.
 
-> **Status: extracted, not yet importable.** `npm run quests:1:extract` writes this chain's two files from
+> **Status: extracted and scripted, importable.** `npm run quests:1:extract` writes this chain's two files from
 > this document — `data/the-long-dark.quests.json` (the encounters) and
 > `data/the-long-dark.enemies.csv` (its monsters), the second carrying **the exact hp/atk/def/spd
 > written below**. `quests.test.ts` checks both against `data/quest-chain.schema.json` and loads them
 > through `src/game/quests.ts`. `npm run quests:2:import` scans `data/` for `*.quests.json` and upserts
-> them into `public.quests` — but it skips any quest with an empty `intro`/`outro`, so this chain
-> imports nothing until the scripts below are written (`data/quest-chain.json` + `data/enemies.csv`,
-> the three starter quests and their six opponents, predate the `*.quests.json` convention and are not
-> picked up). This document is where the chain is *designed* — acts, hook lines, rosters, formulas —
-> and for the stat lines below it is also the source: the extractor copies them, it does not
-> re-derive them.
+> them into `public.quests`; it skips any quest with an empty `intro`/`outro`, and every quest here is
+> scripted now, so the whole chain imports. The scripts live in the JSON, not in this doc, and the
+> extractor carries them across by quest id — so re-running it (which rewrites the encounters from
+> here) never wipes the dialogue. (`data/quest-chain.json` + `data/enemies.csv`, the three starter
+> quests and their six opponents, predate the `*.quests.json` convention and are not picked up.) This
+> document is where the chain is *designed* — acts, hook lines, rosters, formulas — and for the stat
+> lines below it is also the source: the extractor copies them, it does not re-derive them.
 
 ## Ground rules this chain obeys
 
@@ -28,7 +29,8 @@ Design reference for the 100-quest story chain that replaces the current three s
   (all asserted by `quests.test.ts`).
 - **Every quest needs non-empty `intro` and `outro`** (`QuestLine[]`). The `Hook` line below is the
   intended intro seed; the outro should close that beat. Boss quests (every 10th) and their kin deserve
-  a two- or three-line script.
+  a two- or three-line script. (The scripts themselves are authored in
+  `data/the-long-dark.quests.json`, not in this document — the extractor carries them across.)
 - **Ids are slugs** of the quest name (e.g. `mushroom_picking`) and must be stable — `quest_completions`
   references them.
 

@@ -117,7 +117,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The cave mouth is cool and smells of damp earth. You have gathered mushrooms on this ledge a hundred times."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The basket is nearly full when the mushrooms start moving."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You climb back into the evening light with a full basket and a new suspicion: the hill is awake."
+        }
+      ]
     },
     {
       "id": "the_whispering_shaft",
@@ -145,7 +161,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The shaft breathes out a sound like your own name, spoken by someone who has never met you."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Rope in hand, you go down to meet the voice."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The whispering stops the moment the fight ends. Whatever was speaking will not say it again."
+        }
+      ]
     },
     {
       "id": "gloomcap_hollow",
@@ -173,7 +205,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The tunnel opens into a hollow lit by pale mushrooms, each cap glowing like a held breath."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Between the caps, a dozen small lights blink — and none of them are mushrooms."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "With the guardians gone, the hollow's glow settles into something almost gentle."
+        }
+      ]
     },
     {
       "id": "the_mycelium_warren",
@@ -204,7 +252,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "White filaments thread every wall of the warren, trembling whenever you speak."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The deeper you go, the less the tunnel feels like a passage and the more it feels like a throat."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You cut your way free, but the filaments have already carried word of you onward."
+        }
+      ]
     },
     {
       "id": "the_capfather",
@@ -234,7 +298,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The warren turns deepest here, and the floor trembles in a slow, patient rhythm."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "What you fought before were fingers. This is the hand."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The Capfather falls, and the warren goes quiet for the first time since you entered it."
+        }
+      ]
     },
     {
       "id": "down_the_rootwell",
@@ -262,7 +342,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The cave's roots plunge into black water, and the water is far deeper than the hill is tall."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You find a footing on the roots and climb down anyway."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You surface on the far bank, dripping and alive. The water keeps its secrets a little less tightly now."
+        }
+      ]
     },
     {
       "id": "the_blindstream",
@@ -293,7 +389,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "An underground river crosses your path, and it is flowing uphill, away from the sea."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The current has teeth, but it is the only way forward."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The stream carries the last of them away and resumes its impossible climb."
+        }
+      ]
     },
     {
       "id": "lantern_moss_grotto",
@@ -324,7 +436,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The grotto glitters with fireflies, burning where no firefly has any business being."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Their light is warm. Too warm. It stings the air."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "When the last light dies, the grotto is only dark — and dark is a relief."
+        }
+      ]
     },
     {
       "id": "the_fungal_throne",
@@ -355,7 +483,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The tunnel opens into a hall, and at its end something grown, not built, serves as a throne."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Courtiers of spore and bark stand at attention. They have been waiting."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The throne stands empty, but the hall still hums — something above the court is listening."
+        }
+      ]
     },
     {
       "id": "mycelarch_the_rot_beneath",
@@ -391,7 +535,31 @@
           "greater_grass_core": 2,
           "greater_earth_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "Something occupies the throne at last: a pale crown of a creature, vast and patient."
+        },
+        {
+          "speaker": "Mycelarch",
+          "text": "You came down and down. Good. I have been deciding what you will become."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The hall exhales, and the court comes for you all at once."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The Mycelarch comes apart like wet paper, and the hill's long grip finally loosens."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You climb toward daylight — and the surface world, which is about to show you its own rot."
+        }
+      ]
     },
     {
       "id": "the_bramblegate",
@@ -419,7 +587,27 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "You climb out of the caves into a valley that has grown over in a single season."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The road out is a wall of thorns now, and the thorns lean toward the sound of you."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "To leave the valley, you will have to cut through."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You break through the bramblegate and take the first free breath of the open trail."
+        }
+      ]
     },
     {
       "id": "wolf_of_the_green_trail",
@@ -447,7 +635,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The woodcutters' trail is strewn with collars and no dogs."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Whatever is hunting here wears moss for a coat."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The trail is safe enough to walk again — as far as the green line of trees."
+        }
+      ]
     },
     {
       "id": "the_thornsingers_grove",
@@ -478,7 +682,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The grove hums a single low note, and every branch leans in like an ear."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Follow the sound far enough and you will find the mouth making it."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The song stops. The branches straighten, as if embarrassed to have been caught listening."
+        }
+      ]
     },
     {
       "id": "hornets_of_the_high_meadow",
@@ -506,7 +726,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The meadow hums with wings the length of your forearm, and the hum is organized."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Among the flowers hang paper cages, and the cages are not empty."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The meadow is quiet, the cages are broken, and whoever was inside has run for the treeline."
+        }
+      ]
     },
     {
       "id": "the_thicket_tyrant",
@@ -536,7 +772,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "You can hear the thicket breathing from the road — slow, wet, and patient."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The clearing it keeps is littered with splintered carts."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The breathing stops. The thicket is just a thicket again — for now."
+        }
+      ]
     },
     {
       "id": "the_petrified_orchard",
@@ -564,7 +816,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The orchard's trees turned to stone overnight, grey and smooth as river rock."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "One shape among them is still green, and it is still moving."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The stone grove stands silent, and the one living thing in it has been put to rest."
+        }
+      ]
     },
     {
       "id": "grove_of_the_hollow_stag",
@@ -595,7 +863,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "A stag stands in the grove, its antlers heavy with eyes — and every one is trained on you."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Around it, blooms and fawns move with an unnerving unison."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The eyes go dark one by one, and the grove returns to watching nothing at all."
+        }
+      ]
     },
     {
       "id": "the_antlered_kings_hunt",
@@ -624,7 +908,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The horns sound behind you, and the green closes in to cut off the path back."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You are the quarry now, and the hunt has already begun."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The huntsman falls and the horn falls silent. For this stretch of trail, the wilds have lost your scent."
+        }
+      ]
     },
     {
       "id": "the_withering_bloom",
@@ -655,7 +955,23 @@
         "materials": {
           "greater_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The path ahead is streaked grey, as if colour has been scraped out of it."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The bloom that did it is close, and it is still spreading."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The grey stops advancing. Somewhere behind it, green will have to begin the slow work back."
+        }
+      ]
     },
     {
       "id": "the_verdant_sovereign",
@@ -694,7 +1010,31 @@
           "greater_grass_core": 2,
           "greater_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The wilds end in a court of thorns, and at its centre sits a king of root and leaf."
+        },
+        {
+          "speaker": "Verdant Sovereign",
+          "text": "You walked my roads and cut my children. I will keep you. As soil."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The court closes ranks, and the wilds come for you all at once."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The king topples, and the green recoils from the road as if burned."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The valley is open at last. Beyond it, the road runs down to a coast that smells of salt and rot."
+        }
+      ]
     },
     {
       "id": "the_drowned_causeway",
@@ -722,7 +1062,27 @@
         "materials": {
           "mythic_water_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The valley road spills onto a coast that is half underwater, the old causeway drowned to the knee."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Things walk it still, up to their chests, patient as the tide."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You step down onto the flooded stones."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The causeway is clear for a stretch, and you keep to the dry crown of it while you can."
+        }
+      ]
     },
     {
       "id": "saltmarsh_stalker",
@@ -750,7 +1110,23 @@
         "materials": {
           "mythic_water_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The saltmarsh reeds bow one way, and one patch bows the other — against the wind."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It knows you have noticed."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The reeds are still. You cross the marsh without another sound."
+        }
+      ]
     },
     {
       "id": "the_gilded_reef",
@@ -781,7 +1157,23 @@
         "materials": {
           "mythic_water_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "A reef of gold and bones breaks the water, gleaming as the tide goes out."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The gleam is bait, and the tide will not stay out for long."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You pocket what floats and climb clear before the water returns to reclaim the rest."
+        }
+      ]
     },
     {
       "id": "tidehollow_grotto",
@@ -809,7 +1201,23 @@
         "materials": {
           "mythic_water_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The grotto's mouth is already half-submerged, and the water is climbing."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You have until the tide finishes, and no longer."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You slip out with the water at your heels and stand breathing hard on the dry shingle."
+        }
+      ]
     },
     {
       "id": "the_keeper_of_the_kelp",
@@ -839,7 +1247,23 @@
         "materials": {
           "mythic_water_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The kelp forest sways in slow curtains, and something old keeps it pruned."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The keeper has been here far longer than the road has needed it."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The kelp parts of its own accord, and the way down the coast opens."
+        }
+      ]
     },
     {
       "id": "the_sinking_village",
@@ -870,7 +1294,23 @@
         "materials": {
           "mythic_water_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The village is going under, one house at a time, and the survivors have stopped saving furniture."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Half the houses are already drowned. Something down there is still busy."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "For tonight the village holds. You leave it the small mercy of a quiet tide."
+        }
+      ]
     },
     {
       "id": "blackwater_fen",
@@ -901,7 +1341,23 @@
         "materials": {
           "mythic_water_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The fen water is black and still, and it does not reflect you at all."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Things move beneath it that the water chooses not to show."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You come out the far side with both boots and all your fingers."
+        }
+      ]
     },
     {
       "id": "the_lure_lights",
@@ -930,7 +1386,23 @@
         "materials": {
           "mythic_water_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "Lights drift across the water, beautiful and beckoning, and every sailor's chart warns of them."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The lights do not mind being known. They mind being ignored."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The lights wink out one by one, and the water is only water again."
+        }
+      ]
     },
     {
       "id": "the_sunken_chapel",
@@ -962,7 +1434,23 @@
         "materials": {
           "mythic_water_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "A chapel lies drowned in the shallows, its bell tower leaning beneath the surface."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The bells still ring, though no hand has touched the ropes in years."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The last bell note fades underwater. You leave the congregation to its rest."
+        }
+      ]
     },
     {
       "id": "the_leviathan_of_the_deep",
@@ -1001,7 +1489,31 @@
           "mythic_water_core": 2,
           "mythic_grass_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The breakers pull back farther than any tide should, baring the sea floor for a mile."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Something vast turns over in the deep, and the coast holds its breath."
+        },
+        {
+          "speaker": "Leviathan",
+          "text": "The tide goes where I tell it. So will you."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The Leviathan sinks, and the sea rushes back to cover it — grudging, but obedient to nobody now."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The road turns north, where the air is already cold enough to sting."
+        }
+      ]
     },
     {
       "id": "the_frostgate",
@@ -1029,7 +1541,27 @@
         "materials": {
           "mythic_ice_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The road north ends at a pass walled shut by ice — ice that creeps higher while you watch."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The frozen reaches begin here, and they begin with a gate."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You find the seam and start to climb."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You top the Frostgate and stand in a white world that has no intention of letting you through."
+        }
+      ]
     },
     {
       "id": "whiteout_pass",
@@ -1057,7 +1589,23 @@
         "materials": {
           "mythic_ice_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The whiteout swallows the pass, and in it you see a figure walking toward you."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It is wearing your coat. It has your limp. It is not you."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You leave your double behind in the snow, and try not to look back at it."
+        }
+      ]
     },
     {
       "id": "the_frozen_lake",
@@ -1088,7 +1636,23 @@
         "materials": {
           "mythic_ice_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The lake is solid white, and far beneath the ice something huge is sleeping."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Every step you take sends a crack crawling toward it."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You reach the far shore just as the first long groan runs the length of the lake."
+        }
+      ]
     },
     {
       "id": "rime_hollow",
@@ -1116,7 +1680,23 @@
         "materials": {
           "mythic_ice_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The hollow is so cold that every breath hangs in the air, frozen mid-cloud."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Something in the hollow breathes too, and its breath hangs longest."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The cold eases by a single degree as you walk out. It counts as a welcome."
+        }
+      ]
     },
     {
       "id": "the_ice_warden",
@@ -1146,7 +1726,23 @@
         "materials": {
           "mythic_ice_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "An ice-bound warden stands at the gate to the high reaches, its hounds chained at its feet."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It keeps the cold in. What it keeps in with the cold is another question."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The Warden breaks and its hounds fall with it. Whatever it guarded has one fewer lock."
+        }
+      ]
     },
     {
       "id": "the_glasswood",
@@ -1177,7 +1773,23 @@
         "materials": {
           "mythic_ice_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The trees here froze into glass, and every one of them is full of trapped shapes."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Some of the shapes are still moving."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You pass through the glasswood and leave its prisoners to their slow, glittering vigil."
+        }
+      ]
     },
     {
       "id": "the_howling_glacier",
@@ -1206,7 +1818,23 @@
         "materials": {
           "mythic_ice_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The glacier howls across the valley, a sound like a wolf with the lungs of a mountain."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The howl is closer than it was a minute ago."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The howling stops. The glacier is only ice again, and ice is quiet."
+        }
+      ]
     },
     {
       "id": "the_cave_of_frozen_birds",
@@ -1238,7 +1866,23 @@
         "materials": {
           "mythic_ice_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "Hundreds of birds hang frozen in the cave, wings spread, caught mid-flight and mid-song."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "One of them blinks. Then another."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The flock falls, and the cave is still. You do not look too closely at the ceiling."
+        }
+      ]
     },
     {
       "id": "the_wintering_court",
@@ -1269,7 +1913,23 @@
         "materials": {
           "mythic_ice_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The frozen court holds session in a hall of clear ice, its courtiers posed for an age."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "They have been waiting a very long time for a visitor to acknowledge."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The court finally adjourns. You take the throne room's far door without ceremony."
+        }
+      ]
     },
     {
       "id": "the_hoarfrost_queen",
@@ -1306,7 +1966,31 @@
         "materials": {
           "mythic_ice_core": 2
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The ice hall opens onto a throne of frost, and upon it sits winter itself, wearing a crown."
+        },
+        {
+          "speaker": "Hoarfrost Queen",
+          "text": "Every breath you have spent here was borrowed. I have come to collect."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Her guard closes the doors behind you."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The Hoarfrost Queen shatters into snow, and for the first time the cold has no master."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The thaw will be slow, but it has begun. South of here, the air already smells of ash."
+        }
+      ]
     },
     {
       "id": "ashfall_field",
@@ -1334,7 +2018,27 @@
         "materials": {
           "legendary_fire_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "Ash falls like grey snow over a field that should be green."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Beneath the ash the ground is warm, and it is warmer the further you walk."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The Emberwilds greet you with a summer that never ended."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The field is quiet. The ash keeps falling, patient as a season."
+        }
+      ]
     },
     {
       "id": "the_cinder_wood",
@@ -1365,7 +2069,23 @@
         "materials": {
           "legendary_fire_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The forest burned years ago and simply never stopped burning."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Every trunk is a torch that has been holding its flame for a decade."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You leave the cinder wood standing, still burning, still patient."
+        }
+      ]
     },
     {
       "id": "magma_shallows",
@@ -1396,7 +2116,23 @@
         "materials": {
           "legendary_fire_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The shallows are boiling, steam curling off water that should be cool."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Something long moves under the surface, unbothered by the heat."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The shallows settle to a simmer, and whatever swam in them swims no longer."
+        }
+      ]
     },
     {
       "id": "the_boiling_spring",
@@ -1424,7 +2160,23 @@
         "materials": {
           "legendary_fire_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The spring runs hot enough to strip bone, and something lives in it happily."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It surfaces to look at you the way a cook looks at a pot."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You put the spring's keeper down and step back from its scalding water."
+        }
+      ]
     },
     {
       "id": "the_forgebeast",
@@ -1454,7 +2206,23 @@
         "materials": {
           "legendary_fire_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "An ancient forge still roars in the hillside, though no smith has worked it in centuries."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Something feeds it. Something is still feeding it."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The forge dims for the first time in living memory. The hillside goes dark and cold."
+        }
+      ]
     },
     {
       "id": "the_obsidian_stair",
@@ -1485,7 +2253,23 @@
         "materials": {
           "legendary_fire_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "A stair of black glass climbs into the smoke, sharp as a blade."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Something is climbing down it, and it is in no hurry."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You take the stair upward, and the smoke swallows you without complaint."
+        }
+      ]
     },
     {
       "id": "the_ember_monkeys",
@@ -1516,7 +2300,23 @@
         "materials": {
           "legendary_fire_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The ember monkeys have your pack, your rope, and your lunch, and they are laughing."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "They want you to chase them. You will."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You recover the pack and most of the lunch. The monkeys watch you go, offended."
+        }
+      ]
     },
     {
       "id": "the_cinder_carnival",
@@ -1547,7 +2347,23 @@
         "materials": {
           "legendary_fire_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "A carnival stands in the lava fields, its rides turning with no one to ride them."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The ringmaster is still taking tickets."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The rides grind to a halt. The carnival is finally closed."
+        }
+      ]
     },
     {
       "id": "the_caldera_rim",
@@ -1578,7 +2394,23 @@
         "materials": {
           "legendary_fire_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The caldera rim is the only solid ground for miles, and it is cracking underfoot."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Guards patrol its edge, keeping watch on the drop."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The rim holds, for now, and you cross before the mountain changes its mind."
+        }
+      ]
     },
     {
       "id": "pyroclast_the_mountains_heart",
@@ -1617,7 +2449,31 @@
           "legendary_fire_core": 2,
           "legendary_earth_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "You climb down into the caldera, and the mountain's beat is loud enough to feel in your teeth."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It has been beating for a thousand years. Tonight it wakes."
+        },
+        {
+          "speaker": "Pyroclast",
+          "text": "You will make good fuel."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "Pyroclast collapses into its own crater, and the mountain's heart goes still."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The Emberwilds cool behind you. Ahead, storm clouds stack above the peaks."
+        }
+      ]
     },
     {
       "id": "thunderclap_ridge",
@@ -1645,7 +2501,27 @@
         "materials": {
           "legendary_electric_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "Every step along the ridge throws a spark, and the air tastes of metal."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Something else is walking the same path, a little behind you."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The Storm Peaks do not announce themselves. They ambush."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The ridge falls quiet. For now, nothing walks it but you and the static."
+        }
+      ]
     },
     {
       "id": "the_static_meadow",
@@ -1676,7 +2552,23 @@
         "materials": {
           "legendary_electric_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The meadow grass stands on end, and it stands on end because something is near."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The something is grazing, and it has charged fur."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The meadow relaxes, blade by blade, as the charge drains out of the air."
+        }
+      ]
     },
     {
       "id": "voltstags_herd",
@@ -1705,7 +2597,23 @@
         "materials": {
           "legendary_electric_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The herd moves as one animal across the plateau, hooves throwing sparks."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "One animal has stopped, and it is looking at you."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The herd scatters into the static, and the plateau belongs to the wind again."
+        }
+      ]
     },
     {
       "id": "the_charged_chasm",
@@ -1736,7 +2644,23 @@
         "materials": {
           "legendary_electric_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The chasm hums with current, and the only bridge is a single copper wire."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Something is weaving more of that wire across the gap."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You cross the chasm and leave the wire humming behind you."
+        }
+      ]
     },
     {
       "id": "the_stormherd_alpha",
@@ -1766,7 +2690,23 @@
         "materials": {
           "legendary_electric_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The herd has an alpha, bigger than the rest and crackling at the mane."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It has been saving the charge in its horns. For you."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The alpha goes down, and its herd scatters, unled and harmless."
+        }
+      ]
     },
     {
       "id": "the_lightning_stair",
@@ -1797,7 +2737,23 @@
         "materials": {
           "legendary_electric_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "A stair of frozen lightning climbs into the clouds, each step a bolt caught mid-strike."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It does not look safe, and it is the only way up."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You reach the clouds, and the stair holds behind you, still frozen, still dangerous."
+        }
+      ]
     },
     {
       "id": "the_besieged_beacon_tower",
@@ -1829,7 +2785,23 @@
         "materials": {
           "legendary_electric_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The beacon tower is dark, its fire stolen days ago."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The thief still holds the tower, and the light with it."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The beacon burns again, and the coast will see it, and know the tower stands."
+        }
+      ]
     },
     {
       "id": "the_copper_aviary",
@@ -1860,7 +2832,23 @@
         "materials": {
           "legendary_electric_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "A cage of copper wire hangs from the peak, humming with trapped light."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Inside it, birds made of lightning beat against the bars."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The cage falls open, and the birds streak away into the clouds like released arrows."
+        }
+      ]
     },
     {
       "id": "the_conduit_spire",
@@ -1892,7 +2880,23 @@
         "materials": {
           "legendary_electric_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The spire drinks the storm and stores it, and the air around it sounds like a held breath."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Its warden does not intend to exhale."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The spire discharges into the sky, and the held breath finally releases."
+        }
+      ]
     },
     {
       "id": "skybreaker_the_storms_crown",
@@ -1929,7 +2933,31 @@
         "materials": {
           "legendary_electric_core": 2
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The storm over the peaks has a crown, a ring of light that turns above the clouds."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The crown has a keeper, and the keeper is coming down to meet you."
+        },
+        {
+          "speaker": "Skybreaker",
+          "text": "The storm answers to me. You will answer to the storm."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "Skybreaker falls, and the storm breaks apart into ordinary rain."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The peaks are clean under a washed sky. Far below, a quarry gate stands open."
+        }
+      ]
     },
     {
       "id": "the_quarry_gate",
@@ -1957,7 +2985,27 @@
         "materials": {
           "legendary_earth_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The quarry closed decades ago, its gate rusted shut and its road grassed over."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Today the gate is open, and the road is swept clean."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You go in because someone wants you to, and because you have to."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The gate stands open behind you, and the dark of the quarry answers nothing yet."
+        }
+      ]
     },
     {
       "id": "the_stonefall_gallery",
@@ -1988,7 +3036,23 @@
         "materials": {
           "legendary_earth_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The gallery ceilings shift every night, stone grinding on stone, as if the mountain is chewing."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The dust in the air is fresh, and the ceiling is lower than it was."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You pass through before the next shift, and the ceiling grinds shut behind you."
+        }
+      ]
     },
     {
       "id": "the_boulder_run",
@@ -2016,7 +3080,23 @@
         "materials": {
           "legendary_earth_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "A boulder has rolled this track for a century, wearing a groove deep into the stone."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It has learned to aim."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The boulder runs on without you, and the track falls silent for the first time in a hundred years."
+        }
+      ]
     },
     {
       "id": "the_termite_halls",
@@ -2047,7 +3127,23 @@
         "materials": {
           "legendary_earth_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The halls are carved smooth and warm, and the marks are not tool-marks but teeth-marks."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The things that made them are still hungry."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The halls are quiet and the carving stops. The mountain will keep its shape a while longer."
+        }
+      ]
     },
     {
       "id": "the_quarry_tyrant",
@@ -2077,7 +3173,23 @@
         "materials": {
           "legendary_earth_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The quarry's tools are scattered where they fell, and the workers left in a hurry."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Something runs the quarry now, and it does not like visitors."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The quarry falls quiet. The tools stay where they lie, and you leave them there."
+        }
+      ]
     },
     {
       "id": "the_undergate_foundry",
@@ -2108,7 +3220,23 @@
         "materials": {
           "legendary_earth_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "Below the quarry, a foundry glows, its furnaces warm though no hand has fed them."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Something keeps them lit."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The foundry dims, and for the first time the undergate is only dark."
+        }
+      ]
     },
     {
       "id": "the_court_of_standing_stones",
@@ -2137,7 +3265,23 @@
         "materials": {
           "legendary_earth_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The standing stones were set in a circle long ago, and they are no longer quite in a circle."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Tonight they have turned, and they are turning still."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The stones settle back into their ring, and the ground stops humming beneath them."
+        }
+      ]
     },
     {
       "id": "the_grinding_deep",
@@ -2168,7 +3312,23 @@
         "materials": {
           "legendary_earth_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The deep grinds its teeth below the foundry, a sound that never stops."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The sound is made of stone against stone, and something is driving it."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The grinding stops. The deep is quiet, and quiet is what a mine should be."
+        }
+      ]
     },
     {
       "id": "the_earthheart_vault",
@@ -2199,7 +3359,23 @@
         "materials": {
           "legendary_earth_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The vault door is carved as a mountain's face, and the mountain is frowning."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Its guardians have not accepted a key in a very long time."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The vault stands open behind you, and something deeper still has noticed."
+        }
+      ]
     },
     {
       "id": "terravore_the_root_of_mountains",
@@ -2238,7 +3414,31 @@
         "materials": {
           "legendary_earth_core": 2
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The mountain's roots knot into a heart, vast and slow, beating in the dark below the vault."
+        },
+        {
+          "speaker": "Terravore",
+          "text": "Root me out and the mountain falls on you. Leave, and I keep beating."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You raise your weapon anyway."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "Terravore splits, and the mountain shudders but holds. The deep is quiet at last."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You climb toward the surface, and the first thing you smell is graves."
+        }
+      ]
     },
     {
       "id": "the_grave_road",
@@ -2266,7 +3466,27 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The road to the citadel is lined with graves, and the graves are opening."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Whatever was buried here was buried facing the citadel, and it is climbing out to face it again."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The Shadowed Marches begin at the first open grave."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The graves frown shut behind you, and the road runs on into the mist."
+        }
+      ]
     },
     {
       "id": "the_mist_of_the_marches",
@@ -2294,7 +3514,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The mist is thick enough to walk on, and it is walking."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Something in it has learned your shape."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You come out of the mist, and behind you the fog closes like a door."
+        }
+      ]
     },
     {
       "id": "the_gallows_orchard",
@@ -2325,7 +3561,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The orchard's branches hang heavy with fruit, and none of it is fruit."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The keeper tends the harvest with a patience that has outlived the village."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The orchard is quiet, and the branches are lighter than they have been in years."
+        }
+      ]
     },
     {
       "id": "the_crypt_of_candles",
@@ -2356,7 +3608,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The crypt is lit by candles that gutter when you lie."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You have nothing to hide. The candles gutter anyway."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The last candle burns steady as you climb the crypt's stair."
+        }
+      ]
     },
     {
       "id": "the_pale_rider",
@@ -2386,7 +3654,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "Something rides the march on a horse of smoke, and it is looking for a mount."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It has decided that you look like a good one."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The rider comes apart into mist, and its smoke-horse with it. The march is riderless."
+        }
+      ]
     },
     {
       "id": "the_legion_of_the_hollow_choir",
@@ -2417,7 +3701,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "You can hear them singing from a mile off, and you should not be able to."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The choir holds its note as you approach, as though waiting for a voice to join."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The choir has one fewer voice, and the march is a little quieter for it."
+        }
+      ]
     },
     {
       "id": "the_widows_court",
@@ -2449,7 +3749,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The widow holds court in the dark, and her courtiers have all stopped moving."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The widow has not."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The court disperses into the shadows, and the widow does not follow."
+        }
+      ]
     },
     {
       "id": "the_hunger_below",
@@ -2480,7 +3796,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "Something under the march is always hungry, and it has smelled you for miles."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It has been saving room."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The hunger is quiet now. It will be hungry again, but not tonight."
+        }
+      ]
     },
     {
       "id": "the_black_cathedral",
@@ -2514,7 +3846,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The black cathedral was built to something, and it is still open for worship."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The congregation never left."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The cathedral falls silent. You leave its doors open behind you."
+        }
+      ]
     },
     {
       "id": "umbragore_the_shadow_sovereign",
@@ -2551,7 +3899,31 @@
         "materials": {
           "legendary_dark_core": 2
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The marches end at a court of ash, and on its throne sits a sovereign of shadow."
+        },
+        {
+          "speaker": "Umbragore",
+          "text": "I felt you open my first grave. I have been expecting you since."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "His court rises around you."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "Umbragore dissolves into the dark he ruled, and the marches lose their sovereign."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Beyond the ash court, a ridge of bones climbs into the clouds — and it is breathing."
+        }
+      ]
     },
     {
       "id": "the_spine_road",
@@ -2579,7 +3951,27 @@
         "materials": {
           "legendary_dragon_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The road rides a dragon's spine, vertebra by vertebra, up out of the marches."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The dragon is not as dead as it looks. The road is not as safe as it seems."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You begin the climb."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The spine shifts underfoot, and you move on before it finishes waking."
+        }
+      ]
     },
     {
       "id": "scales_on_the_ridge",
@@ -2607,7 +3999,23 @@
         "materials": {
           "legendary_dragon_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The ridge sheds scales like leaves, each one bigger than a shield."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Something above is scratching itself against the rocks."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You pass beneath the ridge untouched, and the scales keep falling behind you."
+        }
+      ]
     },
     {
       "id": "the_hoard_of_names",
@@ -2638,7 +4046,23 @@
         "materials": {
           "legendary_dragon_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "A hoard of coins fills the cavern, and every coin carries a name."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It takes you a moment to understand that one of them is yours."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The hoard is scattered, and somewhere in it your name is no longer the freshest."
+        }
+      ]
     },
     {
       "id": "the_wyrmsblood_fen",
@@ -2667,7 +4091,23 @@
         "materials": {
           "legendary_dragon_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The fen runs red where the old wyrms bled, and it has never dried."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The blood is still warm, and it is still guarded."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You cross the fen and wash the red from your boots on the far bank."
+        }
+      ]
     },
     {
       "id": "the_wyrmling_broodmother",
@@ -2697,7 +4137,23 @@
         "materials": {
           "legendary_dragon_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The eggs are hatching, a whole clutch of them, and the mother is right behind you."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "She is not happy about the company."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The broodmother falls, and the clutch goes cold. The spine groans its displeasure."
+        }
+      ]
     },
     {
       "id": "the_cradle_of_coils",
@@ -2728,7 +4184,23 @@
         "materials": {
           "legendary_dragon_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The cradle is a pit of coils, and they are all awake."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It is not a nest. It is a mouth with many tongues."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The coils slacken, and the cradle is only a pit again."
+        }
+      ]
     },
     {
       "id": "the_broken_sky_temple",
@@ -2760,7 +4232,23 @@
         "materials": {
           "legendary_dragon_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The sky temple was built to hold the sky up. Its roof is gone, and the sky is falling."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The wardens still stand their posts."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The temple's wardens fall, and for a moment the sky stops falling."
+        }
+      ]
     },
     {
       "id": "the_elder_wyrms_court",
@@ -2792,7 +4280,23 @@
         "materials": {
           "legendary_dragon_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The elder wyrm holds court in a hall of bones — the bones of everyone who has ever visited."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It would like to add yours to the collection."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The elder wyrm falls from its dais, and its court has a new centrepiece."
+        }
+      ]
     },
     {
       "id": "the_last_egg",
@@ -2824,7 +4328,23 @@
         "materials": {
           "legendary_dragon_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "One egg remains in the whole spine, and it is warm."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Something wants it back badly enough to be waiting."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You leave the last egg where it lies, and walk on."
+        }
+      ]
     },
     {
       "id": "voragrim_the_dragons_spine",
@@ -2863,7 +4383,31 @@
           "legendary_dragon_core": 2,
           "legendary_fire_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The spine is not a road. It is a dragon, and it has been waiting for the citadel's call."
+        },
+        {
+          "speaker": "Voragrim",
+          "text": "The Dark Lord calls. You climbed my back to answer him. Fool."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The mountain beneath you stands up."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "Voragrim falls, and the spine finally goes still — a ridge of bones and nothing more."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Ahead, across a plain of ash, the citadel's gates are already open."
+        }
+      ]
     },
     {
       "id": "the_citadel_gates",
@@ -2892,7 +4436,27 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The citadel fills the horizon, black against the ash plain."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The gates open as you approach. That is not a welcome; it is a dare."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You walk in."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The gates close behind you with a sound like a held breath, and the citadel has you."
+        }
+      ]
     },
     {
       "id": "the_ash_courtyard",
@@ -2923,7 +4487,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The courtyard is ankle-deep in ash, and the ash remembers being people."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It reaches for your ankles as you cross."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You cross the courtyard and leave the ash to its remembering."
+        }
+      ]
     },
     {
       "id": "the_hall_of_broken_oaths",
@@ -2954,7 +4534,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "Every oath sworn in this hall broke, and the hall kept the pieces."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The pieces are still here, and they are still angry."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The hall falls quiet, its oaths finally unkept and unguarded."
+        }
+      ]
     },
     {
       "id": "the_screaming_gallery",
@@ -2986,7 +4582,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The paintings scream. Do not look at them."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "You look. Of course you look."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "You leave the gallery with your ears ringing and your name uncarved."
+        }
+      ]
     },
     {
       "id": "the_warden_of_nine_locks",
@@ -3016,7 +4628,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "Nine locks guard the inner keep, each one a door in its own right."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "One warden guards them all, and it has never lost a key."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The nine locks stand open, and the inner keep is one door closer."
+        }
+      ]
     },
     {
       "id": "the_throne_antechamber",
@@ -3048,7 +4676,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The throne is through the next door, and the antechamber is full of everyone who reached it first."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "None of them ever opened that door."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The antechamber empties, and the throne door stands before you."
+        }
+      ]
     },
     {
       "id": "the_court_of_masks",
@@ -3082,7 +4726,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "Everyone at court wears a mask, and none of the masks are empty."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "One of them has been waiting for a face like yours."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The masks fall empty to the floor, and the court is only furniture."
+        }
+      ]
     },
     {
       "id": "the_hollow_chancellor",
@@ -3115,7 +4775,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The dark lord's chancellor is a hollow suit of armour, and something is wearing it."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The something would rather you did not look inside."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The armour clatters empty to the floor. The throne room doors are unbarred."
+        }
+      ]
     },
     {
       "id": "the_dark_lords_shadow",
@@ -3148,7 +4824,23 @@
         "materials": {
           "legendary_dark_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The dark lord's shadow got here first, and it is bigger than he is."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "It has been wearing his shape for a long time, and it does not want to give it back."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The shadow comes apart, and the throne room dims to a single lit door."
+        }
+      ]
     },
     {
       "id": "the_dark_lords_inner_chamber",
@@ -3187,7 +4879,35 @@
           "legendary_dark_core": 2,
           "legendary_dragon_core": 1
         }
-      }
+      },
+      "intro": [
+        {
+          "speaker": "Narrator",
+          "text": "The door closes behind you, and the throne turns."
+        },
+        {
+          "speaker": "The Dark Lord",
+          "text": "You have walked my whole world to stand here. I will make it worth the trip."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The dark lord rises, and the room goes cold."
+        }
+      ],
+      "outro": [
+        {
+          "speaker": "Narrator",
+          "text": "The dark lord falls, and the citadel exhales a century of held breath."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "Dawn breaks over the ash plain for the first time anyone can remember."
+        },
+        {
+          "speaker": "Narrator",
+          "text": "The Long Dark is over. The road home is, at last, only a road."
+        }
+      ]
     }
   ]
 }

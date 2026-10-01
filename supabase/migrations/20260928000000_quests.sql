@@ -17,7 +17,7 @@
 -- ---------------------------------------------------------------------------
 
 -- Baseline 10 (CARD_SPEED_BASE): a card with 20 acts twice as often. Stored on the card row
--- so the server never derives it; `scripts/cards-4-import.mjs` stamps it from the id.
+-- so the server never derives it; `scripts/assets-import.mjs` stamps it from the id.
 alter table public.cards
   add column if not exists speed smallint not null default 10 check (speed between 1 and 40);
 

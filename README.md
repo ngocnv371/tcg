@@ -36,7 +36,7 @@ scripts/build-seed.mjs              balance constants -> supabase/seed.sql (no c
 scripts/cards-1-idea.mjs            IDEATE.MD pools -> new `type=card` rows in data/assets.csv
 scripts/cards-2-design.mjs          blank card `design` cells -> AI-written art prompts
 scripts/assets-render.mjs           `design` -> <type folder>/<id>.png via a local ComfyUI
-scripts/cards-4-import.mjs          data/assets.csv + data/cards/<id>.png -> cards + `card-art` bucket
+scripts/assets-import.mjs          data/assets.csv + every data/*enemies.csv + data/cards/<id>.png -> cards + `card-art` bucket
 scripts/materials-4-import.mjs      data/assets.csv + data/materials/<id>.png -> materials.icon
 scripts/chests-4-import.mjs         data/assets.csv + data/chests/<id>.png -> chests.icon
 scripts/dungeons-1-import.mjs       concept-art folder (json + png) -> dungeons + `dungeon-art` bucket

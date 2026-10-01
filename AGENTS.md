@@ -64,12 +64,16 @@ enemy row is a `type=card` row too, it just carries battle stats the shared cata
 a quest chain's own monsters render through the same graph without a flag. The bestiaries are
 scanned by suffix (so a new `quest1.enemies.csv` is picked up with no edit here), each file's own
 column order is honoured, and an id already carried by `data/assets.csv` is rendered once.
-| 4 import (cards) | `scripts/cards-4-import.mjs` | `npm run cards:4:import` | `type=card` rows + `data/cards/<id>.png` | `cards` + `card_rank_costs`, `card-art` bucket |
+| 4 import (cards) | `scripts/assets-import.mjs` | `npm run assets:import` | `type=card` rows **and every `data/*enemies.csv` bestiary** + `data/cards/<id>.png` | `cards` + `card_rank_costs`, `card-art` bucket |
 | 4 import (materials) | `scripts/materials-4-import.mjs` | `npm run materials:4:import` | `type=material` rows + `data/materials/<id>.png` | `materials.icon`, `material-art` bucket |
 | 4 import (chests) | `scripts/chests-4-import.mjs` | `npm run chests:4:import` | `type=chest` rows + `data/chests/<id>.png` | `chests.icon`, `material-art` bucket (shared with materials) |
 
-`npm run seed:build` reads none of it. The card importer fills whatever a row leaves blank (tags from the
-title, role and passives hashed from the id) and always re-derives `base_atk`/`base_def` from
+`npm run seed:build` reads none of it. The card importer reads the shared catalog **and every
+`data/*enemies.csv` bestiary** (an enemy row is a `type=card` row too, so a quest's monsters are
+real `cards` rows the quest importer only references by id; an id the shared catalog already
+carries wins, so a promoted enemy imports once with its authored fields). It fills whatever a row
+leaves blank (tags from the title, role and passives hashed from the id) and always re-derives
+`base_atk`/`base_def` from
 `RANK_META`, so the CSV's stats stay a sketch instead of a second balance table. **Every catalog
 card is a rank-1 base**: the importer writes `rank = 1` and ignores the CSV's `rank` cell, because
 a card's rank belongs to the *copy* a chest grants (or to whatever `rank_up_card` last left it),
@@ -105,7 +109,7 @@ database picks them up with `migration up`.
 
 Done: schema + RLS + derived SQL functions, generated seed (the economy — materials, chests,
 odds, pacing — plus the single tutorial dungeon; it seeds no cards and no *catalog* dungeons,
-which ship via `scripts/cards-4-import.mjs` / `scripts/dungeons-1-import.mjs`), app shell with
+which ship via `scripts/assets-import.mjs` / `scripts/dungeons-1-import.mjs`), app shell with
 routing and auth gate, the first-session onboarding flow, balance module with tests, DB
 verification script. The dungeon importer takes the same json+image folder shape
 and rolls kind/tier/rank/tags/power/timer/gold/drops seeded by name, uploads to the `dungeon-art` bucket,
@@ -163,9 +167,9 @@ run cannot expire two different ways. Rank-up is live: `rank_up_card`
 locks the copy, re-reads the `card_rank_costs` step for its
 *current* rank, takes the gold and the materials behind `not found` guards (a short balance raises
 and rolls the whole spend back), then returns the bumped row. The ladder lives once, in
-`RANK_UP_LADDER` / `rankUpCost` (`src/game/formulas.ts`) — `scripts/cards-4-import.mjs`
+`RANK_UP_LADDER` / `rankUpCost` (`src/game/formulas.ts`) — `scripts/assets-import.mjs`
 derives `card_rank_costs` from it (the seed no longer writes them), so re-run
-`npm run cards:4:import` after a balance change or already-imported cards have no upgrade path. The
+`npm run assets:import` after a balance change or already-imported cards have no upgrade path. The
 detail screen previews the next step from `card_rank_costs` (never its own numbers) and enables the
 button only when the gold and every material are covered; on success it plays `RankUpAnimation`
 (`RANK_UP_DURATION` = 140 frames at 30fps ≈ 4.7s) in `RankUpOverlay`, which closes itself. Both the
@@ -263,11 +267,13 @@ bestiary. Quests are catalog content and are **NOT seeded**: `npm run seed:build
 `public.quests` empty, and `npm run quests:2:import` (`scripts/quests-2-import.mjs`) is the writer —
 it scans `data/` for `*.quests.json`, runs the same loader the content test does, and upserts on
 `id`. It **skips a quest with an empty `intro` or `outro`** with a warning (a quest with no script is
-still a Hook line, and the client would strand the player on a blank overlay), so the importer today
-imports nothing until the chain's scripts are written. The 100-quest chain is a *pair* of its own,
-not-yet-importable files — `data/the-long-dark.quests.json` + `data/the-long-dark.enemies.csv`, both
-written from its design doc by `npm run quests:1:extract` and validated by the content test — still
-waiting on its `intro`/`outro` scripts. (The starter `data/quest-chain.json` predates the
+still a Hook line, and the client would strand the player on a blank overlay), so an unscripted quest
+is dropped rather than shipped broken; the 100-quest chain is fully scripted, so it imports. It is a
+*pair* of its own files — `data/the-long-dark.quests.json` + `data/the-long-dark.enemies.csv` — both
+written from its design doc by `npm run quests:1:extract` and validated by the content test. Those
+`intro`/`outro` scripts are authored directly in the JSON and the extractor carries them across by
+quest id (like each monster's `design`/`tags`), so re-extracting never wipes the dialogue. (The
+starter `data/quest-chain.json` predates the
 `*.quests.json` convention, so it is not yet picked up by the importer.) Quests took the Dungeons
 bottom tab; Dungeons moved to the header nav.
 

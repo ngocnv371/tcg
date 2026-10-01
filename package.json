@@ -16,7 +16,7 @@
     "cards:1:idea": "node scripts/cards-1-idea.mjs",
     "cards:2:design": "node scripts/cards-2-design.mjs",
     "assets:render": "node scripts/assets-render.mjs",
-    "cards:4:import": "node scripts/cards-4-import.mjs --upload-art --import ./data/cards",
+    "assets:import": "node scripts/assets-import.mjs --upload-art --import ./data/cards",
     "materials:4:import": "node scripts/materials-4-import.mjs --upload-art --import",
     "chests:4:import": "node scripts/chests-4-import.mjs --upload-art --import",
     "dungeons:1:import": "node scripts/dungeons-1-import.mjs --upload-art --import ./data/dungeons",
@@ -25,7 +25,7 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:migrate": "supabase migration up",
-    "db:fullreset": "npm run db:reset && npm run seed:build && npm run cards:4:import && npm run dungeons:1:import && npm run materials:4:import && npm run chests:4:import && npm run quests:2:import",
+    "db:fullreset": "npm run db:reset && npm run seed:build && npm run assets:import && npm run dungeons:1:import && npm run materials:4:import && npm run chests:4:import && npm run quests:2:import",
     "db:types": "supabase gen types typescript --local > src/types/database.gen.ts"
   },
   "dependencies": {

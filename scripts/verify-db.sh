@@ -106,7 +106,7 @@ declare
   core_count integer;
 begin
   select count(*) into card_count from public.cards;
-  -- the seed deliberately writes no cards; catalog content ships via scripts/cards-4-import.mjs
+  -- the seed deliberately writes no cards; catalog content ships via scripts/assets-import.mjs
   -- (data/assets.csv `type=card` rows + data/cards/<id>.png).
   if card_count <> 0 then raise exception 'expected 0 seed cards, found %', card_count; end if;
 

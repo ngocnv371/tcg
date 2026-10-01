@@ -109,7 +109,7 @@
     "quest": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "order", "name", "power", "enemies", "reward", "firstClear"],
+      "required": ["id", "order", "name", "power", "enemies", "reward", "firstClear", "intro", "outro"],
       "properties": {
         "id": { "$ref": "#/$defs/slug" },
         "order": { "type": "integer", "minimum": 1 },

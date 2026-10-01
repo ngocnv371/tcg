@@ -63,7 +63,7 @@ const ANIMALS = [
 
 /**
  * Element word -> card tag id. Mirrors ELEMENT_TO_TAG in
- * scripts/cards-4-import.mjs so an idea tagged here means the same thing
+ * scripts/assets-import.mjs so an idea tagged here means the same thing
  * once it becomes real content.
  *
  * `physical` is deliberately absent: it is the *fallback* tag for a card whose title names

@@ -1,16 +1,23 @@
 /**
- * Asset pipeline (cards), stage 4 of 4 — *import*: pushes the card catalog into Supabase: one row
- * of data/assets.csv with `type=card` per card, plus that card's art at data/cards/<id>.png — the
- * file scripts/assets-render.mjs renders. Rows are turned into `Card` records (src/types/db.ts)
- * and, optionally, upserted straight into Supabase with a service-role token.
+ * Asset pipeline — *import*: pushes the whole card catalog into Supabase. The cards come from
+ * two kinds of file and end up in the same table:
+ *
+ *   - `data/assets.csv`, the shared catalog's `type=card` rows (the player's pull pool), and
+ *   - every `data/*enemies.csv` bestiary, whose rows are also `type=card` — the monsters a quest
+ *     fights. An opponent is a real catalog card, so it wears the same `cards` row (art, name)
+ *     the rest of the app does; the quest importer only names it by id and never restates it.
+ *
+ * Both are turned into `Card` records (src/types/db.ts) and, optionally, upserted into Supabase
+ * with a service-role token, alongside each card's `card_rank_costs` ladder. Art is looked up by
+ * card id at data/cards/<id>.png — the file scripts/assets-render.mjs renders for `type=card`
+ * rows, bestiaries included — and only rows whose `<id>.png` exists are imported: a row with no
+ * art is still an idea, not content, and shipping it would put a placeholder in the catalog.
  *
  * The CSV is the source of truth for id / name / lore / tags / role / passives; whatever a row
  * leaves blank is derived here (tags from the title, role and passives by hash on the id) so a
- * half-filled idea row can still import. A card's rank is deliberately NOT read from the CSV:
- * every catalog card is a rank-1 base, and the rank a chest rolls belongs to the *copy* that
- * reveal grants, not to the template. Only rows whose
- * `<id>.png` actually exists in the art folder are imported — a row with no art is still an
- * idea, not content, and shipping it would put a placeholder in the catalog. The legacy
+ * bestiary row — which only carries battle stats, not card fields — still imports. A card's rank
+ * is deliberately NOT read from the CSV: every catalog card is a rank-1 base, and the rank a
+ * chest rolls belongs to the *copy* that reveal grants, not to the template. The legacy
  * `<Title>.json` sidecars are NOT read: they are kept as provenance of how the first cards were
  * made, not as an input.
  *
@@ -19,10 +26,11 @@
  * from a trusted machine/CI, never shipped to the client.
  *
  * Usage:
- *   node scripts/cards-4-import.mjs [artFolder] [options]
+ *   node scripts/assets-import.mjs [artFolder] [options]
  *
  * Options:
- *   --csv=<path>          Catalog to read. Defaults to data/assets.csv.
+ *   --csv=<path>          Main catalog to read. Defaults to data/assets.csv. Every
+ *                         `data/*enemies.csv` bestiary is read alongside it, always.
  *   --import              Also upsert the derived cards into Supabase.
  *   --upload-art          Re-encode each image to WebP, upload it to the public
  *                         `card-art` Storage bucket, and point art_path at its
@@ -35,18 +43,21 @@
  * Each step is exposed as a standalone function so other scripts can import
  * and reuse them (e.g. from a batch job or a one-off REPL session).
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-/** The catalog: one row per asset in data/assets.csv, in display order. */
+/** The shared catalog: one row per asset in data/assets.csv, in display order. */
 const ASSETS_CSV = join(root, 'data/assets.csv')
 
-/** Where the card art lives — `<card id>.png` files, not json pairs. */
+/** Where every `type=card` row's art lives — `<card id>.png` files, not json pairs. */
 const DEFAULT_ART_FOLDER = join(root, 'data/cards')
+
+/** The bestiaries sit beside the shared catalog; both are scanned from here. */
+const DEFAULT_DATA_DIR = join(root, 'data')
 
 // Picks up SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY from .env.local without
 // requiring it to be exported in the shell first.
@@ -107,7 +118,7 @@ const FACTION_PASSIVES = {
   radiant: { name: 'Gentle Light', text: '+2% success chance on any run it joins.' },
 }
 
-// --- step 1: read the catalog csv -------------------------------------------
+// --- step 1: read the catalogs -----------------------------------------------
 
 /** Minimal RFC-4180-ish CSV reader: quoted fields, doubled quotes, CRLF. */
 function parseCsv(text) {
@@ -160,12 +171,58 @@ function parseCsv(text) {
 }
 
 /**
- * Reads the catalog csv into row objects, in file order, keeping only `type=card` rows — the
- * shared catalog also carries materials. A row without a `type` is treated as a card so an
- * older single-type file still works.
+ * Reads one csv into row objects, in file order, keeping only `type=card` rows — the shared
+ * catalog also carries materials and chests, and a bestiary happens to trail its `type` column.
+ * A row without a `type` is treated as a card so an older single-type file still works.
  */
 export function readCatalog(csvPath = ASSETS_CSV) {
   return parseCsv(readFileSync(csvPath, 'utf8')).filter((row) => (row.type ?? 'card') === 'card')
+}
+
+/**
+ * Every bestiary in `data/` — the `<name>.enemies.csv` files a quest chain names as its own
+ * (`enemies.csv`, `the-long-dark.enemies.csv`, a future `quest1.enemies.csv`, …). A bestiary is
+ * not a different kind of asset: its rows are `type=card`, the same row a player can pull, just
+ * with battle stats the shared catalog does not carry. Scanning by suffix is what lets a new
+ * chain bring its own monsters without editing this script.
+ */
+export function enemyCatalogs(dir = DEFAULT_DATA_DIR) {
+  if (!existsSync(dir)) return []
+  return readdirSync(dir)
+    .filter((name) => name.toLowerCase().endsWith('enemies.csv'))
+    .sort()
+    .map((name) => join(dir, name))
+}
+
+/**
+ * The shared catalog followed by every bestiary — the files whose `type=card` rows become
+ * `cards` rows, in the order they are read.
+ */
+export function cardCatalogs(csvPath = ASSETS_CSV, dir = DEFAULT_DATA_DIR) {
+  return [csvPath, ...enemyCatalogs(dir)]
+}
+
+/**
+ * Reads every catalog file into one row list, in file order, deduped by id. The shared catalog
+ * is read first so a promoted row (an enemy the catalog already carries, e.g. `thunder-wolf`)
+ * keeps its richer authored fields and the bestiary only supplies monsters the catalog does not.
+ * Rows without an id are left to `buildCardRecord` to mint (and dedupe) one.
+ */
+export function readCatalogRows(files) {
+  const seen = new Set()
+  const rows = []
+  for (const path of files) {
+    if (!existsSync(path)) throw new Error(`catalog not found: ${path}`)
+    for (const row of readCatalog(path)) {
+      const id = (row.id ?? '').trim()
+      if (id) {
+        if (seen.has(id)) continue
+        seen.add(id)
+      }
+      rows.push(row)
+    }
+  }
+  return rows
 }
 
 // --- step 2: derive Card-model fields from title + summary -------------------
@@ -205,7 +262,8 @@ function pickByHash(id, list) {
  * Builds a full Card record (src/types/db.ts) from one catalog row.
  *
  * The CSV wins wherever it has a value; blanks are filled the way the old json-pair importer
- * always did, so an un-promoted idea row still imports. `existingIds` dedupes across the batch.
+ * always did, so an un-promoted idea row — or a bestiary row, which carries battle stats and
+ * almost no card fields — still imports. `existingIds` dedupes across the batch.
  */
 export function buildCardRecord(row, { index = 0, existingIds = new Set() } = {}) {
   const title = (row.name ?? '').trim()
@@ -421,11 +479,20 @@ async function main() {
 
   const artFolder = positionals[0]?.replace(/["']+$/, '') || DEFAULT_ART_FOLDER
   const csvPath = values.csv ? join(root, values.csv) : ASSETS_CSV
-  const rows = readCatalog(csvPath)
-  if (!rows.length) {
-    console.error(`no card rows found in ${csvPath}`)
+  if (!existsSync(csvPath)) {
+    console.error(`catalog not found: ${csvPath}`)
     process.exit(1)
   }
+
+  // The shared catalog plus every bestiary: an enemy row is a `type=card` row, so it imports
+  // through the same path as any other card.
+  const catalogs = cardCatalogs(csvPath)
+  const rows = readCatalogRows(catalogs)
+  if (!rows.length) {
+    console.error(`no card rows found in ${catalogs.map((path) => relative(root, path)).join(', ')}`)
+    process.exit(1)
+  }
+  console.log(`catalogs: ${catalogs.map((path) => relative(root, path)).join(', ')}`)
 
   let admin
   if ((values.import || values['upload-art']) && !values['dry-run']) {
@@ -466,7 +533,7 @@ async function main() {
     console.warn(`${withoutArt.length} of ${rows.length} row(s) skipped for missing art — run npm run assets:render`)
   }
   if (!cards.length) {
-    console.error(`no card in ${csvPath} has art in ${artFolder} — nothing to import`)
+    console.error(`no card in ${catalogs.map((path) => relative(root, path)).join(', ')} has art in ${artFolder} — nothing to import`)
     process.exit(1)
   }
 
