@@ -1,0 +1,61 @@
+{
+  "$schema": "./quest-chain.schema.json",
+  "version": 1,
+  "quests": [
+    {
+      "id": "the_kidnapped_chicken",
+      "order": 1,
+      "name": "The Kidnapped Chicken",
+      "power": 80,
+      "enemies": [{ "cardId": "thunder-wolf", "name": "Scruffy Wolf" }],
+      "reward": { "gold": 250, "materials": { "lesser_physical_core": 1 } },
+      "firstClear": { "gold": 150, "materials": { "lesser_earth_core": 1 } },
+      "intro": [
+        { "speaker": "Pip the Farmer", "text": "Oh no, a wolf has kidnapped my pet chicken!" },
+        { "speaker": "Pip the Farmer", "text": "Please — face it in battle and bring her home!" }
+      ],
+      "outro": [
+        { "speaker": "Pip the Farmer", "text": "You did it! Cluckers is safe and sound. Thank you!" }
+      ]
+    },
+    {
+      "id": "mushroom_menace",
+      "order": 2,
+      "name": "Mushroom Menace",
+      "power": 150,
+      "enemies": [
+        { "cardId": "mushroom-back-turtle", "name": "Spore Cap" },
+        { "cardId": "razor-leaf", "name": "Razor Vine" }
+      ],
+      "reward": { "gold": 400, "materials": { "lesser_grass_core": 2 } },
+      "firstClear": { "gold": 200, "materials": { "greater_grass_core": 1 } },
+      "intro": [
+        { "speaker": "Grimble the Guide", "text": "The old cellar has been overgrown for years — mushrooms and worse." },
+        { "speaker": "Grimble the Guide", "text": "Two of them guard the grain. Clear them out — carefully!" }
+      ],
+      "outro": [
+        { "speaker": "Grimble the Guide", "text": "Not a single spore left. The harvest is saved!" }
+      ]
+    },
+    {
+      "id": "bandits_at_the_bridge",
+      "order": 3,
+      "name": "Brutes at the Bridge",
+      "power": 240,
+      "enemies": [
+        { "cardId": "rock-troll", "name": "Bridge Troll" },
+        { "cardId": "knuckle-monkey", "name": "Brawler" },
+        { "cardId": "horned-beaver", "name": "Gnawer" }
+      ],
+      "reward": { "gold": 700, "materials": { "lesser_dark_core": 2 } },
+      "firstClear": { "gold": 300, "materials": { "greater_dark_core": 1 } },
+      "intro": [
+        { "speaker": "Captain Rook", "text": "A troll and its cronies have barred the only bridge out of the valley." },
+        { "speaker": "Captain Rook", "text": "Three of them. Scatter them and the road is ours again." }
+      ],
+      "outro": [
+        { "speaker": "Captain Rook", "text": "The bridge is open. The valley owes you a debt, champion." }
+      ]
+    }
+  ]
+}

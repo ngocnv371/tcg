@@ -1,5 +1,6 @@
 /**
- * Asset pipeline — *render*: renders concept art for every row in data/assets.csv with a local
+ * Asset pipeline — *render*: renders concept art for every row in data/assets.csv — plus every
+ * `data/*enemies.csv` bestiary, whose rows are also `type=card` — with a local
  * ComfyUI instance, one asset at a time. This replaces the near-identical card and material
  * renderers that used to live in scripts/cards-3-render.mjs and scripts/materials-3-render.mjs:
  * the workflow is the same graph and the only thing that ever differed was the output size, so
@@ -23,7 +24,8 @@
  *
  * Options:
  *   --type=<t>        Only render one asset type (card, material, chest). Default: every type.
- *   --csv=<path>      Catalog to read. Default data/assets.csv.
+ *   --csv=<path>      Main catalog to read. Default data/assets.csv. Every `data/*enemies.csv`
+ *                     bestiary is read alongside it, so a new chain's enemies render too.
  *   --url=<url>       ComfyUI base url. Defaults to env COMFY_URL (fallback COMFYUI_URL),
  *                     then http://127.0.0.1:8188.
  *   --workflow=<p>    Workflow json to run. Default data/comfy-zimage.json.
@@ -37,14 +39,15 @@
  *   --dry-run         List what would be rendered and exit.
  *   --help            Show this message.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const ASSETS_CSV = join(root, 'data/assets.csv')
-const WORKFLOW_JSON = join(root, 'data/comfy-zimage.json')
+const DATA_DIR = join(root, 'data')
+const ASSETS_CSV = join(DATA_DIR, 'assets.csv')
+const WORKFLOW_JSON = join(DATA_DIR, 'comfy-zimage.json')
 
 if (existsSync(join(root, '.env.local'))) process.loadEnvFile(join(root, '.env.local'))
 
@@ -118,6 +121,22 @@ function parseCsv(text) {
   const populated = rows.filter((line) => line.some((cell) => cell !== ''))
   const [header, ...body] = populated
   return { header: header.map((key) => key.trim()), rows: body }
+}
+
+/**
+ * Every bestiary in `data/` — the `<name>.enemies.csv` files a quest chain names as its own
+ * (`enemies.csv`, `the-long-dark.enemies.csv`, a future `quest1.enemies.csv`, …).
+ *
+ * A bestiary is not a different kind of asset: its rows are `type=card`, the same art an
+ * opponent wears in battle, so it renders through this pipeline unchanged. Scanning by suffix
+ * is what lets a new chain bring its own monsters without also editing this script.
+ */
+function enemyCatalogs(dir) {
+  if (!existsSync(dir)) return []
+  return readdirSync(dir)
+    .filter((name) => name.toLowerCase().endsWith('enemies.csv'))
+    .sort()
+    .map((name) => join(dir, name))
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -297,12 +316,14 @@ const { values } = parseArgs({
 if (values.help) {
   console.log(
     [
-      'Render concept art for every row in data/assets.csv with a local ComfyUI instance.',
+      'Render concept art for data/assets.csv and every data/*enemies.csv bestiary,',
+      'using a local ComfyUI instance.',
       'Output size is switched by the row type; skips any <id>.png that already exists.',
       '',
       'Usage: node scripts/assets-render.mjs [options]',
       `  --type=<t>        Only one type (${Object.keys(ASSET_TYPES).join(', ')}). Default: all.`,
       '  --csv=<path>      Default data/assets.csv.',
+      '                    data/*enemies.csv are read alongside it, always.',
       '  --url=<url>       Defaults to env COMFY_URL / COMFYUI_URL, then http://127.0.0.1:8188.',
       '  --workflow=<p>    Default data/comfy-zimage.json.',
       '  --limit=<n>       Stop after n assets.',
@@ -345,75 +366,105 @@ if (!existsSync(workflowPath)) {
   console.error(`workflow not found: ${workflowPath}`)
   process.exit(1)
 }
-if (!existsSync(csvPath)) {
-  console.error(`assets csv not found: ${csvPath}`)
-  process.exit(1)
-}
 
-const { header, rows } = parseCsv(readFileSync(csvPath, 'utf8'))
-const column = (name) => {
-  const index = header.indexOf(name)
-  if (index === -1) {
-    console.error(`data/assets.csv has no "${name}" column.`)
+// data/assets.csv is the shared catalog; every `<name>.enemies.csv` beside it is a bestiary
+// whose rows are also `type=card`, so the two are read into one work list below.
+const catalogs = [csvPath, ...enemyCatalogs(DATA_DIR)]
+const loadedPaths = new Set()
+const seenAssets = new Set()
+const assets = []
+const unknownTypes = new Set()
+let duplicates = 0
+
+for (const path of catalogs) {
+  if (loadedPaths.has(path)) continue
+  loadedPaths.add(path)
+  if (!existsSync(path)) {
+    console.error(`catalog not found: ${path}`)
     process.exit(1)
   }
-  return index
+
+  const { header, rows } = parseCsv(readFileSync(path, 'utf8'))
+  const column = (name) => {
+    const index = header.indexOf(name)
+    if (index === -1) {
+      console.error(`${relative(root, path)} has no "${name}" column.`)
+      process.exit(1)
+    }
+    return index
+  }
+  // Column order differs per file (assets.csv leads with type, a bestiary trails it), so each
+  // row is normalised here rather than indexed off one shared header.
+  const idIndex = column('id')
+  const typeIndex = column('type')
+  const designIndex = column('design')
+
+  let undesign = 0
+  for (const row of rows) {
+    const id = (row[idIndex] ?? '').trim()
+    const type = (row[typeIndex] ?? '').trim()
+    const design = (row[designIndex] ?? '').trim()
+
+    // A row with no design has no prompt, so it can never render.
+    if (!design) {
+      undesign += 1
+      continue
+    }
+    if (!ASSET_TYPES[type]) {
+      if (type) unknownTypes.add(type)
+      continue
+    }
+    // A bestiary repeats cards the shared catalog already carries; render each id/type once.
+    const key = `${type}\u0000${id}`
+    if (seenAssets.has(key)) {
+      duplicates += 1
+      continue
+    }
+    seenAssets.add(key)
+    assets.push({ id, type, design })
+  }
+  if (undesign) {
+    console.warn(`warn: ${undesign} row(s) in ${relative(root, path)} have no design yet — fill them in first`)
+  }
 }
-const idIndex = column('id')
-const typeIndex = column('type')
-const designIndex = column('design')
-
-const cell = (row, index) => (row[index] ?? '').trim()
-
-/** A row with no design has no prompt, so it can never render. */
-const undesign = rows.filter((row) => !cell(row, designIndex))
-if (undesign.length) {
-  console.warn(`warn: ${undesign.length} row(s) have no design yet — fill in data/assets.csv first`)
+if (unknownTypes.size) {
+  console.warn(`warn: ignoring row(s) with unknown type: ${[...unknownTypes].join(', ')}`)
 }
 
 const selectedTypes = values.type ? [values.type] : Object.keys(ASSET_TYPES)
-const unknown = new Set()
-const designed = rows.filter((row) => {
-  const type = cell(row, typeIndex)
-  if (!ASSET_TYPES[type]) {
-    if (type) unknown.add(type)
-    return false
-  }
-  return selectedTypes.includes(type) && cell(row, designIndex)
-})
-if (unknown.size) {
-  console.warn(`warn: ignoring row(s) with unknown type: ${[...unknown].join(', ')}`)
-}
+const designed = assets.filter((asset) => selectedTypes.includes(asset.type))
 
 let pending = designed
 if (!values.force) {
-  pending = pending.filter((row) => {
-    const config = ASSET_TYPES[cell(row, typeIndex)]
-    return !existsSync(join(root, config.dir, `${cell(row, idIndex)}.png`))
-  })
+  pending = pending.filter(
+    (asset) => !existsSync(join(root, ASSET_TYPES[asset.type].dir, `${asset.id}.png`)),
+  )
 }
 if (values.limit !== undefined) pending = pending.slice(0, intOption('--limit', values.limit, 1))
 
-const byType = pending.reduce((counts, row) => {
-  const type = cell(row, typeIndex)
-  counts[type] = (counts[type] ?? 0) + 1
+const byType = pending.reduce((counts, asset) => {
+  counts[asset.type] = (counts[asset.type] ?? 0) + 1
   return counts
 }, {})
 
 console.log(`comfy: ${baseUrl}${values.url ? '' : envUrl ? ' (env)' : ' (default)'}`)
 console.log(`workflow: ${workflowPath}`)
+console.log(`catalogs: ${[...loadedPaths].map((path) => relative(root, path)).join(', ')}`)
 console.log(
-  `assets.csv: ${rows.length} rows, ${pending.length} to render${
+  `rows: ${assets.length} designed asset(s), ${pending.length} to render${
     Object.keys(byType).length ? ` (${Object.entries(byType).map(([type, n]) => `${n} ${type}`).join(', ')})` : ''
   }${values.force ? ' (--force)' : ''}`,
 )
+if (duplicates) {
+  console.log(`note: ${duplicates} row(s) already rendered once via another catalog — skipped`)
+}
 if (!pending.length) {
   console.log('nothing to do — every designed asset already has an image')
   process.exit(0)
 }
 
 if (values['dry-run']) {
-  for (const row of pending) console.log(`  [${cell(row, typeIndex)}] ${cell(row, idIndex)}`)
+  for (const asset of pending) console.log(`  [${asset.type}] ${asset.id}`)
   console.log(`dry-run: ${pending.length} assets not rendered`)
   process.exit(0)
 }
@@ -437,11 +488,9 @@ if (!(await client.isReachable())) {
 let written = 0
 let failed = 0
 
-for (const [index, row] of pending.entries()) {
-  const id = cell(row, idIndex)
-  const type = cell(row, typeIndex)
+for (const [index, asset] of pending.entries()) {
+  const { id, type, design } = asset
   const config = ASSET_TYPES[type]
-  const design = cell(row, designIndex)
   const target = join(root, config.dir, `${id}.png`)
   const label = `[${index + 1}/${pending.length}]`
 

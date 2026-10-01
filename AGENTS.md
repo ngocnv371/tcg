@@ -58,6 +58,12 @@ and have no earlier stages: `dungeons-1-import.mjs` turns an art export folder s
 | 1 idea | `scripts/cards-1-idea.mjs` | `npm run cards:1:idea` | `IDEATE.MD` pools | new `type=card` rows in `data/assets.csv` |
 | 2 design | `scripts/cards-2-design.mjs` | `npm run cards:2:design` | blank-`design` `type=card` rows | `design` (the concept-art prompt) |
 | 3 render | `scripts/assets-render.mjs` | `npm run assets:render` | `design` + `data/comfy-zimage.json` | `data/cards/<id>.png` / `data/materials/<id>.png` (local ComfyUI) |
+
+The render stage reads `data/assets.csv` **and every `data/*enemies.csv` bestiary** beside it: an
+enemy row is a `type=card` row too, it just carries battle stats the shared catalog does not, so
+a quest chain's own monsters render through the same graph without a flag. The bestiaries are
+scanned by suffix (so a new `quest1.enemies.csv` is picked up with no edit here), each file's own
+column order is honoured, and an id already carried by `data/assets.csv` is rendered once.
 | 4 import (cards) | `scripts/cards-4-import.mjs` | `npm run cards:4:import` | `type=card` rows + `data/cards/<id>.png` | `cards` + `card_rank_costs`, `card-art` bucket |
 | 4 import (materials) | `scripts/materials-4-import.mjs` | `npm run materials:4:import` | `type=material` rows + `data/materials/<id>.png` | `materials.icon`, `material-art` bucket |
 | 4 import (chests) | `scripts/chests-4-import.mjs` | `npm run chests:4:import` | `type=chest` rows + `data/chests/<id>.png` | `chests.icon`, `material-art` bucket (shared with materials) |
@@ -254,11 +260,16 @@ it cannot be farmed). **The quest catalog is authored as data, not code**: a que
 `data/quest-chain.schema.json` — and names each opponent by its `data/enemies.csv` bestiary id plus a
 `count`, and the build-time loader `src/game/quests.ts` joins the two — each quest file names its own
 bestiary. Quests are catalog content and are **NOT seeded**: `npm run seed:build` leaves
-`public.quests` empty, and the loader is the shape a quest importer writes to that table, so the card
-preview and the payout read one row. The 100-quest chain is a *pair* of its own, not-yet-imported files —
-`data/the-long-dark.quests.json` + `data/the-long-dark.enemies.csv`, both written from its design doc
-by `npm run quests:1:extract` and validated by the content test — still waiting on its
-`intro`/`outro` scripts. Quests took the Dungeons bottom tab; Dungeons moved to the header nav.
+`public.quests` empty, and `npm run quests:2:import` (`scripts/quests-2-import.mjs`) is the writer —
+it scans `data/` for `*.quests.json`, runs the same loader the content test does, and upserts on
+`id`. It **skips a quest with an empty `intro` or `outro`** with a warning (a quest with no script is
+still a Hook line, and the client would strand the player on a blank overlay), so the importer today
+imports nothing until the chain's scripts are written. The 100-quest chain is a *pair* of its own,
+not-yet-importable files — `data/the-long-dark.quests.json` + `data/the-long-dark.enemies.csv`, both
+written from its design doc by `npm run quests:1:extract` and validated by the content test — still
+waiting on its `intro`/`outro` scripts. (The starter `data/quest-chain.json` predates the
+`*.quests.json` convention, so it is not yet picked up by the importer.) Quests took the Dungeons
+bottom tab; Dungeons moved to the header nav.
 
 Scope decisions, 2026-09-20 — do not re-add these without asking:
 
