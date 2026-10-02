@@ -194,6 +194,11 @@ export function QuestListScreen() {
                         materialById={materialById}
                       />
                     ))}
+                    {entry.card_drop_chance > 0 ? (
+                      <span className="text-gold-300">
+                        🎴 {Math.round(entry.card_drop_chance * 100)}% card drop
+                      </span>
+                    ) : null}
                   </div>
                   {!completion ? (
                     <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-400">
@@ -279,6 +284,9 @@ export function QuestListScreen() {
           quest={quest}
           won={won}
           clear={clear}
+          dropCardName={
+            clear?.card ? (cardById.get(clear.card.card_id)?.name ?? clear.card.card_id) : null
+          }
           error={error2}
           onRetry={retry}
           onClose={end}

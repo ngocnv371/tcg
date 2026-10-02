@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 
 import { cn } from '@/lib/utils'
 import { cardPower } from '@/game/formulas'
+import type { CardLevels } from '@/game/formulas'
 import type { Card, CardRank, PlayerCard } from '@/types/db'
 
 /**
@@ -56,14 +57,28 @@ export function cardRank(item: CardBrowserItem): CardRank {
   return item.playerCard?.rank ?? item.card.rank
 }
 
+/** The copy's per-stat levels, falling back to a fresh rank-1/level-1 template. */
+export function cardLevels(item: CardBrowserItem): CardLevels {
+  const copy = item.playerCard
+  return {
+    rank: copy?.rank ?? item.card.rank,
+    atk_level: copy?.atk_level ?? 1,
+    hp_level: copy?.hp_level ?? 1,
+    def_level: copy?.def_level ?? 1,
+    spd_level: copy?.spd_level ?? 1,
+  }
+}
+
+/** Total invested stat levels — a rough "how developed is this copy" score for sorting. */
 export function cardLevel(item: CardBrowserItem): number {
-  return item.playerCard?.level ?? 1
+  const levels = cardLevels(item)
+  return levels.atk_level + levels.hp_level + levels.def_level + levels.spd_level
 }
 
 function primaryCompare(a: CardBrowserItem, b: CardBrowserItem, sort: CardSort): number {
   switch (sort) {
     case 'power-asc':
-      return cardPower(cardRank(a), cardLevel(a)) - cardPower(cardRank(b), cardLevel(b))
+      return cardPower(a.card, cardLevels(a)) - cardPower(b.card, cardLevels(b))
     case 'level-desc':
       return cardLevel(b) - cardLevel(a)
     case 'rank-desc':
@@ -74,7 +89,7 @@ function primaryCompare(a: CardBrowserItem, b: CardBrowserItem, sort: CardSort):
       return a.card.name.localeCompare(b.card.name)
     case 'power-desc':
     default:
-      return cardPower(cardRank(b), cardLevel(b)) - cardPower(cardRank(a), cardLevel(a))
+      return cardPower(b.card, cardLevels(b)) - cardPower(a.card, cardLevels(a))
   }
 }
 

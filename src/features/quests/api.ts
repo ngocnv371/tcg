@@ -10,6 +10,8 @@ export type QuestClear = {
   first_clear: boolean
   clears: number
   rewards: { gold: number; materials: Record<string, number> }
+  /** The enemy card this clear dropped, if the server roll hit. */
+  card: { card_id: string; player_card_id: string } | null
 }
 
 /** The quest catalog. Seeded content, identical for every player, so it never goes stale. */
@@ -62,6 +64,8 @@ export function useCompleteQuest() {
       void queryClient.invalidateQueries({ queryKey: ['quest_completions'] })
       void queryClient.invalidateQueries({ queryKey: ['profile'] })
       void queryClient.invalidateQueries({ queryKey: ['inventory'] })
+      // A clear can drop a card, so the collection may have grown.
+      void queryClient.invalidateQueries({ queryKey: ['player_cards'] })
     },
   })
 }

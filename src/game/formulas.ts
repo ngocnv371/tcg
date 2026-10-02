@@ -10,32 +10,61 @@
 
 export type CardRank = 1 | 2 | 3 | 4 | 5
 
+/**
+ * A rank is a flat multiplier across EVERY stat a card has. The catalog stores a card's
+ * rank-1 base numbers (base_atk / base_def / speed), and a copy's effective stat is
+ * `base * statMult(rank) * level growth`. Rank-up no longer rewrites the template; it
+ * multiplies the copy.
+ *
+ * The multiplier ladder mirrors the old per-rank ATK bases (20 / 35 / 55 / 85 / 130 for a
+ * 20-base card) so a rank-1 party scores what it always did. It also doubles as the fodder
+ * value curve: a rank-r copy is worth 2^(r-1) rank-1 copies, so 1→2 costs 2 copies, 2→3
+ * costs 4, 3→4 costs 8 and 4→5 costs 16 — the exponential farming pressure.
+ */
 export type RankMeta = {
-  /** ATK for a card of this rank at level 1. */
-  atkBase: number
-  /** DEF as a fraction of ATK. */
-  defRatio: number
-  /** Multiplier applied to (ATK + DEF) when scoring a party. */
-  rankMult: number
-  /** Level ceiling at this rank. */
+  /** Multiplier applied to every base stat of a copy at this rank. */
+  statMult: number
+  /** Level ceiling for each of a copy's four stat levels at this rank. */
   levelCap: number
-  /** Duplicate of this rank converts into this many shards. */
+  /** Duplicate of this rank converts into this many shards (the stat-level currency). */
   dupeShards: number
 }
 
 export const RANK_META: Record<CardRank, RankMeta> = {
-  1: { atkBase: 20, defRatio: 0.6, rankMult: 1.0, levelCap: 20, dupeShards: 5 },
-  2: { atkBase: 35, defRatio: 0.6, rankMult: 1.5, levelCap: 40, dupeShards: 10 },
-  3: { atkBase: 55, defRatio: 0.6, rankMult: 2.2, levelCap: 60, dupeShards: 25 },
-  4: { atkBase: 85, defRatio: 0.6, rankMult: 3.2, levelCap: 80, dupeShards: 60 },
-  5: { atkBase: 130, defRatio: 0.6, rankMult: 4.5, levelCap: 99, dupeShards: 150 },
+  1: { statMult: 1.0, levelCap: 20, dupeShards: 5 },
+  2: { statMult: 1.75, levelCap: 40, dupeShards: 10 },
+  3: { statMult: 2.75, levelCap: 60, dupeShards: 25 },
+  4: { statMult: 4.25, levelCap: 80, dupeShards: 60 },
+  5: { statMult: 6.5, levelCap: 100, dupeShards: 150 },
 }
 
-/** ATK grows 8% of base per level. */
+/**
+ * The neutral rank-1 stat line every catalog card is authored against. Rank multiplies it;
+ * the card importer stamps these onto each `cards` row so the base is stored, not implied.
+ */
+export const CARD_BASE_ATK = 20
+export const CARD_BASE_DEF = 12
+
+/** Every stat grows 8% of its base per level. */
 export const ATK_GROWTH_PER_LEVEL = 0.08
-/** level-up gold cost = round(GOLD_BASE * level ^ GOLD_EXP) */
+/** stat-level gold cost = round(GOLD_BASE * level ^ GOLD_EXP) — fixed and predictable. */
 export const LEVELUP_GOLD_BASE = 25
 export const LEVELUP_GOLD_EXP = 1.4
+
+/**
+ * The four independently-levelled stats on a copy. `spd` reuses the catalog `cards.speed`
+ * base; `hp` derives from `base_atk` at `CARD_HP_PER_ATK` (defined further down).
+ */
+export const CARD_STATS = ['atk', 'hp', 'def', 'spd'] as const
+export type CardStat = (typeof CARD_STATS)[number]
+
+export function statMultiplier(rank: CardRank): number {
+  return RANK_META[rank].statMult
+}
+
+export function statLevelCap(rank: CardRank): number {
+  return RANK_META[rank].levelCap
+}
 
 /**
  * Card tags are a card's farming identity: every tag owns a Core family, and a rank-up
@@ -140,68 +169,115 @@ export function scaleEnemyStats(base: EnemyStats, threat: number = DEFAULT_THREA
   }
 }
 
-export type RankUpStep = {
-  gold: number
-  /** Fixed materials for the step; the card's tag Cores are added on top by `rankUpCost`. */
-  materials: Record<string, number>
-  /** Grade of Core this step consumes. */
-  coreVariant: CoreVariant
-  /** How many of EACH of the card's tag Cores this step consumes. */
-  coreQty: number
+// ---------------------------------------------------------------------------
+// Rank-up: duplicates are the currency
+// ---------------------------------------------------------------------------
+
+/** A rank-r copy is worth 2^(r-1) rank-1 copies as fodder. */
+export function rankUpValue(rank: CardRank): number {
+  return 2 ** (rank - 1)
+}
+
+/** Base-copy value a copy must consume to go from `fromRank` to `fromRank + 1`; 0 at 5★. */
+export function rankUpRequirement(fromRank: CardRank): number {
+  if (fromRank >= 5) return 0
+  // 1→2 costs 2, 2→3 costs 4, 3→4 costs 8, 4→5 costs 16: exactly two copies of the
+  // current rank, or any mix whose rank values sum to the requirement.
+  return 2 ** fromRank
+}
+
+/** The bits of a copy the fodder picker needs. */
+export type FodderCandidate = {
+  id: string
+  card_id: string
+  rank: CardRank
+  /** Locked copies are protected from every bulk action, rank-up included. */
+  locked?: boolean
+  /** An equipped copy is one physical card in a lineup; it cannot be consumed. */
+  inParty?: boolean
 }
 
 /**
- * Rank-up ladder, keyed by the card's CURRENT rank. A card's route is decided by its tags,
- * not its faction: two cards of the same faction farm different dungeons whenever their
- * tag sets differ.
- *
- * This is the single source for both the seeded `card_rank_costs` rows
- * (`scripts/build-seed.mjs`) and the ones the card importer writes, so a balance change
- * here reaches existing content on the next import.
+ * Picks the cheapest set of duplicate copies that covers a rank-up, mirroring the
+ * server-side auto-selection in `rank_up_card`. Lowest ranks first so a higher-rank copy
+ * is never spent when smaller ones would do; returns null when the collection is short.
  */
-export const RANK_UP_LADDER: Record<Exclude<CardRank, 5>, RankUpStep> = {
-  1: { gold: 1000, materials: { common_shard: 10 }, coreVariant: 'lesser', coreQty: 3 },
-  2: { gold: 5000, materials: { uncommon_shard: 25 }, coreVariant: 'greater', coreQty: 8 },
-  3: { gold: 20000, materials: { rare_shard: 50 }, coreVariant: 'mythic', coreQty: 15 },
-  4: { gold: 80000, materials: { epic_shard: 100 }, coreVariant: 'legendary', coreQty: 25 },
-}
+export function selectRankUpFodder(
+  target: { id: string; card_id: string; rank: CardRank },
+  copies: readonly FodderCandidate[],
+): string[] | null {
+  const required = rankUpRequirement(target.rank)
+  if (required === 0) return null
 
-/**
- * What one rank-up costs for a card carrying these tags, or null at 5★ (the top of the
- * ladder). Mirrors the `card_rank_costs` lookup `rank_up_card` does server-side.
- */
-export function rankUpCost(
-  fromRank: CardRank,
-  tags: readonly string[],
-): { gold: number; materials: Record<string, number> } | null {
-  const step = RANK_UP_LADDER[fromRank as Exclude<CardRank, 5>]
-  if (!step) return null
+  const candidates = copies
+    .filter(
+      (copy) =>
+        copy.card_id === target.card_id &&
+        copy.id !== target.id &&
+        !copy.locked &&
+        !copy.inParty,
+    )
+    .sort((a, b) => a.rank - b.rank)
 
-  const materials: Record<string, number> = { ...step.materials }
-  for (const tag of coreTagsForCard(tags)) {
-    materials[tagCoreId(tag, step.coreVariant)] = step.coreQty
+  // A single copy that already covers the step (the next rank, or above) is used alone —
+  // the smallest such, so a bigger card is never spent when a smaller one covers it.
+  const single = candidates.find((copy) => rankUpValue(copy.rank) >= required)
+  if (single) return [single.id]
+
+  const ids: string[] = []
+  let value = 0
+  for (const candidate of candidates) {
+    ids.push(candidate.id)
+    value += rankUpValue(candidate.rank)
+    if (value >= required) return ids
   }
-  return { gold: step.gold, materials }
+  return null
+}
+
+// ---------------------------------------------------------------------------
+// Stat levelling: the gold + Core sink
+// ---------------------------------------------------------------------------
+
+export function statLevelGold(targetLevel: number): number {
+  return levelUpGold(targetLevel)
+}
+
+/**
+ * What one stat level costs on a card carrying these tags: a fixed gold price for the target
+ * level plus ONE Core per tag, at the grade of the copy's current rank. Deterministic, so the
+ * detail screen can always show the exact price before the player commits.
+ */
+export function statLevelCost(
+  rank: CardRank,
+  tags: readonly string[],
+  targetLevel: number,
+): { gold: number; materials: Record<string, number> } {
+  const variant = coreVariantForRank(rank)
+  const materials: Record<string, number> = {}
+  for (const tag of coreTagsForCard(tags)) {
+    materials[tagCoreId(tag, variant)] = 1
+  }
+  return { gold: statLevelGold(targetLevel), materials }
 }
 
 /**
  * The one-time tutorial run that bootstraps a new account (see
- * `supabase/migrations/20260915000001_progression.sql`). Its payout is not a bespoke bundle:
- * it IS the ladder's cheapest step (1→2) for *every* Core family, because a card can carry
- * more than one tag. `scripts/build-seed.mjs` bakes this into the seeded `dungeons` row and
- * the resolver pins its yield multiplier to 1, so the guided rank-up is always affordable.
+ * `supabase/migrations/20260915000001_progression.sql`). Its payout funds the guided
+ * *stat* level-up: enough gold for one level plus one Lesser Core of every family, because a
+ * card can carry more than one tag. `scripts/build-seed.mjs` bakes this into the seeded
+ * `dungeons` row and the resolver pins its yield multiplier to 1, so the guided step is
+ * always affordable.
  */
 export const TUTORIAL_DUNGEON_ID = 'training_grounds'
 export const TUTORIAL_DUNGEON_NAME = 'Training Grounds'
 export const TUTORIAL_DURATION_SECONDS = 10
 
 export function tutorialReward(): { gold: number; materials: Record<string, number> } {
-  const step = RANK_UP_LADDER[1]
-  const materials: Record<string, number> = { ...step.materials }
+  const materials: Record<string, number> = {}
   for (const tag of CORE_TAGS) {
-    materials[tagCoreId(tag, step.coreVariant)] = step.coreQty
+    materials[tagCoreId(tag, 'lesser')] = 1
   }
-  return { gold: step.gold, materials }
+  return { gold: statLevelGold(2), materials }
 }
 
 /**
@@ -261,27 +337,84 @@ export function chestGemPrice(chestId: string): number | null {
   return CHEST_GEM_PRICES[chestId] ?? null
 }
 
-export function cardAtk(rank: CardRank, level: number): number {
-  const meta = RANK_META[rank]
-  return Math.round(meta.atkBase * (1 + ATK_GROWTH_PER_LEVEL * (level - 1)))
+/** A rank's multiplier times the per-level growth for one stat. */
+function statAt(base: number, rank: CardRank, level: number): number {
+  const growth = 1 + ATK_GROWTH_PER_LEVEL * (Math.max(level, 1) - 1)
+  return Math.round(base * statMultiplier(rank) * growth)
 }
 
-export function cardDef(rank: CardRank, level: number): number {
-  return Math.round(cardAtk(rank, level) * RANK_META[rank].defRatio)
+export function cardAtk(baseAtk: number, rank: CardRank, atkLevel: number): number {
+  return statAt(baseAtk, rank, atkLevel)
 }
 
-/** Single-card contribution to party power. */
-export function cardPower(rank: CardRank, level: number): number {
-  return Math.round((cardAtk(rank, level) + cardDef(rank, level)) * RANK_META[rank].rankMult)
+export function cardDef(baseDef: number, rank: CardRank, defLevel: number): number {
+  return statAt(baseDef, rank, defLevel)
 }
 
-export function partyPower(cards: ReadonlyArray<{ rank: CardRank; level: number }>): number {
-  return cards.reduce((total, card) => total + cardPower(card.rank, card.level), 0)
+export function cardHp(baseAtk: number, rank: CardRank, hpLevel: number): number {
+  return statAt(baseAtk * CARD_HP_PER_ATK, rank, hpLevel)
+}
+
+export function cardSpd(baseSpd: number, rank: CardRank, spdLevel: number): number {
+  return statAt(baseSpd, rank, spdLevel)
+}
+
+/** The stats a copy actually brings to a battle or a party score. */
+export type CardStats = {
+  atk: number
+  def: number
+  hp: number
+  spd: number
+  power: number
+}
+
+/** The catalog template a copy is built from. */
+export type CardBase = { base_atk: number; base_def: number; speed: number }
+
+/** The four per-stat levels a copy carries, plus its rank. */
+export type CardLevels = {
+  rank: CardRank
+  atk_level: number
+  hp_level: number
+  def_level: number
+  spd_level: number
+}
+
+/** Resolves a copy's effective stats: catalog base × rank × each stat's own level. */
+export function resolveCardStats(card: CardBase, copy: CardLevels): CardStats {
+  const atk = cardAtk(card.base_atk, copy.rank, copy.atk_level)
+  const def = cardDef(card.base_def, copy.rank, copy.def_level)
+  return {
+    atk,
+    def,
+    hp: cardHp(card.base_atk, copy.rank, copy.hp_level),
+    spd: cardSpd(card.speed, copy.rank, copy.spd_level),
+    // Power is the dungeon-yield score: the rank is already inside atk/def.
+    power: atk + def,
+  }
+}
+
+/** One card's contribution to party power. */
+export function cardPower(card: CardBase, copy: CardLevels): number {
+  return cardAtk(card.base_atk, copy.rank, copy.atk_level) + cardDef(card.base_def, copy.rank, copy.def_level)
+}
+
+export function partyPower(
+  members: ReadonlyArray<{ card: CardBase; copy: CardLevels }>,
+): number {
+  return members.reduce((total, member) => total + cardPower(member.card, member.copy), 0)
 }
 
 export function levelUpGold(level: number): number {
   return Math.round(LEVELUP_GOLD_BASE * Math.pow(level, LEVELUP_GOLD_EXP))
 }
+
+/**
+ * A quest clear has a fixed chance to drop one of the enemies as a rank-1 card — the
+ * deterministic farm route for a specific card. Rolled server-side in `complete_quest`;
+ * `quests.card_drop_chance` carries the per-quest value this constant seeds.
+ */
+export const QUEST_CARD_DROP_CHANCE = 0.5
 
 /**
  * Yield multiplier: how much of a dungeon's listed payout a party actually brings home.
@@ -400,9 +533,5 @@ export function rollCardSpeed(id: string): number {
   return CARD_SPEED_MIN + (hash % (CARD_SPEED_MAX - CARD_SPEED_MIN + 1))
 }
 
-/** HP a card brings to a quest battle, derived from ATK so rank (and level) still matter. */
+/** HP a card brings to a quest battle, derived from ATK so rank and the HP level still matter. */
 export const CARD_HP_PER_ATK = 4
-
-export function cardHp(rank: CardRank, level: number): number {
-  return Math.round(cardAtk(rank, level) * CARD_HP_PER_ATK)
-}

@@ -7,12 +7,14 @@
 begin;
 
 -- rank_meta
-insert into public.rank_meta (rank, atk_base, def_ratio, rank_mult, level_cap, atk_growth, levelup_gold_base, levelup_gold_exp, dupe_shard_material, dupe_shard_qty) values
-  (1, 20, 0.600, 1.00, 20, 0.0800, 25.00, 1.40, 'common_shard', 5),
-  (2, 35, 0.600, 1.50, 40, 0.0800, 25.00, 1.40, 'uncommon_shard', 10),
-  (3, 55, 0.600, 2.20, 60, 0.0800, 25.00, 1.40, 'rare_shard', 25),
-  (4, 85, 0.600, 3.20, 80, 0.0800, 25.00, 1.40, 'epic_shard', 60),
-  (5, 130, 0.600, 4.50, 99, 0.0800, 25.00, 1.40, 'mythic_shard', 150)
+-- stat_mult is the flat all-stat multiplier (RANK_META.statMult); atk_base/rank_mult are kept
+-- populated for older readers but the derived functions no longer consult them.
+insert into public.rank_meta (rank, atk_base, def_ratio, rank_mult, level_cap, atk_growth, levelup_gold_base, levelup_gold_exp, dupe_shard_material, dupe_shard_qty, stat_mult) values
+  (1, 20, 0.600, 1.00, 20, 0.0800, 25.00, 1.40, 'common_shard', 5, 1.000),
+  (2, 35, 0.600, 1.75, 40, 0.0800, 25.00, 1.40, 'uncommon_shard', 10, 1.750),
+  (3, 55, 0.600, 2.75, 60, 0.0800, 25.00, 1.40, 'rare_shard', 25, 2.750),
+  (4, 85, 0.600, 4.25, 80, 0.0800, 25.00, 1.40, 'epic_shard', 60, 4.250),
+  (5, 130, 0.600, 6.50, 100, 0.0800, 25.00, 1.40, 'mythic_shard', 150, 6.500)
 on conflict (rank) do update set
   atk_base = excluded.atk_base,
   def_ratio = excluded.def_ratio,
@@ -22,7 +24,8 @@ on conflict (rank) do update set
   levelup_gold_base = excluded.levelup_gold_base,
   levelup_gold_exp = excluded.levelup_gold_exp,
   dupe_shard_material = excluded.dupe_shard_material,
-  dupe_shard_qty = excluded.dupe_shard_qty;
+  dupe_shard_qty = excluded.dupe_shard_qty,
+  stat_mult = excluded.stat_mult;
 
 -- materials
 insert into public.materials (id, name, kind, rarity, tier, icon) values
@@ -112,7 +115,7 @@ on conflict (player_level) do update set slots = excluded.slots;
 -- the one-time tutorial run (onboarding scaffolding, not catalog content)
 -- its fixed payout is the ladder's 1→2 step for every Core family, so the guided rank-up is affordable
 insert into public.dungeons (id, name, kind, tier, rank, tags, req_power, duration_seconds, gold_base, materials, unlocks_at_level, chest_on_clear, is_tutorial) values
-  ('training_grounds', 'Training Grounds', 'resource', 1, 1, array['physical', 'fire', 'water', 'electric', 'grass', 'earth', 'ice', 'dragon', 'dark'], 1, 10, 1000, '[{"material_id":"common_shard","weight":0,"min":10,"max":10},{"material_id":"lesser_physical_core","weight":0,"min":3,"max":3},{"material_id":"lesser_fire_core","weight":0,"min":3,"max":3},{"material_id":"lesser_water_core","weight":0,"min":3,"max":3},{"material_id":"lesser_electric_core","weight":0,"min":3,"max":3},{"material_id":"lesser_grass_core","weight":0,"min":3,"max":3},{"material_id":"lesser_earth_core","weight":0,"min":3,"max":3},{"material_id":"lesser_ice_core","weight":0,"min":3,"max":3},{"material_id":"lesser_dragon_core","weight":0,"min":3,"max":3},{"material_id":"lesser_dark_core","weight":0,"min":3,"max":3}]'::jsonb, 1, null, true)
+  ('training_grounds', 'Training Grounds', 'resource', 1, 1, array['physical', 'fire', 'water', 'electric', 'grass', 'earth', 'ice', 'dragon', 'dark'], 1, 10, 66, '[{"material_id":"lesser_physical_core","weight":0,"min":1,"max":1},{"material_id":"lesser_fire_core","weight":0,"min":1,"max":1},{"material_id":"lesser_water_core","weight":0,"min":1,"max":1},{"material_id":"lesser_electric_core","weight":0,"min":1,"max":1},{"material_id":"lesser_grass_core","weight":0,"min":1,"max":1},{"material_id":"lesser_earth_core","weight":0,"min":1,"max":1},{"material_id":"lesser_ice_core","weight":0,"min":1,"max":1},{"material_id":"lesser_dragon_core","weight":0,"min":1,"max":1},{"material_id":"lesser_dark_core","weight":0,"min":1,"max":1}]'::jsonb, 1, null, true)
 on conflict (id) do update set
   tags = excluded.tags, duration_seconds = excluded.duration_seconds,
   gold_base = excluded.gold_base, materials = excluded.materials, is_tutorial = excluded.is_tutorial;

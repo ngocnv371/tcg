@@ -52,7 +52,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 // requiring it to be exported in the shell first.
 if (existsSync(join(root, '.env.local'))) process.loadEnvFile(join(root, '.env.local'))
 
-import { allCoreIds } from '../src/game/formulas.ts'
+import { QUEST_CARD_DROP_CHANCE, allCoreIds } from '../src/game/formulas.ts'
 import { loadQuests } from '../src/game/quests.ts'
 
 /** The chains ship in `data/`, and the loader resolves a file name against it too. */
@@ -89,6 +89,9 @@ export function toQuestRow(quest) {
     materials: quest.materials,
     first_clear_gold: quest.firstClearGold,
     first_clear_materials: quest.firstClearMaterials,
+    // Chance a clear drops one of the enemies as a card (QUEST_CARD_DROP_CHANCE in
+    // src/game/formulas.ts). The reward roll lives server-side in `complete_quest`.
+    card_drop_chance: QUEST_CARD_DROP_CHANCE,
     intro: quest.intro,
     outro: quest.outro,
   }

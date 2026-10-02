@@ -8,7 +8,7 @@
  *     the rest of the app does; the quest importer only names it by id and never restates it.
  *
  * Both are turned into `Card` records (src/types/db.ts) and, optionally, upserted into Supabase
- * with a service-role token, alongside each card's `card_rank_costs` ladder. Art is looked up by
+ * with a service-role token. Art is looked up by
  * card id at data/cards/<id>.png — the file scripts/assets-render.mjs renders for `type=card`
  * rows, bestiaries included — and only rows whose `<id>.png` exists are imported: a row with no
  * art is still an idea, not content, and shipping it would put a placeholder in the catalog.
@@ -63,7 +63,7 @@ const DEFAULT_DATA_DIR = join(root, 'data')
 // requiring it to be exported in the shell first.
 if (existsSync(join(root, '.env.local'))) process.loadEnvFile(join(root, '.env.local'))
 
-import { RANK_META, cardAtk, cardDef, rankUpCost, rollCardSpeed } from '../src/game/formulas.ts'
+import { CARD_BASE_ATK, CARD_BASE_DEF, rollCardSpeed } from '../src/game/formulas.ts'
 
 // --- content tables (edit here, not per-card, to keep cards consistent) -----
 
@@ -281,7 +281,6 @@ export function buildCardRecord(row, { index = 0, existingIds = new Set() } = {}
   // Rank 1 for every card. The catalog row is a template: a copy's rank is decided by the chest
   // that grants it (or by rank_up_card), so neither the CSV's rank cell nor the tag count sets it.
   const rank = 1
-  const meta = RANK_META[rank]
 
   // The id names the art file, so the CSV owns it; only a hand-written row needs one minted.
   let id = (row.id ?? '').trim() || slugify(shortenName(title))
@@ -301,10 +300,12 @@ export function buildCardRecord(row, { index = 0, existingIds = new Set() } = {}
     rank,
     faction,
     role: ROLES.includes(role) ? role : pickByHash(id, ROLES),
-    // Stat re-derived from RANK_META on purpose: the CSV's atk/def is a rolled sketch
-    // (scripts/cards-1-idea.mjs writes 1-100), so the balance stays in src/game/formulas.ts.
-    base_atk: cardAtk(rank, 1),
-    base_def: cardDef(rank, 1),
+    // The catalog stores the neutral rank-1 base line: rank is a multiplier applied to the
+    // copy, and the level growth is applied per stat, so neither belongs on the template.
+    // The CSV's atk/def is a rolled sketch (scripts/cards-1-idea.mjs writes 1-100) and stays
+    // ignored — the balance lives in src/game/formulas.ts.
+    base_atk: CARD_BASE_ATK,
+    base_def: CARD_BASE_DEF,
     passive_name: (row.passive_name ?? '').trim() || passive.name,
     passive_text: (row.passive_text ?? '').trim() || passive.text,
     lore: (row.lore ?? '').trim(),
@@ -315,7 +316,6 @@ export function buildCardRecord(row, { index = 0, existingIds = new Set() } = {}
     // Only --stage-art produces this local path; --upload-art replaces it with the public URL.
     art_path: `art/cards/${id}.webp`,
     sort_order: index,
-    _meta: { levelCap: meta.levelCap }, // not persisted; handy for a sanity check
   }
 }
 
@@ -393,59 +393,23 @@ export async function uploadArtToSupabase(admin, imagePath, id) {
 }
 
 /**
- * The rank-up ladder a card needs to be upgradeable, derived from the same
- * `RANK_UP_LADDER` the seed uses (src/game/formulas.ts) so a balance change
- * reaches imported cards too. Without these rows `rank_up_card` raises
- * "this card cannot rank up further" and the detail screen shows no path.
- *
- * The cost is charged by TAG, not faction: `rankUpCost` turns the card's tags into one
- * Core requirement per tag (fire + dragon needs Fire *and* Dragon Cores), so re-run the
- * card import after any change to the ladder or to a card's tags.
- */
-export function buildRankCostRows(cards) {
-  const rows = []
-  for (const card of cards) {
-    // The ladder always starts at the base rank, never at the catalog row's rank: a copy can be
-    // granted at any rank, and one granted at 1★ still needs a 1★ -> 2★ step to spend.
-    for (let from = 1; from < 5; from += 1) {
-      const cost = rankUpCost(from, card.tags ?? [])
-      rows.push({
-        card_id: card.id,
-        from_rank: from,
-        materials: cost.materials,
-        to_rank: from + 1,
-        gold: cost.gold,
-      })
-    }
-  }
-  return rows
-}
-
-/**
  * Upserts rows into public.cards using a service-role client (bypasses RLS,
  * same as the seed does over a direct Postgres connection). Cards are catalog
  * data, not player progression, so a trusted server-side write here is fine.
  */
 export async function importCardsToSupabase(admin, cards) {
-  const rows = cards.map(({ _meta, ...card }) => card)
-  const { data, error } = await admin.from('cards').upsert(rows, { onConflict: 'id' }).select('id')
+  const { data, error } = await admin.from('cards').upsert(cards, { onConflict: 'id' }).select('id')
   if (error) throw new Error(`supabase upsert failed: ${error.message}`)
   return data
 }
 
 /**
- * Upserts the per-card rank-up costs. Runs after `importCardsToSupabase` so the
- * `card_id` foreign key always resolves.
+ * The per-card rank-up costs are gone: a rank-up consumes duplicate copies, not catalog rows,
+ * so `card_rank_costs` is no longer written (see card_progression migration). Kept as a
+ * no-op so callers that still invoke it do not break.
  */
-export async function importRankCostsToSupabase(admin, cards) {
-  const rows = buildRankCostRows(cards)
-  if (!rows.length) return []
-  const { data, error } = await admin
-    .from('card_rank_costs')
-    .upsert(rows, { onConflict: 'card_id,to_rank' })
-    .select('card_id')
-  if (error) throw new Error(`supabase rank-cost upsert failed: ${error.message}`)
-  return data
+export async function importRankCostsToSupabase() {
+  return []
 }
 
 // --- CLI ----------------------------------------------------------------------
@@ -540,8 +504,6 @@ async function main() {
   if (values.import && !values['dry-run']) {
     const inserted = await importCardsToSupabase(admin, cards)
     console.log(`imported ${inserted.length} card(s) into Supabase`)
-    const costs = await importRankCostsToSupabase(admin, cards)
-    console.log(`imported ${costs.length} rank-up cost row(s) into Supabase`)
   }
 }
 

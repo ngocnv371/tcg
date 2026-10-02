@@ -15,7 +15,6 @@ import {
   rankUpReadyCopies,
 } from '@/features/home/homeTasks'
 import { OnboardingChecklist } from '@/features/home/OnboardingChecklist'
-import { useInventory } from '@/features/inventory/api'
 import { useWizardDismissed } from '@/features/onboarding/dismissal'
 import { useParties } from '@/features/party/api'
 import { useProfile } from '@/features/profile/api'
@@ -48,7 +47,6 @@ export function HomeScreen() {
   const { data: chests } = useChestInventory()
   const { data: collection } = useCollection()
   const { data: cards } = useCardCatalog()
-  const { data: inventory } = useInventory()
   const { data: parties } = useParties()
 
   const claimRun = useClaimRun()
@@ -66,12 +64,11 @@ export function HomeScreen() {
 
   const unopened = chests?.filter((chest) => !chest.opened_at) ?? []
   const dailyReady = dailyChestReady(profile?.daily_chest_claimed_at)
-  const rankReady = rankUpReadyCopies(
-    collection ?? [],
-    cards ?? [],
-    inventory ?? [],
-    profile?.gold ?? 0,
+  // A copy that is equipped cannot be fodder, so tell the checker which ones are in a party.
+  const equippedIds = new Set(
+    (parties ?? []).flatMap((loadout) => loadout.slots.map((slot) => slot.player_card_id)),
   )
+  const rankReady = rankUpReadyCopies(collection ?? [], equippedIds)
 
   const steps = buildOnboardingSteps({
     chests: chests ?? [],
@@ -91,7 +88,16 @@ export function HomeScreen() {
     return card && playerCard ? [{ card, playerCard }] : []
   })
   const firstPartyPower = partyPower(
-    partyMembers.map(({ playerCard }) => ({ rank: playerCard.rank, level: playerCard.level })),
+    partyMembers.map(({ card, playerCard }) => ({
+      card,
+      copy: {
+        rank: playerCard.rank,
+        atk_level: playerCard.atk_level,
+        hp_level: playerCard.hp_level,
+        def_level: playerCard.def_level,
+        spd_level: playerCard.spd_level,
+      },
+    })),
   )
   // Wizard first, checklist after: the full list only appears once the coach card is skipped.
   const showChecklist =
@@ -248,7 +254,6 @@ export function HomeScreen() {
                       owned
                       compact
                       rank={playerCard.rank}
-                      level={playerCard.level}
                     />
                   ))}
                 </div>

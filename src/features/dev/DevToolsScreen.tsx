@@ -135,7 +135,7 @@ export function DevToolsScreen() {
           </div>
           <p className="mt-3 text-xs text-ink-500">
             Gems buy the wait back on a running dungeon; chests open in the Vault; gold and
-            materials feed rank-up.
+            Cores feed stat level-up, duplicate cards feed rank-up.
           </p>
           {error ? <p className="mt-3 text-xs text-faction-ember">{error.message}</p> : null}
         </Panel>

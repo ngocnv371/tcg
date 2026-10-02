@@ -9,7 +9,8 @@ export function CardTile({
   owned,
   selected = false,
   compact = false,
-  level = 1,
+  atkLevel = 1,
+  defLevel = 1,
   rank,
   badge,
   disabled = false,
@@ -21,8 +22,9 @@ export function CardTile({
   selected?: boolean
   /** Drops stats and tags for quarter-size tiles (party slots). */
   compact?: boolean
-  /** Shows stats at this level instead of level 1 (pass the owned copy's level). */
-  level?: number
+  /** Shows stats at the owned copy's per-stat levels instead of level 1. */
+  atkLevel?: number
+  defLevel?: number
   /**
    * The player's copy may be ranked above the catalog card, so callers that show an
    * owned copy must pass its rank — otherwise the tile displays a stale star count.
@@ -116,7 +118,8 @@ export function CardTile({
         <p className="truncate text-[11px] leading-tight text-ink-50">{card.name}</p>
         {compact ? null : (
           <p className="text-[9px] tabular-nums text-ink-400">
-            {cardAtk(displayRank, level)} ATK · {cardDef(displayRank, level)} DEF
+            {cardAtk(card.base_atk, displayRank, atkLevel)} ATK ·{' '}
+            {cardDef(card.base_def, displayRank, defLevel)} DEF
           </p>
         )}
       </div>

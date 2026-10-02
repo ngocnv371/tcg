@@ -5,7 +5,7 @@ import { partyMembers } from '@/features/quests/combat'
 import type { PartyLoadout } from '@/features/party/api'
 import { partyPower } from '@/game/formulas'
 import { cn } from '@/lib/utils'
-import type { Card, CardRank, PlayerCard, Quest } from '@/types/db'
+import type { Card, PlayerCard, Quest } from '@/types/db'
 
 type Option = {
   loadout: PartyLoadout
@@ -55,9 +55,15 @@ export function QuestPartyPicker({
       return {
         loadout,
         power: partyPower(
-          members.map(({ playerCard }) => ({
-            rank: playerCard.rank as CardRank,
-            level: playerCard.level,
+          members.map(({ card, playerCard }) => ({
+            card,
+            copy: {
+              rank: playerCard.rank,
+              atk_level: playerCard.atk_level,
+              hp_level: playerCard.hp_level,
+              def_level: playerCard.def_level,
+              spd_level: playerCard.spd_level,
+            },
           })),
         ),
         cardCount: members.length,

@@ -12,6 +12,7 @@ export function QuestResultOverlay({
   quest,
   won,
   clear,
+  dropCardName,
   error,
   onRetry,
   onClose,
@@ -19,6 +20,8 @@ export function QuestResultOverlay({
   quest: Quest
   won: boolean
   clear: QuestClear | null
+  /** Display name of the card this clear dropped, when the server roll hit. */
+  dropCardName?: string | null
   error: string | null
   onRetry: () => void
   onClose: () => void
@@ -55,6 +58,14 @@ export function QuestResultOverlay({
                 <span className="tabular-nums text-ink-100">+{qty}</span>
               </div>
             ))}
+            {clear.card ? (
+              <div className="mt-2 flex items-center justify-between border-t border-ink-800 pt-2 text-sm">
+                <span className="flex items-center gap-1.5 font-medium text-gold-300">
+                  <Sparkles className="size-3.5" /> Card dropped
+                </span>
+                <span className="text-ink-100">{dropCardName ?? clear.card.card_id}</span>
+              </div>
+            ) : null}
             <p className="mt-2 text-[11px] text-ink-400">
               Cleared ×{clear.clears} · replay for the base reward any time.
             </p>

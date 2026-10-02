@@ -11,10 +11,21 @@ import {
 import { CardTile } from '@/features/cards/CardTile'
 import { useCardCatalog, useCollection } from '@/features/cards/api'
 import { useDeleteParty, useParties, useRenameParty, useSaveParty } from '@/features/party/api'
-import { cardPower, partyPower } from '@/game/formulas'
+import { cardPower, partyPower, type CardLevels } from '@/game/formulas'
 import type { CardBrowserItem } from '@/features/cards/CardBrowser'
 import type { PartyLoadout } from '@/features/party/api'
-import type { CardRank } from '@/types/db'
+import type { PlayerCard } from '@/types/db'
+
+/** The per-stat levels of an owned copy, the shape the formulas read. */
+function levelsOf(copy: PlayerCard): CardLevels {
+  return {
+    rank: copy.rank,
+    atk_level: copy.atk_level,
+    hp_level: copy.hp_level,
+    def_level: copy.def_level,
+    spd_level: copy.spd_level,
+  }
+}
 
 const SLOT_COUNT = 5
 const NAME_MAX_LENGTH = 40
@@ -132,9 +143,12 @@ export function PartyCard({ loadout, canDelete }: { loadout: PartyLoadout; canDe
         if (!cardByPlayerCardId.has(playerCard.id)) return false
         return !equipped.has(playerCard.card_id)
       })
-      .sort(
-        (a, b) => cardPower(b.rank as CardRank, b.level) - cardPower(a.rank as CardRank, a.level),
-      )
+      .sort((a, b) => {
+        const cardA = cardByPlayerCardId.get(a.id)
+        const cardB = cardByPlayerCardId.get(b.id)
+        if (!cardA || !cardB) return 0
+        return cardPower(cardB, levelsOf(b)) - cardPower(cardA, levelsOf(a))
+      })
 
     const next = [...selectedIds]
     while (next.length < SLOT_COUNT) next.push(undefined)
@@ -173,7 +187,10 @@ export function PartyCard({ loadout, canDelete }: { loadout: PartyLoadout; canDe
     .filter((card): card is NonNullable<typeof card> => Boolean(card))
 
   const previewPower = partyPower(
-    partyCards.map((row) => ({ rank: row.rank as CardRank, level: row.level })),
+    partyCards.flatMap((row) => {
+      const card = cardByPlayerCardId.get(row.id)
+      return card ? [{ card, copy: levelsOf(row) }] : []
+    }),
   )
 
   const emptySlots = SLOT_COUNT - stripEmpty(selectedIds).length
@@ -451,7 +468,8 @@ export function PartyCard({ loadout, canDelete }: { loadout: PartyLoadout; canDe
                       key={playerCard.id}
                       card={card}
                       owned
-                      level={playerCard.level}
+                      atkLevel={playerCard.atk_level}
+                      defLevel={playerCard.def_level}
                       rank={playerCard.rank}
                       selected={isEquippedHere}
                       disabled={Boolean(otherParty)}

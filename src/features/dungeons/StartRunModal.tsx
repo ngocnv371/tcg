@@ -9,7 +9,7 @@ import { useStartRun } from '@/features/progression/api'
 import { affinityMatchCount, affinityMultiplier, partyPower, runMultiplier } from '@/game/formulas'
 import { cn } from '@/lib/utils'
 import type { PartyLoadout } from '@/features/party/api'
-import type { Card, CardRank, Dungeon, DungeonRun, PlayerCard } from '@/types/db'
+import type { Card, Dungeon, DungeonRun, PlayerCard } from '@/types/db'
 
 type PartyOption = {
   loadout: PartyLoadout
@@ -86,9 +86,15 @@ export function StartRunModal({
       })
 
       const power = partyPower(
-        members.map(({ playerCard }) => ({
-          rank: playerCard.rank as CardRank,
-          level: playerCard.level,
+        members.map(({ card, playerCard }) => ({
+          card,
+          copy: {
+            rank: playerCard.rank,
+            atk_level: playerCard.atk_level,
+            hp_level: playerCard.hp_level,
+            def_level: playerCard.def_level,
+            spd_level: playerCard.spd_level,
+          },
         })),
       )
       const partyTags = members.map(({ card }) => card.tags ?? [])
@@ -206,7 +212,6 @@ export function StartRunModal({
                         owned
                         compact
                         rank={member.playerCard.rank}
-                        level={member.playerCard.level}
                       />
                     ) : (
                       <span

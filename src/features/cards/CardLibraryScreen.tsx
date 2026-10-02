@@ -88,7 +88,8 @@ export function CardLibraryScreen() {
                 card={item.card}
                 owned={Boolean(item.playerCard)}
                 rank={item.playerCard?.rank}
-                level={item.playerCard?.level ?? 1}
+                atkLevel={item.playerCard?.atk_level ?? 1}
+                defLevel={item.playerCard?.def_level ?? 1}
               />
             </NavLink>
           ))}

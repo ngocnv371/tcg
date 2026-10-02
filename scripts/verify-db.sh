@@ -164,6 +164,18 @@ begin
   select count(*) into core_count from public.materials where kind = 'core';
   if core_count <> 36 then raise exception 'expected 36 core materials, found %', core_count; end if;
 
+  -- rank is a flat multiplier and the dormant `level` is gone, replaced by four stat levels
+  if not exists (select 1 from information_schema.columns
+      where table_schema = 'public' and table_name = 'rank_meta' and column_name = 'stat_mult') then
+    raise exception 'rank_meta.stat_mult is missing'; end if;
+  if exists (select 1 from information_schema.columns
+      where table_schema = 'public' and table_name = 'player_cards' and column_name = 'level') then
+    raise exception 'player_cards.level should be gone'; end if;
+  if (select count(*) from information_schema.columns
+      where table_schema = 'public' and table_name = 'player_cards'
+        and column_name in ('atk_level', 'hp_level', 'def_level', 'spd_level')) <> 4 then
+    raise exception 'player_cards is missing one of its four stat level columns'; end if;
+
   -- chest odds must sum to 100 per chest
   perform 1 from (
     select chest_id from public.chest_odds group by chest_id having sum(weight) <> 100
@@ -570,74 +582,77 @@ begin
     delete from public.cards where id like 'verify_open_card_%';
   end;
 
-  -- rank_up_card reads the ladder for the copy's CURRENT rank, spends the gold and the
-  -- materials, then moves the copy up one step. A short balance has to raise and roll the
-  -- whole spend back.
+  -- rank_up_card consumes DUPLICATE COPIES of the same card: 1→2 costs 2 rank-1 copies (or
+  -- one higher-rank copy). It must reject a short collection, foreign fodder and a copy the
+  -- caller does not own. level_up_stat buys one stat level for gold + a tag Core.
   declare
     rank_card uuid;
+    dup_card uuid;
     other_card uuid;
-    rank_gold_before bigint;
+    wrong_card uuid;
     rank_rank smallint;
+    rank_dummies integer;
+    atk_before smallint;
+    gold_before bigint;
+    core_after integer;
   begin
     insert into public.cards (id, name, rank, faction, role, base_atk, base_def,
-                              passive_name, passive_text, lore)
-      values ('verify_rank_card', 'Verify Rank Card', 1, 'ember', 'dps', 1, 0, 'p', 'p', 'p');
-    insert into public.card_rank_costs (card_id, from_rank, to_rank, gold, materials)
-      values ('verify_rank_card', 1, 2, 100, '{"common_shard": 4, "lesser_fire_core": 2}'::jsonb);
+                              passive_name, passive_text, lore, tags)
+      values ('verify_rank_card', 'Verify Rank Card', 1, 'ember', 'dps', 20, 12, 'p', 'p', 'p', array['fire']),
+             ('verify_wrong_card', 'Verify Wrong Card', 1, 'ember', 'dps', 20, 12, 'p', 'p', 'p', array['fire']);
     insert into public.player_cards (profile_id, card_id, rank)
       values ('00000000-0000-0000-0000-000000000001', 'verify_rank_card', 1)
       returning id into rank_card;
+    insert into public.player_cards (profile_id, card_id, rank)
+      values ('00000000-0000-0000-0000-000000000001', 'verify_rank_card', 1)
+      returning id into dup_card;
+    insert into public.player_cards (profile_id, card_id, rank)
+      values ('00000000-0000-0000-0000-000000000001', 'verify_rank_card', 1)
+      returning id into other_card;
+    insert into public.player_cards (profile_id, card_id, rank)
+      values ('00000000-0000-0000-0000-000000000001', 'verify_wrong_card', 1)
+      returning id into wrong_card;
 
     create or replace function auth.uid() returns uuid language sql stable
       as $fn$ select '00000000-0000-0000-0000-000000000001'::uuid $fn$;
 
-    select gold into rank_gold_before from public.profiles
-      where id = '00000000-0000-0000-0000-000000000001';
-    update public.profiles set gold = 1000 where id = '00000000-0000-0000-0000-000000000001';
-
-    -- one shard short of the ladder step
-    insert into public.player_materials (profile_id, material_id, qty)
-      values ('00000000-0000-0000-0000-000000000001', 'common_shard', 3),
-             ('00000000-0000-0000-0000-000000000001', 'lesser_fire_core', 2)
-      on conflict (profile_id, material_id) do update set qty = excluded.qty;
-
+    -- foreign fodder is refused and spends nothing
     begin
-      perform public.rank_up_card(rank_card);
-      raise exception 'rank_up_card accepted a short material balance';
+      perform public.rank_up_card(rank_card, array[wrong_card]);
+      raise exception 'rank_up_card consumed a different card as fodder';
     exception when others then
-      if sqlerrm <> 'not enough common_shard' then raise; end if;
+      if sqlerrm <> 'fodder must be the same card' then raise; end if;
     end;
-    if (select gold from public.profiles where id = '00000000-0000-0000-0000-000000000001') <> 1000 then
-      raise exception 'a rejected rank-up still charged its gold';
+
+    -- one duplicate is short of the 1→2 requirement of two
+    begin
+      perform public.rank_up_card(rank_card, array[dup_card]);
+      raise exception 'rank_up_card accepted a short duplicate balance';
+    exception when others then
+      if sqlerrm <> 'not enough duplicate cards' then raise; end if;
+    end;
+    if (select rank from public.player_cards where id = rank_card) <> 1 then
+      raise exception 'a rejected rank-up still moved the copy';
     end if;
 
-    -- top the shard up and the same call goes through
-    update public.player_materials set qty = 4
-      where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = 'common_shard';
-    perform public.rank_up_card(rank_card);
-
+    -- two duplicates go through and are consumed
+    perform public.rank_up_card(rank_card, array[dup_card, other_card]);
     select rank into rank_rank from public.player_cards where id = rank_card;
     if rank_rank <> 2 then
       raise exception 'rank_up_card left the copy at % stars', rank_rank;
     end if;
-    if (select gold from public.profiles where id = '00000000-0000-0000-0000-000000000001') <> 900 then
-      raise exception 'rank_up_card did not spend its 100 gold';
-    end if;
-    if (select qty from public.player_materials
-        where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = 'common_shard') <> 0 then
-      raise exception 'rank_up_card did not spend its shards';
-    end if;
-    if (select qty from public.player_materials
-        where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = 'lesser_fire_core') <> 0 then
-      raise exception 'rank_up_card did not spend its Cores';
+    select count(*) into rank_dummies from public.player_cards
+      where card_id = 'verify_rank_card' and id <> rank_card;
+    if rank_dummies <> 0 then
+      raise exception 'rank_up_card left % fodder copies behind', rank_dummies;
     end if;
 
-    -- the ladder stops where card_rank_costs stops: no 2★ -> 3★ row exists here
+    -- empty fodder auto-selects, but nothing is left to consume at 2★
     begin
       perform public.rank_up_card(rank_card);
-      raise exception 'rank_up_card ranked past the end of the ladder';
+      raise exception 'rank_up_card ranked up with no fodder';
     exception when others then
-      if sqlerrm <> 'this card cannot rank up further' then raise; end if;
+      if sqlerrm <> 'not enough duplicate cards' then raise; end if;
     end;
 
     -- another player's copy is not addressable, even with its uuid
@@ -651,17 +666,54 @@ begin
       if sqlerrm <> 'card not found' then raise; end if;
     end;
 
+    -- level_up_stat: one level costs levelUpGold(2)=66 gold plus one Lesser Fire Core
+    select gold into gold_before from public.profiles
+      where id = '00000000-0000-0000-0000-000000000001';
+    update public.profiles set gold = 1000 where id = '00000000-0000-0000-0000-000000000001';
+    insert into public.player_materials (profile_id, material_id, qty)
+      values ('00000000-0000-0000-0000-000000000001', 'lesser_fire_core', 1)
+      on conflict (profile_id, material_id) do update set qty = excluded.qty;
+
+    select atk_level into atk_before from public.player_cards where id = rank_card;
+    perform public.level_up_stat(rank_card, 'atk');
+    if (select atk_level from public.player_cards where id = rank_card) <> atk_before + 1 then
+      raise exception 'level_up_stat did not raise the ATK level';
+    end if;
+    if (select gold from public.profiles where id = '00000000-0000-0000-0000-000000000001') <> 934 then
+      raise exception 'level_up_stat charged the wrong gold';
+    end if;
+    select qty into core_after from public.player_materials
+      where profile_id = '00000000-0000-0000-0000-000000000001' and material_id = 'lesser_fire_core';
+    if core_after <> 0 then
+      raise exception 'level_up_stat did not spend its Core';
+    end if;
+
+    -- a short Core balance rolls the whole spend back
+    begin
+      perform public.level_up_stat(rank_card, 'hp');
+      raise exception 'level_up_stat accepted a short Core balance';
+    exception when others then
+      if sqlerrm <> 'not enough lesser_fire_core' then raise; end if;
+    end;
+
+    -- an unknown stat is refused
+    begin
+      perform public.level_up_stat(rank_card, 'luck');
+      raise exception 'level_up_stat accepted an unknown stat';
+    exception when others then
+      if sqlerrm <> 'unknown stat' then raise; end if;
+    end;
+
     -- leave the throwaway database as the assertions found it
     create or replace function auth.uid() returns uuid language sql stable
       as $fn$ select null::uuid $fn$;
-    update public.profiles set gold = rank_gold_before
+    update public.profiles set gold = gold_before
       where id = '00000000-0000-0000-0000-000000000001';
     delete from public.player_materials
       where profile_id = '00000000-0000-0000-0000-000000000001'
-        and material_id in ('common_shard', 'lesser_fire_core');
-    delete from public.player_cards where card_id = 'verify_rank_card';
-    delete from public.card_rank_costs where card_id = 'verify_rank_card';
-    delete from public.cards where id = 'verify_rank_card';
+        and material_id = 'lesser_fire_core';
+    delete from public.player_cards where card_id in ('verify_rank_card', 'verify_wrong_card');
+    delete from public.cards where id in ('verify_rank_card', 'verify_wrong_card');
   end;
 
   -- quests: the fight is simulated on the client (it has no RNG), so the SERVER is what pays.
@@ -1121,7 +1173,7 @@ begin
   end;
 
   -- the tutorial is one-time and its reward is fixed: party power does not scale it, so the
-  -- guided 1→2 rank-up is always affordable
+  -- guided stat level-up is always affordable
   declare
     tut_party uuid;
     tut_card uuid;
@@ -1161,10 +1213,10 @@ begin
           and profile_id = '00000000-0000-0000-0000-000000000001') <> 1 then
       raise exception 'the tutorial yield was scaled by party power';
     end if;
-    -- 1000 mirrors RANK_UP_LADDER[1].gold in src/game/formulas.ts
+    -- 66 mirrors statLevelGold(2) = levelUpGold(2) in src/game/formulas.ts
     if (select (rewards ->> 'gold')::integer from public.dungeon_runs
         where dungeon_id = 'training_grounds'
-          and profile_id = '00000000-0000-0000-0000-000000000001') <> 1000 then
+          and profile_id = '00000000-0000-0000-0000-000000000001') <> 66 then
       raise exception 'the tutorial did not pay its fixed gold';
     end if;
 
@@ -1260,9 +1312,9 @@ union all select 'market tx', count(*)::text from public.market_transactions
 union all select 'telemetry events', count(*)::text from public.telemetry_events
 union all select 'notif tokens', count(*)::text from public.notification_tokens
 union all select 'notif outbox', count(*)::text from public.notification_outbox
-union all select '1star card_atk',   public.card_atk(1::smallint, 1)::text
-union all select '1star card_def',   public.card_def(1::smallint, 1)::text
-union all select '1star card_power', public.card_power(1::smallint, 1)::text
+union all select '1star card_atk',   public.card_atk(20, 1::smallint, 1)::text
+union all select '1star card_def',   public.card_def(12, 1::smallint, 1)::text
+union all select '1star card_power', public.card_power(20, 12, 1::smallint, 1, 1)::text
 union all select 'slots @ lvl 25',   public.slots_for_level(25::smallint)::text
 union all select 'empty party power', public.party_power(gen_random_uuid())::text;
 SQL

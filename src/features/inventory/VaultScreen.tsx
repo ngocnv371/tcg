@@ -18,8 +18,8 @@ const TABS: readonly { id: VaultTab; label: string }[] = [
 ]
 
 const HINTS: Record<VaultTab, string> = {
-  resources: "Cores come from dungeons — farm the ones a card's tags need to rank it up.",
-  chests: 'Open your chests to grow the collection — dupes pay shards for rank-ups.',
+  resources: "Cores come from dungeons — farm the ones a card's tags need to level its stats.",
+  chests: 'Open your chests to grow the collection — duplicate copies feed rank-ups.',
 }
 
 export function VaultScreen() {

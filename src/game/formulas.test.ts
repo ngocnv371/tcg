@@ -3,20 +3,23 @@ import { describe, expect, it } from 'vitest'
 import {
   AFFINITY_MULT_MAX,
   AFFINITY_MULT_MIN,
+  CARD_BASE_ATK,
+  CARD_BASE_DEF,
   CHEST_GEM_PRICES,
   CHEST_ODDS,
   CORE_TAGS,
   CORE_VARIANTS,
   DEFAULT_THREAT,
   RANK_META,
-  RANK_UP_LADDER,
   TUTORIAL_DUNGEON_ID,
   TUTORIAL_DURATION_SECONDS,
   affinityMultiplier,
   allCoreIds,
   cardAtk,
   cardDef,
+  cardHp,
   cardPower,
+  cardSpd,
   chestGemPrice,
   coreTagsForCard,
   coreVariantForRank,
@@ -25,52 +28,121 @@ import {
   levelUpGold,
   partyPower,
   pickRank,
-  rankUpCost,
+  rankUpRequirement,
+  rankUpValue,
+  resolveCardStats,
   rewardMultiplier,
   runMultiplier,
   runSlotsForLevel,
   rushCost,
   scaleEnemyStats,
+  selectRankUpFodder,
+  statLevelCap,
+  statLevelCost,
+  statLevelGold,
   tagCoreId,
   tagLabel,
   tutorialReward,
   type CardRank,
 } from './formulas'
 
-describe('card stats', () => {
-  it('anchors each rank at its base ATK with DEF at 60%', () => {
-    expect(cardAtk(1, 1)).toBe(20)
-    expect(cardDef(1, 1)).toBe(12)
-    expect(cardAtk(5, 1)).toBe(130)
+const BASE_CARD = { base_atk: CARD_BASE_ATK, base_def: CARD_BASE_DEF, speed: 10 }
+const RANK1 = { rank: 1 as CardRank, atk_level: 1, hp_level: 1, def_level: 1, spd_level: 1 }
+
+describe('rank multipliers', () => {
+  it('applies one multiplier across every stat', () => {
+    // The ladder mirrors the old per-rank ATK bases for a 20-base card.
+    expect(cardAtk(CARD_BASE_ATK, 1, 1)).toBe(20)
+    expect(cardAtk(CARD_BASE_ATK, 2, 1)).toBe(35)
+    expect(cardAtk(CARD_BASE_ATK, 3, 1)).toBe(55)
+    expect(cardAtk(CARD_BASE_ATK, 5, 1)).toBe(130)
+    expect(cardDef(CARD_BASE_DEF, 1, 1)).toBe(12)
+    expect(cardHp(CARD_BASE_ATK, 1, 1)).toBe(80)
+    expect(cardSpd(10, 1, 1)).toBe(10)
+    expect(cardSpd(10, 2, 1)).toBe(18)
   })
 
-  it('grows 8% of base per level', () => {
-    expect(cardAtk(1, 6)).toBe(28)
-    expect(cardAtk(3, 11)).toBe(99)
+  it('grows 8% of base per stat level, independently per stat', () => {
+    expect(cardAtk(CARD_BASE_ATK, 1, 6)).toBe(28)
+    expect(cardDef(CARD_BASE_DEF, 1, 6)).toBe(17)
+    // Levelling ATK leaves DEF untouched.
+    expect(cardAtk(CARD_BASE_ATK, 1, 6)).toBe(28)
+    expect(cardDef(CARD_BASE_DEF, 1, 1)).toBe(12)
   })
 
-  it('never lets a card exceed its rank level cap in scoring input', () => {
-    // caps are enforced by the server; here we only pin the published numbers
-    expect(RANK_META[1].levelCap).toBe(20)
-    expect(RANK_META[5].levelCap).toBe(99)
+  it('caps each stat level by rank', () => {
+    expect(statLevelCap(1)).toBe(20)
+    expect(statLevelCap(5)).toBe(100)
+  })
+
+  it('resolves a copy into atk/def/hp/spd/power', () => {
+    const stats = resolveCardStats(BASE_CARD, { ...RANK1, rank: 3 })
+    expect(stats).toEqual({ atk: 55, def: 33, hp: 220, spd: 28, power: 88 })
   })
 })
 
 describe('party power', () => {
-  it('sums rank-multiplied ATK+DEF across five cards', () => {
-    const five = Array.from({ length: 5 }, () => ({ rank: 1 as CardRank, level: 1 }))
-    expect(cardPower(1, 1)).toBe(32)
+  it('sums the atk+def of every member', () => {
+    expect(cardPower(BASE_CARD, RANK1)).toBe(32)
+    const five = Array.from({ length: 5 }, () => ({ card: BASE_CARD, copy: RANK1 }))
     expect(partyPower(five)).toBe(160)
   })
 
-  it('a single 3★ level 1 card outscores a full party of 1★ cards', () => {
-    // rank_mult compounds on top of the stat jump: 3★ is 6.06x a 1★, not 2.2x.
-    expect(cardPower(3, 1)).toBe(194)
-    const fiveOneStars = partyPower(
-      Array.from({ length: 5 }, () => ({ rank: 1 as CardRank, level: 1 })),
-    )
-    expect(fiveOneStars).toBe(160)
-    expect(cardPower(3, 1)).toBeGreaterThan(fiveOneStars)
+  it('a higher rank strictly outscores a lower one', () => {
+    const rank3 = { ...RANK1, rank: 3 as CardRank }
+    expect(cardPower(BASE_CARD, rank3)).toBeGreaterThan(cardPower(BASE_CARD, RANK1))
+  })
+})
+
+describe('rank-up fodder', () => {
+  it('values a rank-r copy at 2^(r-1) base copies', () => {
+    expect([1, 2, 3, 4, 5].map((r) => rankUpValue(r as CardRank))).toEqual([1, 2, 4, 8, 16])
+  })
+
+  it('requires 2, 4, 8, 16 copies to climb each step, and stops at 5★', () => {
+    expect([1, 2, 3, 4].map((r) => rankUpRequirement(r as CardRank))).toEqual([2, 4, 8, 16])
+    expect(rankUpRequirement(5)).toBe(0)
+  })
+
+  it('picks the cheapest covering set, skipping locked and equipped copies', () => {
+    const target = { id: 't', card_id: 'a', rank: 1 as CardRank }
+    const copies = [
+      target,
+      { id: 'f1', card_id: 'a', rank: 1 as CardRank },
+      { id: 'f2', card_id: 'a', rank: 1 as CardRank, locked: true },
+      { id: 'f3', card_id: 'a', rank: 1 as CardRank, inParty: true },
+      { id: 'f4', card_id: 'a', rank: 2 as CardRank },
+      { id: 'other', card_id: 'b', rank: 1 as CardRank },
+    ]
+    // One 2★ duplicate alone covers the 1→2 step.
+    expect(selectRankUpFodder(target, copies)).toEqual(['f4'])
+  })
+
+  it('returns null when the collection is short', () => {
+    const target = { id: 't', card_id: 'a', rank: 1 as CardRank }
+    expect(selectRankUpFodder(target, [target, { id: 'f1', card_id: 'a', rank: 1 as CardRank }])).toBeNull()
+  })
+})
+
+describe('stat levelling costs', () => {
+  it('charges a fixed gold price plus one Core per tag, graded by rank', () => {
+    expect(statLevelCost(1, ['fire'], 2)).toEqual({
+      gold: levelUpGold(2),
+      materials: { lesser_fire_core: 1 },
+    })
+    expect(statLevelCost(4, ['fire', 'dragon'], 5).materials).toEqual({
+      legendary_fire_core: 1,
+      legendary_dragon_core: 1,
+    })
+    expect(statLevelGold(2)).toBe(levelUpGold(2))
+  })
+
+  it('ships one Core grade per rank step', () => {
+    expect(coreVariantForRank(1)).toBe('lesser')
+    expect(coreVariantForRank(2)).toBe('greater')
+    expect(coreVariantForRank(3)).toBe('mythic')
+    expect(coreVariantForRank(4)).toBe('legendary')
+    expect(coreVariantForRank(5)).toBe('legendary')
   })
 })
 
@@ -80,7 +152,7 @@ describe('rewards', () => {
     expect(rewardMultiplier(750, 500)).toBe(1.5)
   })
 
-  it('prices level-ups on a 25 * L^1.4 curve', () => {
+  it('prices stat levels on a 25 * L^1.4 curve', () => {
     expect(levelUpGold(1)).toBe(25)
     expect(levelUpGold(10)).toBe(628)
     expect(levelUpGold(50)).toBe(5977)
@@ -159,46 +231,10 @@ describe('marketplace prices', () => {
   })
 })
 
-describe('rank-up costs', () => {
-  it('charges one Core per card tag, graded by the step', () => {
-    expect(rankUpCost(1, ['fire', 'dragon'])).toEqual({
-      gold: 1000,
-      materials: {
-        common_shard: 10,
-        lesser_fire_core: 3,
-        lesser_dragon_core: 3,
-      },
-    })
-    expect(rankUpCost(4, ['physical'])?.materials).toEqual({
-      epic_shard: 100,
-      legendary_physical_core: 25,
-    })
-  })
-
-  it('uses a different Core grade on every step', () => {
-    expect(RANK_UP_LADDER[1].coreVariant).toBe('lesser')
-    expect(RANK_UP_LADDER[2].coreVariant).toBe('greater')
-    expect(RANK_UP_LADDER[3].coreVariant).toBe('mythic')
-    expect(RANK_UP_LADDER[4].coreVariant).toBe('legendary')
-  })
-
-  it('never charges two tags for a card that carries one', () => {
-    expect(rankUpCost(2, ['physical'])?.materials).toEqual({
-      uncommon_shard: 25,
-      greater_physical_core: 8,
-    })
-  })
-
-  it('has no step past 5★', () => {
-    expect(rankUpCost(5, ['fire', 'dragon'])).toBeNull()
-  })
-})
-
 describe('tutorial reward', () => {
-  it('covers the 1→2 step for every tag, so the guided rank-up is always affordable', () => {
+  it('covers a stat level for every tag, so the guided step is always affordable', () => {
     const reward = tutorialReward()
-    const cost = rankUpCost(1, CORE_TAGS)
-    if (!cost) throw new Error('rank 1 must have a rank-up step')
+    const cost = statLevelCost(1, CORE_TAGS, 2)
     expect(reward.gold).toBeGreaterThanOrEqual(cost.gold)
     for (const [id, qty] of Object.entries(cost.materials)) {
       expect(reward.materials[id] ?? 0).toBeGreaterThanOrEqual(qty)
@@ -212,7 +248,7 @@ describe('tutorial reward', () => {
 })
 
 describe('core catalog', () => {
-  it('keeps the card\'s own tags, in catalog order, and drops unknown ones', () => {
+  it("keeps the card's own tags, in catalog order, and drops unknown ones", () => {
     expect(coreTagsForCard(['fire', 'physical', 'robot'])).toEqual(['physical', 'fire'])
     expect(coreTagsForCard(['Dragon', 'Dark'])).toEqual(['dragon', 'dark'])
     expect(coreTagsForCard([])).toEqual([])
@@ -232,16 +268,6 @@ describe('core catalog', () => {
     expect(allCoreIds()).toHaveLength(CORE_TAGS.length * CORE_VARIANTS.length)
     expect(allCoreIds()).toHaveLength(36)
     expect(new Set(allCoreIds()).size).toBe(allCoreIds().length)
-  })
-
-  it('bands dungeon ranks to grades, with rank 5 sharing the top grade', () => {
-    expect([1, 2, 3, 4, 5].map(coreVariantForRank)).toEqual([
-      'lesser',
-      'greater',
-      'mythic',
-      'legendary',
-      'legendary',
-    ])
   })
 })
 
@@ -288,5 +314,14 @@ describe('enemy threat scaling', () => {
       def: 0,
       spd: 5,
     })
+  })
+})
+
+describe('rank metadata', () => {
+  it('keeps an increasing all-stat multiplier', () => {
+    const mults = [1, 2, 3, 4, 5].map((r) => RANK_META[r as CardRank].statMult)
+    for (let index = 1; index < mults.length; index += 1) {
+      expect(mults[index]).toBeGreaterThan(mults[index - 1])
+    }
   })
 })

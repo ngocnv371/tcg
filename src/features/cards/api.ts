@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useSession } from '@/features/auth/useSession'
 import { supabase } from '@/lib/supabase'
-import type { Card, PlayerCard, RankCost } from '@/types/db'
+import type { Card, PlayerCard } from '@/types/db'
 
 /** Catalog: seeded, read-only, identical for every player. */
 export function useCardCatalog() {
@@ -36,35 +36,27 @@ export function useCollection() {
   })
 }
 
-/** The rank-up ladder for one catalog card — public data, so it loads without a session. */
-export function useRankCosts(cardId: string | undefined) {
-  return useQuery({
-    queryKey: ['card_rank_costs', cardId],
-    enabled: Boolean(cardId),
-    staleTime: 5 * 60_000,
-    queryFn: async (): Promise<RankCost[]> => {
-      const { data, error } = await supabase
-        .from('card_rank_costs')
-        .select('*')
-        .eq('card_id', cardId!)
-        .order('to_rank')
-      if (error) throw error
-      return (data ?? []) as RankCost[]
-    },
-  })
-}
-
 /**
- * Spends gold and materials to move one owned copy up a rank. The cost is never sent
- * from here: `rank_up_card` re-reads `card_rank_costs` and rejects the call when the
- * balance is short, so a stale screen can't buy a rank it can't afford.
+ * Rank one owned copy up by feeding it duplicate copies of the same card. The cost is never
+ * sent from here: `rank_up_card` computes the required value from the rank and re-validates
+ * the fodder server-side, so a stale screen can't buy a rank it can't afford. An empty
+ * `fodderIds` makes the server pick the cheapest covering set.
  */
 export function useRankUpCard() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (playerCardId: string) => {
-      const { data, error } = await supabase.rpc('rank_up_card', { p_player_card_id: playerCardId })
+    mutationFn: async ({
+      playerCardId,
+      fodderIds = [],
+    }: {
+      playerCardId: string
+      fodderIds?: string[]
+    }) => {
+      const { data, error } = await supabase.rpc('rank_up_card', {
+        p_player_card_id: playerCardId,
+        p_fodder_ids: fodderIds,
+      })
       if (error) throw error
       return data as PlayerCard
     },
@@ -72,6 +64,35 @@ export function useRankUpCard() {
       void queryClient.invalidateQueries({ queryKey: ['player_cards'] })
       void queryClient.invalidateQueries({ queryKey: ['inventory'] })
       void queryClient.invalidateQueries({ queryKey: ['profile'] })
+      void queryClient.invalidateQueries({ queryKey: ['parties'] })
+    },
+  })
+}
+
+export type CardStat = 'atk' | 'hp' | 'def' | 'spd'
+
+/**
+ * Buy one stat level on one owned copy with gold + the card's tag Cores. `level_up_stat`
+ * re-reads the price and the Core list inside the transaction, so the client never sends a
+ * cost — only which copy and which stat.
+ */
+export function useLevelUpStat() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ playerCardId, stat }: { playerCardId: string; stat: CardStat }) => {
+      const { data, error } = await supabase.rpc('level_up_stat', {
+        p_player_card_id: playerCardId,
+        p_stat: stat,
+      })
+      if (error) throw error
+      return data as PlayerCard
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['player_cards'] })
+      void queryClient.invalidateQueries({ queryKey: ['inventory'] })
+      void queryClient.invalidateQueries({ queryKey: ['profile'] })
+      void queryClient.invalidateQueries({ queryKey: ['parties'] })
     },
   })
 }

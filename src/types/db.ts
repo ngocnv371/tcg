@@ -42,20 +42,14 @@ export type RankMetaRow = {
   atk_base: number
   def_ratio: number
   rank_mult: number
+  /** Flat multiplier applied to every stat of a copy at this rank. */
+  stat_mult: number
   level_cap: number
   atk_growth: number
   levelup_gold_base: number
   levelup_gold_exp: number
   dupe_shard_material: string
   dupe_shard_qty: number
-}
-
-export type RankCost = {
-  card_id: string
-  from_rank: CardRank
-  to_rank: CardRank
-  gold: number
-  materials: Record<string, number>
 }
 
 export type Dungeon = {
@@ -129,8 +123,13 @@ export type PlayerCard = {
   id: string
   profile_id: string
   card_id: string
-  level: number
+  /** Rank is a flat multiplier across every stat; rank-up consumes duplicate copies. */
   rank: CardRank
+  /** Independent per-stat levels; each costs fixed gold + the card's tag Cores. */
+  atk_level: number
+  hp_level: number
+  def_level: number
+  spd_level: number
   locked: boolean
   obtained_at: string
 }
@@ -254,6 +253,8 @@ export type Quest = {
   /** One-time bonus, paid only on the first clear. */
   first_clear_gold: number
   first_clear_materials: Record<string, number>
+  /** Chance a clear drops one of the enemies as a card (0..1). Rolled server-side. */
+  card_drop_chance: number
   intro: QuestLine[]
   outro: QuestLine[]
 }

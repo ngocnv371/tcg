@@ -4,15 +4,8 @@
  * Supabase client. Everything here is a *preview*: the server functions remain the
  * authority on whether an action is actually allowed.
  */
-import { rankUpCost } from '@/game/formulas'
-import type {
-  CardRank,
-  Card,
-  ChestInventoryRow,
-  DungeonRun,
-  PlayerCard,
-  PlayerMaterial,
-} from '@/types/db'
+import { selectRankUpFodder } from '@/game/formulas'
+import type { CardRank, ChestInventoryRow, DungeonRun, PlayerCard } from '@/types/db'
 
 /**
  * Whether today's free chest is still unclaimed. Mirrors the `current_date` guard inside
@@ -38,28 +31,25 @@ export type RankUpReady = {
 }
 
 /**
- * Every owned copy whose next rank is already covered by the current gold and materials.
- * Runs the same `rankUpCost` ladder the server re-reads; a shortfall anywhere drops the
- * copy, so the shelf never offers a rank-up that would roll back.
+ * Every owned copy with enough duplicate fodder to rank up. Runs the same
+ * `selectRankUpFodder` the server mirrors; an equipped copy cannot be fodder, so the caller
+ * passes the set of player_card ids currently in a party.
  */
 export function rankUpReadyCopies(
   collection: readonly PlayerCard[],
-  cards: readonly Card[],
-  materials: readonly PlayerMaterial[],
-  gold: number,
+  equippedIds: ReadonlySet<string> = new Set(),
 ): RankUpReady[] {
-  const tagsById = new Map(cards.map((card) => [card.id, card.tags ?? []]))
-  const qtyById = new Map(materials.map((row) => [row.material_id, row.qty]))
+  const candidates = collection.map((copy) => ({
+    id: copy.id,
+    card_id: copy.card_id,
+    rank: copy.rank,
+    locked: copy.locked,
+    inParty: equippedIds.has(copy.id),
+  }))
 
   return collection.flatMap((copy) => {
-    const tags = tagsById.get(copy.card_id)
-    if (!tags) return []
-    const cost = rankUpCost(copy.rank, tags)
-    if (!cost || gold < cost.gold) return []
-    const covered = Object.entries(cost.materials).every(
-      ([id, need]) => (qtyById.get(id) ?? 0) >= need,
-    )
-    if (!covered) return []
+    const fodder = selectRankUpFodder(copy, candidates)
+    if (!fodder) return []
     return [
       {
         playerCardId: copy.id,
@@ -132,11 +122,14 @@ export function buildOnboardingSteps(input: {
       to: '/dungeons',
     },
     {
-      id: 'rank-up',
-      label: 'Rank up a card',
+      id: 'level-up',
+      label: 'Level up a stat',
       hint: 'Spend the tutorial gold and Cores on a 1★ copy.',
-      cta: 'Rank up',
-      done: input.collection.some((copy) => copy.rank > 1),
+      cta: 'Level up',
+      done: input.collection.some(
+        (copy) =>
+          copy.atk_level > 1 || copy.hp_level > 1 || copy.def_level > 1 || copy.spd_level > 1,
+      ),
       to: '/cards',
     },
   ]

@@ -1,7 +1,7 @@
 import type { PartyLoadout } from '@/features/party/api'
 import type { Combatant } from '@/game/battle'
-import { cardAtk, cardDef, cardHp } from '@/game/formulas'
-import type { Card, CardRank, PlayerCard, QuestEnemy } from '@/types/db'
+import { resolveCardStats } from '@/game/formulas'
+import type { Card, PlayerCard, QuestEnemy } from '@/types/db'
 
 /** One party slot resolved to its catalog card and the owned copy that fights. */
 export type PartyMember = { card: Card; playerCard: PlayerCard }
@@ -27,24 +27,29 @@ export function partyMembers(
   })
 }
 
-/** Player combatants: stats from the owned copy (rank/level) plus the card's SPD, and the card's
- * own art so the board looks like the party screen. */
+/** Player combatants: stats from the owned copy (rank + per-stat levels) and the card's own
+ * art, so the board looks like the party screen. */
 export function playerCombatants(members: PartyMember[]): Combatant[] {
   return members.map(({ card, playerCard }) => {
-    const rank = playerCard.rank as CardRank
-    const hp = cardHp(rank, playerCard.level)
+    const stats = resolveCardStats(card, {
+      rank: playerCard.rank,
+      atk_level: playerCard.atk_level,
+      hp_level: playerCard.hp_level,
+      def_level: playerCard.def_level,
+      spd_level: playerCard.spd_level,
+    })
     return {
       id: playerCard.id,
       side: 'player',
       name: card.name,
       icon: ROLE_ICON[card.role] ?? '⚔️',
       artPath: card.art_path,
-      rank,
-      hp,
-      maxHp: hp,
-      atk: cardAtk(rank, playerCard.level),
-      def: cardDef(rank, playerCard.level),
-      spd: card.speed,
+      rank: playerCard.rank,
+      hp: stats.hp,
+      maxHp: stats.hp,
+      atk: stats.atk,
+      def: stats.def,
+      spd: stats.spd,
     }
   })
 }

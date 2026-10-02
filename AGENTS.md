@@ -64,7 +64,7 @@ enemy row is a `type=card` row too, it just carries battle stats the shared cata
 a quest chain's own monsters render through the same graph without a flag. The bestiaries are
 scanned by suffix (so a new `quest1.enemies.csv` is picked up with no edit here), each file's own
 column order is honoured, and an id already carried by `data/assets.csv` is rendered once.
-| 4 import (cards) | `scripts/assets-import.mjs` | `npm run assets:import` | `type=card` rows **and every `data/*enemies.csv` bestiary** + `data/cards/<id>.png` | `cards` + `card_rank_costs`, `card-art` bucket |
+| 4 import (cards) | `scripts/assets-import.mjs` | `npm run assets:import` | `type=card` rows **and every `data/*enemies.csv` bestiary** + `data/cards/<id>.png` | `cards`, `card-art` bucket |
 | 4 import (materials) | `scripts/materials-4-import.mjs` | `npm run materials:4:import` | `type=material` rows + `data/materials/<id>.png` | `materials.icon`, `material-art` bucket |
 | 4 import (chests) | `scripts/chests-4-import.mjs` | `npm run chests:4:import` | `type=chest` rows + `data/chests/<id>.png` | `chests.icon`, `material-art` bucket (shared with materials) |
 
@@ -74,11 +74,11 @@ real `cards` rows the quest importer only references by id; an id the shared cat
 carries wins, so a promoted enemy imports once with its authored fields). It fills whatever a row
 leaves blank (tags from the title, role and passives hashed from the id) and always re-derives
 `base_atk`/`base_def` from
-`RANK_META`, so the CSV's stats stay a sketch instead of a second balance table. **Every catalog
-card is a rank-1 base**: the importer writes `rank = 1` and ignores the CSV's `rank` cell, because
-a card's rank belongs to the *copy* a chest grants (or to whatever `rank_up_card` last left it),
-never to the template — so the drop pool is the whole catalog, and `card_rank_costs` is built from
-1 for every card. Art is looked up by card id, never by a json sidecar, and **only rows whose
+`CARD_BASE_ATK`/`CARD_BASE_DEF`, so the CSV's stats stay a sketch instead of a second balance table.
+**Every catalog card is a rank-1 base**: the importer writes `rank = 1` and ignores the CSV's `rank`
+cell, because a card's rank belongs to the *copy* a chest grants (or to whatever `rank_up_card` last
+left it), never to the template — so the drop pool is the whole catalog. Art is looked up by card id,
+never by a json sidecar, and **only rows whose
 `<id>.png` exists are imported** — a row with no art is still an idea, so it is skipped with a
 warning rather than shipped with a placeholder. The `<Title>.json` files in `data/cards/` are
 provenance from before this pipeline existed (the first 39 cards were moved into the CSV by
@@ -143,7 +143,8 @@ so never hardcode `BATCH_DURATION` for them. Adding a variant is one file plus o
 draw is client-side on purpose: it picks presentation only, unlike a drop roll. A player
 owns multiple copies of one card: `open_chest` inserts a
 `player_cards` row on *every* pull (a duplicate used to pay shards only) and return that row's
-`player_card_id`. The dupe shard payout is deliberately kept so `rank_up_card` stays fed. Because copies
+`player_card_id`. The dupe shard payout is deliberately kept (it feeds no sink yet, but is not a
+progression writer). Because copies
 level and rank independently, the library renders one tile per owned copy (keyed by `cardBrowserKey` in
 `src/features/cards/CardBrowser.tsx`), the chest reveal links to the copy it granted, and the detail route
 `cards/:cardRefId` resolves a copy id first and falls back to a catalog card id. A party
@@ -163,30 +164,32 @@ A rank-up shortfall is now a destination: `dungeonsDropping()`
 `CardDetailScreen`, which deep-link to `/dungeons?focus=<id>` (highlighted and scrolled to). So the
 party picker shows `Yield ×N` where it used to show success odds, and the failure
 messaging and pity gold are gone. The online resolve and the cron sweep share that one body, so a
-run cannot expire two different ways. Rank-up is live: `rank_up_card`
-locks the copy, re-reads the `card_rank_costs` step for its
-*current* rank, takes the gold and the materials behind `not found` guards (a short balance raises
-and rolls the whole spend back), then returns the bumped row. The ladder lives once, in
-`RANK_UP_LADDER` / `rankUpCost` (`src/game/formulas.ts`) — `scripts/assets-import.mjs`
-derives `card_rank_costs` from it (the seed no longer writes them), so re-run
-`npm run assets:import` after a balance change or already-imported cards have no upgrade path. The
-detail screen previews the next step from `card_rank_costs` (never its own numbers) and enables the
-button only when the gold and every material are covered; on success it plays `RankUpAnimation`
-(`RANK_UP_DURATION` = 140 frames at 30fps ≈ 4.7s) in `RankUpOverlay`, which closes itself. Both the
-chest reveals and the rank-up share `REVEAL_PLAYER_STAGE` (`unlockVisuals.ts`).
+run cannot expire two different ways. **Rank is a flat multiplier across every stat, and rank-up
+consumes duplicate copies of the same card** (`20261002000000_card_progression.sql`). A card's
+catalog row stores its rank-1 base stats; `card_atk/card_def` apply `rank_meta.stat_mult`
+(`RANK_META[r].statMult`) times each stat's own level. `rank_up_card(copy, fodder[])` locks the
+target, auto-selects the cheapest covering fodder when given none, requires fodder worth `2^rank`
+base copies (a rank-r copy is worth `2^(r-1)`, so 1→2 = 2 copies, 4→5 = 16), deletes the fodder and
+bumps the rank. `selectRankUpFodder` / `rankUpRequirement` in `src/game/formulas.ts` mirror it for
+the client; the detail screen previews the step and plays `RankUpAnimation`
+(`RANK_UP_DURATION` = 140 frames at 30fps ≈ 4.7s) in `RankUpOverlay`. Both the chest reveals and
+the rank-up share `REVEAL_PLAYER_STAGE` (`unlockVisuals.ts`). The old `card_rank_costs` table is
+dead (no writer, no reader); `assets-import.mjs` no longer writes it.
 
-Cores are the material economy (`src/game/formulas.ts`): every **card tag** owns a Core family
-(`CORE_TAGS` = physical, fire, water, electric, grass, earth, ice, dragon, dark — lowercase ids,
-`tagLabel()` for display), and a rank-up spends gold + the step's shard + **one Core per tag the
-card carries** — a fire + dragon card needs both Fire and Dragon Cores. `rankUpCost(fromRank, tags)`
-takes tags, not faction, so a card's farm route follows its tags. `physical` is the NEUTRAL type: it
-is the fallback tag for a card whose title names no known element, **not** a tag every card carries
-(that was the old `Beast`). Cores come in four grades (`CORE_VARIANTS`: lesser
-→ greater → mythic → legendary) and there is **one grade per rank step**: 1→2 lesser, 2→3 greater,
-3→4 mythic, 4→5 legendary. The seeded catalog is `CORE_TAGS.length × CORE_VARIANTS.length` = 36 core
-materials, derived from `tagCoreId()` by `scripts/build-seed.mjs`; `verify-db.sh` asserts 36. Rank-up
-no longer uses ore/crystal/essence/boss_core — those rows are no longer seeded (they are not deleted
-from an existing DB, since `player_materials` references them).
+Cores are the **stat-level** material economy (`src/game/formulas.ts`): every **card tag** owns a
+Core family (`CORE_TAGS` = physical, fire, water, electric, grass, earth, ice, dragon, dark —
+lowercase ids, `tagLabel()` for display). Each owned copy carries four independent stat levels
+(`player_cards.atk_level/hp_level/def_level/spd_level`, the old shared `level` is dropped) and
+`level_up_stat(copy, stat)` buys one level for a **fixed** gold price (`levelUpGold`) plus **one
+Core per tag the card carries**, graded by the copy's current rank — a fire + dragon card needs both
+Fire and Dragon Cores. `statLevelCost(rank, tags, targetLevel)` takes tags, not faction, so a card's
+farm route follows its tags. `physical` is the NEUTRAL type: the fallback tag for a card whose title
+names no known element, **not** a tag every card carries. Cores come in four grades
+(`CORE_VARIANTS`: lesser → greater → mythic → legendary) and there is **one grade per rank** (rank 4
+and 5 both legendary): `coreVariantForRank`. The seeded catalog is
+`CORE_TAGS.length × CORE_VARIANTS.length` = 36 core materials, derived from `tagCoreId()` by
+`scripts/build-seed.mjs`; `verify-db.sh` asserts 36. `dupeShards` still pays on a duplicate pull
+(that shard income feeds nothing now but is kept for a future sink).
 
 Dungeons are farm spots: `dungeons.rank` (1..5, `coreVariantForRank` maps 4 and 5 both to legendary)
 picks the Core grade, and `dungeons.tags` names the Core families (same lowercase tag ids).
@@ -225,7 +228,7 @@ now the **Chests** tab *inside* `VaultScreen`, beside **Resources**; the tab is 
 still land on the right tab.
 
 Onboarding ships as the first-session script (free Rare chest → guaranteed 3★ starter →
-build a party → guided run → guided rank-up), split between the provisioning/yield branches in
+build a party → guided run → guided stat level-up), split between the provisioning/yield branches in
 `20260915000001_progression.sql`, the `dungeons.is_tutorial` column in `init.sql`, and
 `src/features/onboarding/`. The party beat matters because provisioning can create an empty
 "First Expedition" for an account born before any cards exist, so the first card still has to
@@ -234,8 +237,8 @@ be slotted in by hand.
 guarded so it is idempotent and skips while the `chests` catalog is still empty, which is the
 migration-time dev account) and promotes the first card it hands out to **3★** — the guaranteed
 starter. `scripts/build-seed.mjs` is the ONE place that seeds a dungeon: `training_grounds`, a
-10-second `is_tutorial` run whose fixed payout is `tutorialReward()` = the ladder's 1→2 step for
-every Core family, so the guided rank-up is always affordable. `private.resolve_due_runs` pins a
+10-second `is_tutorial` run whose fixed payout is `tutorialReward()` = one stat level's gold plus one
+Lesser Core of every family, so the guided stat level-up is always affordable. `private.resolve_due_runs` pins a
 tutorial's yield multiplier to 1 (party power must not scale it) and `start_run` raises
 `'tutorial already completed'` on any second run for a tutorial dungeon. `DungeonMapScreen` marks
 it "one-time tutorial" and drops it from the map once its run is claimed. The client guide is two
@@ -279,10 +282,11 @@ bottom tab; Dungeons moved to the header nav.
 
 Scope decisions, 2026-09-20 — do not re-add these without asking:
 
-- **Card level-up is cancelled.** Rank-up is the only way a card gets stronger. There is no
-  `level_up_card` and there never will be; `CardDetailScreen` still *shows* `levelUpGold` and
-  `cardAtk(rank, level)` stays level-aware because `player_cards.level` exists, but nothing
-  raises it. Treat the level half of the stat formula as dormant, not as a to-do.
+- **The old shared card level-up stays cancelled** (superseded 2026-10-02 by per-stat levels).
+  There is a single `player_cards.level` no more — a copy carries four independent stat levels
+  (`atk_level`/`hp_level`/`def_level`/`spd_level`) and `level_up_stat(copy, stat)` is the only
+  thing that raises them, for fixed gold + tag Cores. Rank is a separate, multiplicative axis
+  that only rank-up (duplicate cards) changes.
 - **Player progression is out of scope for v1.** No XP is granted and `profiles.player_level`
   stays 1, so `run_slot_unlocks` never fires and `run_slots` stays at its default 2. The
   columns and the table are left in place because removing them touches the importer, the

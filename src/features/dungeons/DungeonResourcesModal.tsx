@@ -153,7 +153,7 @@ export function DungeonResourcesModal({
           {fixed ? (
             <p className="text-xs text-ink-500">
               The tutorial pays exactly this — party power and resonance do not change it, so the
-              guided rank-up is always affordable.
+              guided stat level-up is always affordable.
             </p>
           ) : (
             <p className="text-xs text-ink-500">

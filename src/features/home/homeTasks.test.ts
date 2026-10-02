@@ -1,48 +1,26 @@
 import { describe, expect, it } from 'vitest'
 
 import { buildOnboardingSteps, dailyChestReady, rankUpReadyCopies } from './homeTasks'
-import { tagCoreId } from '@/game/formulas'
-import type {
-  Card,
-  CardRank,
-  ChestInventoryRow,
-  DungeonRun,
-  PlayerCard,
-  PlayerMaterial,
-} from '@/types/db'
+import type { CardRank, ChestInventoryRow, DungeonRun, PlayerCard } from '@/types/db'
 
-function card(overrides: Partial<Card> & { id: string }): Card {
-  return {
-    name: 'Test Card',
-    rank: 1,
-    faction: 'ember',
-    role: 'dps',
-    base_atk: 1,
-    base_def: 1,
-    passive_name: '',
-    passive_text: '',
-    lore: '',
-    tags: [],
-    speed: 10,
-    art_path: null,
-    ...overrides,
-  }
-}
-
-function playerCard(id: string, rank: CardRank = 1, cardId = 'c1'): PlayerCard {
+function playerCard(
+  id: string,
+  rank: CardRank = 1,
+  cardId = 'c1',
+  atkLevel = 1,
+): PlayerCard {
   return {
     id,
     profile_id: 'p1',
     card_id: cardId,
-    level: 1,
     rank,
+    atk_level: atkLevel,
+    hp_level: 1,
+    def_level: 1,
+    spd_level: 1,
     locked: false,
     obtained_at: '2026-01-01T00:00:00Z',
   }
-}
-
-function material(materialId: string, qty: number): PlayerMaterial {
-  return { profile_id: 'p1', material_id: materialId, qty }
 }
 
 function chest(opened: boolean): ChestInventoryRow {
@@ -90,27 +68,24 @@ describe('dailyChestReady', () => {
 })
 
 describe('rankUpReadyCopies', () => {
-  const cards = [card({ id: 'c1', tags: ['fire'] })]
-
-  it('offers a copy whose gold and every material are covered', () => {
-    const materials = [material('common_shard', 10), material(tagCoreId('fire', 'lesser'), 3)]
-    expect(rankUpReadyCopies([playerCard('pc1')], cards, materials, 1000)).toEqual([
-      { playerCardId: 'pc1', cardId: 'c1', fromRank: 1, toRank: 2 },
-    ])
+  it('offers a copy when two rank-1 duplicates are held', () => {
+    const collection = [playerCard('pc1'), playerCard('pc2'), playerCard('pc3')]
+    const ready = rankUpReadyCopies(collection)
+    expect(ready.map((row) => row.playerCardId).sort()).toEqual(['pc1', 'pc2', 'pc3'])
+    expect(ready[0]).toMatchObject({ cardId: 'c1', fromRank: 1, toRank: 2 })
   })
 
-  it('holds back when the gold is one short', () => {
-    const materials = [material('common_shard', 10), material(tagCoreId('fire', 'lesser'), 3)]
-    expect(rankUpReadyCopies([playerCard('pc1')], cards, materials, 999)).toEqual([])
+  it('holds back when there is only one duplicate', () => {
+    expect(rankUpReadyCopies([playerCard('pc1'), playerCard('pc2')])).toEqual([])
   })
 
-  it('holds back when a tag Core is missing', () => {
-    const materials = [material('common_shard', 10)]
-    expect(rankUpReadyCopies([playerCard('pc1')], cards, materials, 1000)).toEqual([])
+  it('excludes duplicates that are equipped in a party', () => {
+    const collection = [playerCard('pc1'), playerCard('pc2'), playerCard('pc3')]
+    expect(rankUpReadyCopies(collection, new Set(['pc2', 'pc3']))).toEqual([])
   })
 
   it('offers nothing at the top of the ladder', () => {
-    expect(rankUpReadyCopies([playerCard('pc5', 5)], cards, [], 1_000_000)).toEqual([])
+    expect(rankUpReadyCopies([playerCard('pc5', 5), playerCard('pc6', 5)])).toEqual([])
   })
 })
 
@@ -126,7 +101,7 @@ describe('buildOnboardingSteps', () => {
     const steps = buildOnboardingSteps({
       chests: [chest(true)],
       runs: [run(true)],
-      collection: [playerCard('pc1', 2)],
+      collection: [playerCard('pc1', 2, 'c1', 2)],
       parties: [filledParty],
     })
     expect(steps.every((step) => step.done)).toBe(true)

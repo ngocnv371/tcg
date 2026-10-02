@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url'
 
 import {
   ATK_GROWTH_PER_LEVEL,
+  CARD_BASE_ATK,
   CHEST_GEM_PRICES,
   CHEST_ODDS,
   CORE_TAGS,
@@ -145,10 +146,13 @@ push(
 
 push(
   '-- rank_meta',
-  'insert into public.rank_meta (rank, atk_base, def_ratio, rank_mult, level_cap, atk_growth, levelup_gold_base, levelup_gold_exp, dupe_shard_material, dupe_shard_qty) values',
+  '-- stat_mult is the flat all-stat multiplier (RANK_META.statMult); atk_base/rank_mult are kept',
+  '-- populated for older readers but the derived functions no longer consult them.',
+  'insert into public.rank_meta (rank, atk_base, def_ratio, rank_mult, level_cap, atk_growth, levelup_gold_base, levelup_gold_exp, dupe_shard_material, dupe_shard_qty, stat_mult) values',
   Object.entries(RANK_META)
     .map(([rank, meta]) => {
-      return `  (${rank}, ${meta.atkBase}, ${meta.defRatio.toFixed(3)}, ${meta.rankMult.toFixed(2)}, ${meta.levelCap}, ${ATK_GROWTH.toFixed(4)}, ${LEVELUP_BASE.toFixed(2)}, ${LEVELUP_EXP.toFixed(2)}, ${sql(SHARD_BY_RANK[rank])}, ${meta.dupeShards})`
+      const atkBase = Math.round(CARD_BASE_ATK * meta.statMult)
+      return `  (${rank}, ${atkBase}, 0.600, ${meta.statMult.toFixed(2)}, ${meta.levelCap}, ${ATK_GROWTH.toFixed(4)}, ${LEVELUP_BASE.toFixed(2)}, ${LEVELUP_EXP.toFixed(2)}, ${sql(SHARD_BY_RANK[rank])}, ${meta.dupeShards}, ${meta.statMult.toFixed(3)})`
     })
     .join(',\n'),
   'on conflict (rank) do update set',
@@ -160,7 +164,8 @@ push(
   '  levelup_gold_base = excluded.levelup_gold_base,',
   '  levelup_gold_exp = excluded.levelup_gold_exp,',
   '  dupe_shard_material = excluded.dupe_shard_material,',
-  '  dupe_shard_qty = excluded.dupe_shard_qty;',
+  '  dupe_shard_qty = excluded.dupe_shard_qty,',
+  '  stat_mult = excluded.stat_mult;',
   '',
 )
 

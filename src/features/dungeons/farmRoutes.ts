@@ -1,5 +1,5 @@
 /**
- * Reverse of the dungeon drop table: given a material a rank-up is short on, which dungeons
+ * Reverse of the dungeon drop table: given a material a stat level is short on, which dungeons
  * list it. The drop table is fixed and paid in full, so this is a promise rather than a
  * guess — it is what turns "3 more Fire Cores" into a place to go.
  */
